@@ -1,0 +1,14 @@
+debug
+release
+lib
+bin
+debian
+
+Makefile*
+obj
+moc
+
+*~
+*.pro.user
+*.changes
+*.deb
