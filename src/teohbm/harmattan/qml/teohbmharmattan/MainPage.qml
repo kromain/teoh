@@ -42,20 +42,21 @@ Page {
                            audioAnalyzer.stopCapture();
                        else
                            audioAnalyzer.startCapture();
+
+                       avStreamer.stopStreaming();
                    }
                }
 
                Connections {
                    target: audioAnalyzer
                    onNotifyTriggered: {
-                       statusLabel.text = "Sound detected!"
+                       statusLabel.text = "Sound detected!";
+                       avStreamer.startStreaming();
                    }
-               }
-               Connections {
-                   target: audioAnalyzer
                    onAlarmTriggered: {
-                       statusLabel.text = "ALARM !!!";
+                       statusLabel.text = "OOPS !!!";
                        vibrationEffect.start();
+                       avStreamer.startStreaming();
                    }
                }
                HapticsEffect {
