@@ -11,7 +11,6 @@ public:
     Private( AudioAnalyzer* _q ) : q(_q) {}
 
     void readSamples();
-    void dataReady();
 
     void setPeakValue( int );
 
@@ -27,11 +26,7 @@ public:
     QTime alarmPeriod;
 };
 
-QDebug& operator <<(QDebug dbg, const QAudioFormat& format)
-{
-    return dbg << format.channelCount() << "channel(s)," << format.sampleRate() << "Hz," << format.sampleSize() << "bits," << format.sampleType() << "int/uint/float," << format.byteOrder() << "BE/LE";
-}
-
+QDebug& operator <<(QDebug dbg, const QAudioFormat& format);
 
 AudioAnalyzer::AudioAnalyzer(QObject *parent) :
     QObject(parent),
@@ -43,8 +38,6 @@ AudioAnalyzer::AudioAnalyzer(QObject *parent) :
     d->alarmTriggerPeriod = 2;
 
     QAudioDeviceInfo defaultInputDevice = QAudioDeviceInfo::defaultInputDevice();
-    qDebug() << "Default input device" << defaultInputDevice.deviceName();
-    qDebug() << "Preferred recording formats:" << defaultInputDevice.preferredFormat();
 
     QAudioFormat recordingFormat;
     recordingFormat.setFrequency(8000);
