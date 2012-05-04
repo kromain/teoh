@@ -19,6 +19,9 @@
     CONFIG += have_libteoh
     DEFINES += HAVE_LIBTEOH
 
+    unix:POST_TARGETDEPS += $$LIBTEOHDIR/../../lib/libteoh.a
+    win32:POST_TARGETDEPS += $$LIBTEOHDIR/../../lib/libteoh.lib
+
   } else {
     warning( "LibTeoh not found! Please set LIBTEOHDIR either as an environment variable or on the qmake command line")
   }
