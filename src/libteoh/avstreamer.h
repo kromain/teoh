@@ -28,6 +28,9 @@ signals:
 private:
     class Private;
     QScopedPointer<Private> d;
+
+    Q_PRIVATE_SLOT( d, void socketError() )
+    Q_PRIVATE_SLOT( d, void dataSent(qint64) )
 };
 
 #endif // AVSTREAMER_H
