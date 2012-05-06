@@ -58,9 +58,6 @@ AudioAnalyzer::AudioAnalyzer(QObject *parent) :
     connect( d->audioInput, SIGNAL(notify()), SLOT(readSamples()) );
 
     d->samplesBuffer = d->audioInput->start();
-
-    d->audioInput->resume();
-    d->audioInput->suspend();
 }
 
 AudioAnalyzer::~AudioAnalyzer()

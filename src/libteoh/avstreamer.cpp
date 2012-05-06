@@ -61,7 +61,6 @@ AVStreamer::AVStreamer(QObject *parent) :
 
     d->audioInput = new QAudioInput(inputDevice, recordingFormat, this);
     d->audioInput->start(d->streamSocket);
-    d->audioInput->resume();
     d->audioInput->suspend();
 }
 
