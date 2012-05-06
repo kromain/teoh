@@ -37,7 +37,7 @@ AudioAnalyzer::AudioAnalyzer(QObject *parent) :
     d->alarmThreshold = 60;
     d->alarmTriggerPeriod = 2;
 
-    QAudioDeviceInfo defaultInputDevice = QAudioDeviceInfo::defaultInputDevice();
+    QAudioDeviceInfo inputDevice = QAudioDeviceInfo::defaultInputDevice();
 
     QAudioFormat recordingFormat;
     recordingFormat.setFrequency(8000);
@@ -46,13 +46,13 @@ AudioAnalyzer::AudioAnalyzer(QObject *parent) :
     recordingFormat.setCodec("audio/pcm");
     recordingFormat.setByteOrder(QAudioFormat::LittleEndian);
     recordingFormat.setSampleType(QAudioFormat::UnSignedInt);
-    if (!defaultInputDevice.isFormatSupported(recordingFormat)) {
-        recordingFormat = defaultInputDevice.nearestFormat(recordingFormat);
+    if (!inputDevice.isFormatSupported(recordingFormat)) {
+        recordingFormat = inputDevice.nearestFormat(recordingFormat);
         qWarning() << "recording format not supported, using nearest supported";
     }
     //qDebug() << "Selected recording format:" << recordingFormat;
 
-    d->audioInput = new QAudioInput(recordingFormat, this);
+    d->audioInput = new QAudioInput(inputDevice, recordingFormat, this);
     d->audioInput->setBufferSize(500);
     d->audioInput->setNotifyInterval(500);
     connect( d->audioInput, SIGNAL(notify()), SLOT(readSamples()) );

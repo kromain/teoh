@@ -35,16 +35,16 @@ AVStreamer::AVStreamer(QObject *parent) :
 
     d->streamSocket = new QUdpSocket(this);
     connect( d->streamSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketError()) );
-    connect( d->streamSocket, SIGNAL(bytesWritten(qint64)), SLOT(dataSent(qint64)) );
+    // only for debugging
+    //connect( d->streamSocket, SIGNAL(bytesWritten(qint64)), SLOT(dataSent(qint64)) );
 #if QT_VERSION >=0x040800
     d->streamSocket->setSocketOption(QAbstractSocket::MulticastTtlOption, 1);
     d->streamSocket->connectToHost( QHostAddress("239.51.67.81"), 2012 );
 #else
     d->streamSocket->connectToHost( QHostAddress::Broadcast, 2012 );
 #endif
-    d->streamSocket->waitForConnected();
 
-    QAudioDeviceInfo defaultInputDevice = QAudioDeviceInfo::defaultInputDevice();
+    QAudioDeviceInfo inputDevice = QAudioDeviceInfo::defaultInputDevice();
 
     QAudioFormat recordingFormat;
     recordingFormat.setFrequency(8000);
@@ -53,13 +53,13 @@ AVStreamer::AVStreamer(QObject *parent) :
     recordingFormat.setCodec("audio/pcm");
     recordingFormat.setByteOrder(QAudioFormat::LittleEndian);
     recordingFormat.setSampleType(QAudioFormat::UnSignedInt);
-    if (!defaultInputDevice.isFormatSupported(recordingFormat)) {
-        recordingFormat = defaultInputDevice.nearestFormat(recordingFormat);
+    if (!inputDevice.isFormatSupported(recordingFormat)) {
+        recordingFormat = inputDevice.nearestFormat(recordingFormat);
         qWarning() << "recording format not supported, using nearest supported";
     }
     //qDebug() << "Selected recording format:" << recordingFormat;
 
-    d->audioInput = new QAudioInput(recordingFormat, this);
+    d->audioInput = new QAudioInput(inputDevice, recordingFormat, this);
     d->audioInput->start(d->streamSocket);
     d->audioInput->resume();
     d->audioInput->suspend();
