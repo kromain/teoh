@@ -2,9 +2,8 @@ TEMPLATE = lib
 TARGET = teoh
 DESTDIR = ../../lib
 
-CONFIG += static mobility
-QT       += network
-MOBILITY = multimedia
+QT += network multimedia
+CONFIG += static
 
 HEADERS += \
     avstreamer.h \
