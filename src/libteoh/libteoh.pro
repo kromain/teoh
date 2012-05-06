@@ -6,8 +6,15 @@ win32:CONFIG(debug, debug|release) {
     TARGET = teoh
 }
 
-QT += network multimedia
+QT += network
 CONFIG += static
+
+win32 {
+    QT += multimedia
+} else {
+    CONFIG += mobility
+    MOBILITY = multimedia
+}
 
 HEADERS += \
     libteoh.h.in \

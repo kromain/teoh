@@ -20,4 +20,9 @@ win32:CONFIG(debug, debug|release) {
 CONFIG += have_libteoh
 DEFINES += HAVE_LIBTEOH
 
-QT += network multimedia
+win32 {
+    QT += multimedia
+} else {
+    CONFIG += mobility
+    MOBILITY = multimedia
+}
