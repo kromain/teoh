@@ -50,7 +50,7 @@ AudioAnalyzer::AudioAnalyzer(QObject *parent) :
         recordingFormat = defaultInputDevice.nearestFormat(recordingFormat);
         qWarning() << "recording format not supported, using nearest supported";
     }
-    qDebug() << "Selected recording format:" << recordingFormat;
+    //qDebug() << "Selected recording format:" << recordingFormat;
 
     d->audioInput = new QAudioInput(recordingFormat, this);
     d->audioInput->setBufferSize(500);

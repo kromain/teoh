@@ -57,7 +57,7 @@ AVStreamer::AVStreamer(QObject *parent) :
         recordingFormat = defaultInputDevice.nearestFormat(recordingFormat);
         qWarning() << "recording format not supported, using nearest supported";
     }
-    qDebug() << "Selected recording format:" << recordingFormat;
+    //qDebug() << "Selected recording format:" << recordingFormat;
 
     d->audioInput = new QAudioInput(recordingFormat, this);
     d->audioInput->start(d->streamSocket);
@@ -94,12 +94,13 @@ void AVStreamer::stopStreaming()
 
 void AVStreamer::Private::socketError()
 {
-    qWarning() << "Multicast socket error:" << streamSocket->errorString();
+    qWarning() << "Broadcasting error:" << streamSocket->errorString();
+    // TODO better error handling, use a direct TCP socket instead?
 }
 
 void AVStreamer::Private::dataSent(qint64 bytes)
 {
-    qDebug() << "Wrote" << bytes << "bytes (Error code:" << audioInput->error() << ")";
+    qDebug() << "Wrote" << bytes << "bytes (AudioInput state:" << audioInput->error() << ")";
 }
 
 #include "moc_avstreamer.cpp"
