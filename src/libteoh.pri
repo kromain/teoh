@@ -1,27 +1,23 @@
-# First check qmake variable, then environment variable, then use default
-  isEmpty( LIBTEOHDIR ):LIBTEOHDIR=$$(LIBTEOHDIR)
-  isEmpty( LIBTEOHDIR ):LIBTEOHDIR=$$PWD/libteoh
-  !isEmpty( LIBTEOHDIR ) {
-    !exists( $$LIBTEOHDIR/avstreamer.h ):error( "Cannot find avstreamer.h in $$LIBTEOHDIR" )
-    unix:!exists( $$LIBTEOHDIR/../../lib/libteoh.a ):error( "Cannot find libteoh.a in $$LIBTEOHDIR/../../lib" )
-    win32:!exists( $$LIBTEOHDIR/../../lib/libteoh.lib ):error( "Cannot find libteoh[d].lib in $$LIBTEOHDIR/../../lib" )
+isEmpty( LIBTEOH_SRCDIR ):LIBTEOH_SRCDIR=$$PWD/libteoh
+!exists( $$LIBTEOH_SRCDIR/libteoh.h.in ):error( "Cannot find libteoh.h.in in $$LIBTEOH_SRCDIR" )
 
-    INCLUDEPATH += $$LIBTEOHDIR
-    DEPENDPATH += $$LIBTEOHDIR
+isEmpty( LIBTEOH_BUILDDIR ):LIBTEOH_BUILDDIR=$$OUT_PWD/../../libteoh
+!exists( $$LIBTEOH_BUILDDIR/libteoh.h ):error( "Cannot find libteoh.h in $$LIBTEOH_BUILDDIR" )
 
-    LIBS += -L$$LIBTEOHDIR/../../lib
-    win32:CONFIG(debug, debug|release) {
-        LIBS += -lteohd
-    } else {
-        LIBS += -lteoh
-    }
+INCLUDEPATH += $$LIBTEOH_SRCDIR
+DEPENDPATH += $$LIBTEOH_SRCDIR
 
-    CONFIG += have_libteoh
-    DEFINES += HAVE_LIBTEOH
+LIBS += -L$$LIBTEOH_BUILDDIR/../../lib
+win32:CONFIG(debug, debug|release) {
+    LIBS += -lteohd
+    POST_TARGETDEPS += $$LIBTEOH_BUILDDIR/../../lib/teohd.lib
+} else {
+    LIBS += -lteoh
+    win32:POST_TARGETDEPS += $$LIBTEOH_BUILDDIR/../../lib/teoh.lib
+    else:POST_TARGETDEPS += $$LIBTEOH_BUILDDIR/../../lib/libteoh.a
+}
 
-    unix:POST_TARGETDEPS += $$LIBTEOHDIR/../../lib/libteoh.a
-    win32:POST_TARGETDEPS += $$LIBTEOHDIR/../../lib/libteoh.lib
+CONFIG += have_libteoh
+DEFINES += HAVE_LIBTEOH
 
-  } else {
-    warning( "LibTeoh not found! Please set LIBTEOHDIR either as an environment variable or on the qmake command line")
-  }
+QT += network multimedia

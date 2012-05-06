@@ -1,0 +1,6 @@
+#ifndef LIBTEOH_H_IN
+#define LIBTEOH_H_IN
+
+#define LIBTEOH_VERSION "0.0.1"
+
+#endif // LIBTEOH_H_IN

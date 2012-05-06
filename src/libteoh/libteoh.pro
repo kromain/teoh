@@ -1,14 +1,23 @@
 TEMPLATE = lib
-TARGET = teoh
 DESTDIR = ../../lib
+win32:CONFIG(debug, debug|release) {
+    TARGET = teohd
+} else {
+    TARGET = teoh
+}
 
 QT += network multimedia
 CONFIG += static
 
 HEADERS += \
+    libteoh.h.in \
+    audioanalyzer.h \
     avstreamer.h \
-    audioanalyzer.h
+    avreceiver.h
 
 SOURCES += \
+    audioanalyzer.cpp \
     avstreamer.cpp \
-    audioanalyzer.cpp
+    avreceiver.cpp
+
+QMAKE_SUBSTITUTES = $$PWD/libteoh.h.in
