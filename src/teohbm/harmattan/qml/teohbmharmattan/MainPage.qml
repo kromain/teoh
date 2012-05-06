@@ -54,21 +54,21 @@ Page {
                        avStreamer.startStreaming();
                    }
                    onAlarmTriggered: {
-                       statusLabel.text = "OOPS !!!";
-                       vibrationEffect.start();
+                       statusLabel.text = "ALARM !!!";
+//                       vibrationEffect.start();
                        avStreamer.startStreaming();
                    }
                }
-               HapticsEffect {
-                   id: vibrationEffect
-                   duration: 3000
-                   period: 1000
-                   intensity: 1.0
-                   attackIntensity: 0.0
-                   attackTime: 250
-                   fadeIntensity: 0.0
-                   fadeTime: 250
-               }
+//               HapticsEffect {
+//                   id: vibrationEffect
+//                   duration: 3000
+//                   period: 1000
+//                   intensity: 1.0
+//                   attackIntensity: 0.0
+//                   attackTime: 250
+//                   fadeIntensity: 0.0
+//                   fadeTime: 250
+//               }
            }
        }
 
