@@ -25,6 +25,11 @@ AVReceiver::AVReceiver(QObject *parent) :
 {
     d->socket = new QUdpSocket(this);
     d->socket->bind(2012);
+#if QT_VERSION >=0x040800
+    d->socket->setSocketOption(QAbstractSocket::MulticastTtlOption, 1);
+    d->socket->joinMulticastGroup( QHostAddress("239.51.67.81") );
+#endif
+
     connect( d->socket, SIGNAL(readyRead()), SLOT(dataReceived()) );
     connect( d->socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketError()) );
 
