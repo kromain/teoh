@@ -16,7 +16,8 @@ Page {
                spacing: 50
 
                Label {
-                   anchors.topMargin: 100
+                   font: UiConstants.HeaderFont
+                   anchors.topMargin: UiConstants.DefaultMargin
                    anchors.horizontalCenter: parent.horizontalCenter
                    id: statusLabel
                    text: "Listening..."
