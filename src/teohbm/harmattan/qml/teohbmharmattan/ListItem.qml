@@ -8,7 +8,10 @@ Item {
 
     property alias title: titleLabel.text
     property alias subtitle: subtitleLabel.text
+    property alias checked: onOffSwitch.checked
+
     property string icon: ""
+    property bool onOff: false
 
     width: parent.width
     height: container.height
@@ -43,6 +46,7 @@ Item {
                 visible: text.length > 0
             }
         }
+
         Image {
             id: iconImage
             anchors.right: parent.right
@@ -50,6 +54,14 @@ Item {
             source: (icon.length ? "image://theme/" + icon : "")
 
             visible: icon.length
+        }
+
+        Switch {
+            id: onOffSwitch
+            anchors.right: parent.right
+            anchors.top: parent.top
+
+            visible: onOff
         }
     }
 
