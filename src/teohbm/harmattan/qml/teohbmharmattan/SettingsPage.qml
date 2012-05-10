@@ -49,14 +49,15 @@ Page {
         titleText: "Broadcast duration:"
 
         model: ListModel {
-            ListElement { name: "5s" }
-            ListElement { name: "10s" }
-            ListElement { name: "15s" }
-            ListElement { name: "20s" }
-            ListElement { name: "25s" }
-            ListElement { name: "30s" }
+            ListElement { name: "5s"; value: 5 }
+            ListElement { name: "10s"; value: 10 }
+            ListElement { name: "15s"; value: 15 }
+            ListElement { name: "20s"; value: 20 }
+            ListElement { name: "25s"; value: 25 }
+            ListElement { name: "30s"; value: 30 }
         }
 
+        onAccepted: avStreamer.notificationDuration = model.get(selectedIndex).value;
     }
 
     ListModel {
