@@ -11,9 +11,18 @@ Page {
        Page {
            id: monitorTab
 
+           PageHeader {
+               id: pageHeader
+               anchors.top: monitorTab.top
+               text: "Monitor"
+           }
+
            Column {
-               anchors.fill: parent
-               spacing: 50
+               anchors.top: pageHeader.bottom
+               anchors.bottom: monitorTab.bottom
+               anchors.left: monitorTab.left
+               anchors.right: monitorTab.right
+               spacing: UiConstants.DefaultMargin
 
                Label {
                    font: UiConstants.HeaderFont
@@ -28,12 +37,6 @@ Page {
                    minimumValue: 0
                    maximumValue: 127
                    value: audioAnalyzer.peakValue
-               }
-               Slider {
-                   width: parent.width
-                   minimumValue: 0
-                   maximumValue: 127
-                   value: audioAnalyzer.notificationThreshold
                }
                Button {
                    width: parent.width
