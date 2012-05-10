@@ -13,18 +13,50 @@ Page {
 
     ListView {
         id: settingsList
-        width: settingsPage.width
         anchors.top: pageHeader.bottom
         anchors.bottom: settingsPage.bottom
+        anchors.left: settingsPage.left
+        anchors.right: settingsPage.right
+        anchors.margins: UiConstants.DefaultMargin
 
-        model: settingsModel
-        delegate: ListDelegate {}
+        model: VisualItemModel {
+            GroupHeader {
+                text: "Notifications"
+            }
+            ListItem {
+                title: "Trigger Level"
+                subtitle: "Noise level to start broadcast"
 
-        section.property: "settingCategory"
-        section.criteria: ViewSection.FullString
-        section.delegate: GroupHeader {
-            text: section
+                Slider {
+//                    width: settingsList.width
+                    minimumValue: 0
+                    maximumValue: 127
+                    value: audioAnalyzer.notificationThreshold
+                }
+            }
+            ListItem {
+                title: "Broadcast duration"
+                subtitle: avStreamer.notificationDuration + "s"
+                icon: "icon-m-textinput-combobox-arrow"
+
+                onClicked: durationSelection.open();
+            }
         }
+    }
+
+    SelectionDialog {
+        id: durationSelection
+        titleText: "Broadcast duration:"
+
+        model: ListModel {
+            ListElement { name: "5s" }
+            ListElement { name: "10s" }
+            ListElement { name: "15s" }
+            ListElement { name: "20s" }
+            ListElement { name: "25s" }
+            ListElement { name: "30s" }
+        }
+
     }
 
     ListModel {
@@ -32,7 +64,7 @@ Page {
         ListElement {
             title: "Notification Threshold"
             subtitle: "Set noise threshold for notifications"
-            settingCategory: "Emitter"
+            settingCategory: "Notification"
         }
 
         ListElement {
@@ -43,7 +75,7 @@ Page {
         ListElement {
             title: "Alarm delay"
             subtitle: "Set duration before triggering alarms"
-            settingCategory: "Receiver"
+            settingCategory: "Alarm"
         }
     }
 
