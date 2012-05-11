@@ -18,6 +18,7 @@ Page {
         anchors.left: settingsPage.left
         anchors.right: settingsPage.right
         anchors.margins: UiConstants.DefaultMargin
+        spacing: UiConstants.DefaultMargin
 
         model: VisualItemModel {
             GroupHeader {
@@ -25,21 +26,58 @@ Page {
             }
             ListItem {
                 title: "Trigger Level"
-                subtitle: "Noise level to start broadcast"
+                subtitle: "Noise level to trigger notifications"
 
                 Slider {
-//                    width: settingsList.width
                     minimumValue: 0
                     maximumValue: 127
                     value: audioAnalyzer.notificationThreshold
+                    onValueChanged: audioAnalyzer.notificationThreshold = value
                 }
             }
             ListItem {
-                title: "Broadcast duration"
+                title: "Broadcast Duration"
                 subtitle: avStreamer.notificationDuration + "s"
                 icon: "icon-m-textinput-combobox-arrow"
 
                 onClicked: durationSelection.open();
+            }
+            ListItem {
+                title: "Show Banner"
+                subtitle: "Show a system banner for notifications"
+                onOff: true
+            }
+
+            GroupHeader {
+                text: "Alarms"
+            }
+            ListItem {
+                title: "Trigger Level"
+                subtitle: "Noise level to trigger alarms"
+
+                Slider {
+                    minimumValue: 0
+                    maximumValue: 127
+                    value: audioAnalyzer.alarmThreshold
+                    onValueChanged: audioAnalyzer.alarmThreshold = value
+                }
+            }
+            ListItem {
+                title: "Trigger Period"
+                subtitle: audioAnalyzer.alarmTriggerPeriod + "s"
+                icon: "icon-m-textinput-combobox-arrow"
+
+                onClicked: periodSelection.open();
+            }
+            ListItem {
+                title: "Show Popup"
+                subtitle: "Show a popup window for alarms"
+                onOff: true
+            }
+            ListItem {
+                title: "Vibrate Phone"
+                subtitle: "Vibrate the phone during alarms"
+                onOff: true
             }
         }
     }
@@ -60,24 +98,18 @@ Page {
         onAccepted: avStreamer.notificationDuration = model.get(selectedIndex).value;
     }
 
-    ListModel {
-        id: settingsModel
-        ListElement {
-            title: "Notification Threshold"
-            subtitle: "Set noise threshold for notifications"
-            settingCategory: "Notification"
+    SelectionDialog {
+        id: periodSelection
+        titleText: "Alarm period:"
+
+        model: ListModel {
+            ListElement { name: "0s"; value: 0 }
+            ListElement { name: "1s"; value: 1 }
+            ListElement { name: "2s"; value: 2 }
+            ListElement { name: "3s"; value: 3 }
         }
 
-        ListElement {
-            title: "Notification duration"
-            subtitle: "Set broadcast duration for notifications"
-            settingCategory: "Emitter"
-        }
-        ListElement {
-            title: "Alarm delay"
-            subtitle: "Set duration before triggering alarms"
-            settingCategory: "Alarm"
-        }
+        onAccepted: audioAnalyzer.alarmTriggerPeriod = model.get(selectedIndex).value;
     }
 
     tools: ToolBarLayout {
