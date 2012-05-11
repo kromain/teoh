@@ -36,11 +36,18 @@ Page {
                 }
             }
             ListItem {
-                title: "Broadcast Duration"
+                title: "Audio Duration"
                 subtitle: avStreamer.notificationDuration + "s"
                 icon: "icon-m-textinput-combobox-arrow"
 
                 onClicked: durationSelection.open();
+            }
+            ListItem {
+                title: "Audio Quality"
+                subtitle: qualitySelection.model.get(audioAnalyzer.alarmTriggerPeriod).name
+                icon: "icon-m-textinput-combobox-arrow"
+
+                onClicked: qualitySelection.open();
             }
             ListItem {
                 title: "Show Banner"
@@ -110,6 +117,19 @@ Page {
         }
 
         onAccepted: audioAnalyzer.alarmTriggerPeriod = model.get(selectedIndex).value;
+    }
+
+    SelectionDialog {
+        id: qualitySelection
+        titleText: "Audio quality:"
+
+        model: ListModel {
+            ListElement { name: "Low Quality"; value: 0 }
+            ListElement { name: "Standard Quality"; value: 1 }
+            ListElement { name: "High Quality"; value: 2 }
+        }
+
+//        onAccepted: audioAnalyzer.alarmTriggerPeriod = model.get(selectedIndex).value;
     }
 
     tools: ToolBarLayout {
