@@ -74,6 +74,9 @@ void AudioAnalyzer::setNotificationThreshold(int threshold)
     if ( threshold != d->notificationThreshold ) {
         d->notificationThreshold = threshold;
         emit notificationThresholdChanged();
+
+        if ( d->alarmThreshold < threshold )
+            setAlarmThreshold(threshold);
     }
 }
 
@@ -87,6 +90,9 @@ void AudioAnalyzer::setAlarmThreshold(int threshold)
     if ( threshold != d->alarmThreshold ) {
         d->alarmThreshold = threshold;
         emit alarmThresholdChanged();
+
+        if ( d->notificationThreshold > threshold )
+            setNotificationThreshold(threshold);
     }
 }
 
