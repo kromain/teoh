@@ -6,96 +6,109 @@ Page {
 
     TabGroup {
         id: tabGroup
-        currentTab: monitorTab
+        currentTab: txTab
 
        Page {
-           id: monitorTab
+           id: txTab
 
            PageHeader {
-               id: pageHeader
-               anchors.top: monitorTab.top
-               text: "Monitor"
+               id: txPageHeader
+               anchors.top: txTab.top
+               text: qsTr("Transmitter")
            }
 
-           Column {
-               anchors.top: pageHeader.bottom
-               anchors.bottom: monitorTab.bottom
-               anchors.left: monitorTab.left
-               anchors.right: monitorTab.right
-               spacing: UiConstants.DefaultMargin
+           Item {
+               anchors.top: txPageHeader.bottom
+               anchors.bottom: txTab.bottom
+               anchors.left: txTab.left
+               anchors.right: txTab.right
 
-               Label {
-                   font: UiConstants.HeaderFont
-                   anchors.topMargin: UiConstants.DefaultMargin
-                   anchors.horizontalCenter: parent.horizontalCenter
-                   id: statusLabel
-                   text: "Listening..."
-
-               }
-               ProgressBar {
+               Column {
+                   anchors.verticalCenter: parent.verticalCenter
                    width: parent.width
-                   minimumValue: 0
-                   maximumValue: 127
-                   value: audioAnalyzer.peakValue
-               }
-               Button {
-                   width: parent.width
-                   text: (audioAnalyzer.active ? qsTr("Stop ") : qsTr("Start ")) + qsTr("Monitoring")
-                   onClicked: {
-                       if ( audioAnalyzer.active )
-                           audioAnalyzer.stopCapture();
-                       else
-                           audioAnalyzer.startCapture();
+                   spacing: UiConstants.DefaultMargin
 
-                       avStreamer.stopStreaming();
-                   }
-               }
+                   Button {
+                       width: parent.width
+                       text: (audioAnalyzer.active ? qsTr("Stop ") : qsTr("Start ")) + qsTr("Monitoring")
+                       onClicked: {
+                           if ( audioAnalyzer.active )
+                               audioAnalyzer.stopCapture();
+                           else
+                               audioAnalyzer.startCapture();
 
-               Connections {
-                   target: audioAnalyzer
-                   onNotifyTriggered: {
-                       statusLabel.text = "Sound detected!";
-                       avStreamer.startStreaming();
+                           avStreamer.stopStreaming();
+                       }
                    }
-                   onAlarmTriggered: {
-                       statusLabel.text = "ALARM !!!";
-//                       vibrationEffect.start();
-                       avStreamer.startStreaming();
+                   Label {
+                       font: UiConstants.HeaderFont
+                       anchors.topMargin: UiConstants.DefaultMargin
+                       anchors.horizontalCenter: parent.horizontalCenter
+                       color: audioAnalyzer.active ? "#ffffff" : "#d2d2d2"
+                       text: audioAnalyzer.active ? qsTr("Listening...") : qsTr("Stopped")
+
                    }
                }
-//               HapticsEffect {
-//                   id: vibrationEffect
-//                   duration: 3000
-//                   period: 1000
-//                   intensity: 1.0
-//                   attackIntensity: 0.0
-//                   attackTime: 250
-//                   fadeIntensity: 0.0
-//                   fadeTime: 250
-//               }
            }
+
        }
 
        Page {
-           id: receiverTab
+           id: rxTab
 
-           ProgressBar {
-               width: parent.width
-               minimumValue: 0
-               maximumValue: 256
-               value: audioAnalyzer.peakValue
+           PageHeader {
+               id: rxPageHeader
+               anchors.top: rxTab.top
+               text: qsTr("Receiver")
            }
 
-           Button{
-               anchors.centerIn: parent
-               text: (audioAnalyzer.active ? qsTr("Stop ") : qsTr("Start ")) + qsTr("Listening")
-               onClicked: {
-                   if ( audioAnalyzer.active )
-                       audioAnalyzer.stopCapture();
-                   else
-                       audioAnalyzer.startCapture();
+           Item {
+               anchors.top: rxPageHeader.bottom
+               anchors.bottom: rxTab.bottom
+               anchors.left: rxTab.left
+               anchors.right: rxTab.right
+
+               Column {
+                   anchors.verticalCenter: parent.verticalCenter
+                   width: parent.width
+                   spacing: UiConstants.DefaultMargin
+
+                   Button{
+                       width: parent.width
+                       text: "Listen"
+                       checkable: true
+                       onClicked: {
+                           if ( checked )
+                               audioAnalyzer.stopCapture();
+                           else
+                               audioAnalyzer.startCapture();
+                       }
+                   }
+                   ProgressBar {
+                       width: parent.width
+                       minimumValue: 0
+                       maximumValue: 127
+                       value: audioAnalyzer.peakValue
+                   }
+                   Label {
+                       font: UiConstants.HeaderFont
+                       anchors.topMargin: UiConstants.DefaultMargin
+                       anchors.horizontalCenter: parent.horizontalCenter
+                       text: "TODO"
+                   }
                }
            }
+
+//           HapticsEffect {
+//               id: vibrationEffect
+//               duration: 3000
+//               period: 1000
+//               intensity: 1.0
+//               attackIntensity: 0.0
+//               attackTime: 250
+//               fadeIntensity: 0.0
+//               fadeTime: 250
+//           }
        }
     }
 
@@ -106,12 +119,12 @@ Page {
         }
         ButtonRow {
             TabButton {
-                text: qsTr("Monitor")
-                tab: monitorTab
+                text: qsTr("Transmitter")
+                tab: txTab
             }
             TabButton {
                 text: qsTr("Receiver")
-                tab: receiverTab
+                tab: rxTab
             }
         }
         ToolIcon {
