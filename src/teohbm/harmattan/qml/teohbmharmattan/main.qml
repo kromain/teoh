@@ -9,5 +9,6 @@ PageStackWindow {
     initialPage: mainPage
 
     MainPage { id: mainPage }
-    SettingsPage { id: settingsPage }
+    TransmitterSettings { id: txSettingsPage }
+    ReceiverSettings { id: rxSettingsPage }
 }

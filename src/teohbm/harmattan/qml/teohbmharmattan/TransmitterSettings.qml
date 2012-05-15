@@ -3,24 +3,40 @@ import com.nokia.meego 1.0
 import com.nokia.extras 1.0
 
 Page {
-    id: settingsPage
+    id: txSettingsPage
 
     PageHeader {
         id: pageHeader
-        anchors.top: settingsPage.top
-        text: "Settings"
+        anchors.top: txSettingsPage.top
+        text: "Transmitter Settings"
     }
 
     ListView {
         id: settingsList
         anchors.top: pageHeader.bottom
-        anchors.bottom: settingsPage.bottom
-        anchors.left: settingsPage.left
-        anchors.right: settingsPage.right
+        anchors.bottom: txSettingsPage.bottom
+        anchors.left: txSettingsPage.left
+        anchors.right: txSettingsPage.right
         anchors.margins: UiConstants.DefaultMargin
         spacing: UiConstants.DefaultMargin
 
         model: VisualItemModel {
+            GroupHeader {
+                text: "Broadcast"
+            }
+            ListItem {
+                title: "Audio Quality"
+                subtitle: qualitySelection.model.get(audioAnalyzer.alarmTriggerPeriod).name
+                icon: "icon-m-textinput-combobox-arrow"
+
+                onClicked: qualitySelection.open();
+            }
+            ListItem {
+                title: "Enable video"
+                subtitle: "Use with care"
+                onOff: true
+            }
+
             GroupHeader {
                 text: "Notifications"
             }
@@ -36,23 +52,11 @@ Page {
                 }
             }
             ListItem {
-                title: "Audio Duration"
+                title: "Broadcast Duration"
                 subtitle: avStreamer.notificationDuration + "s"
                 icon: "icon-m-textinput-combobox-arrow"
 
                 onClicked: durationSelection.open();
-            }
-            ListItem {
-                title: "Audio Quality"
-                subtitle: qualitySelection.model.get(audioAnalyzer.alarmTriggerPeriod).name
-                icon: "icon-m-textinput-combobox-arrow"
-
-                onClicked: qualitySelection.open();
-            }
-            ListItem {
-                title: "Show Banner"
-                subtitle: "Show a system banner for notifications"
-                onOff: true
             }
 
             GroupHeader {
@@ -75,16 +79,6 @@ Page {
                 icon: "icon-m-textinput-combobox-arrow"
 
                 onClicked: periodSelection.open();
-            }
-            ListItem {
-                title: "Show Popup"
-                subtitle: "Show a popup window for alarms"
-                onOff: true
-            }
-            ListItem {
-                title: "Vibrate Phone"
-                subtitle: "Vibrate the phone during alarms"
-                onOff: true
             }
         }
     }

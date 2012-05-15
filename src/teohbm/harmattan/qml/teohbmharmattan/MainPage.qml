@@ -115,7 +115,7 @@ Page {
     tools: ToolBarLayout {
         ToolIcon {
             iconId: "toolbar-settings"
-            onClicked: pageStack.push( settingsPage )
+            onClicked: pageStack.push( tabGroup.currentTab == rxTab ? rxSettingsPage : txSettingsPage )
         }
         ButtonRow {
             TabButton {
