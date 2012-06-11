@@ -1,4 +1,4 @@
 TEMPLATE = subdirs
 CONFIG += ordered
 
-SUBDIRS = libteoh teohbm
+SUBDIRS = libteoh teohbm tests
