@@ -12,3 +12,5 @@ moc
 *.pro.user
 *.changes
 *.deb
+
+libteoh.h
