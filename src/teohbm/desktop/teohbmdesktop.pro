@@ -8,3 +8,6 @@ SOURCES = main.cpp \
 
 HEADERS += \
     mainwindow.h
+
+RESOURCES += \
+    icons.qrc

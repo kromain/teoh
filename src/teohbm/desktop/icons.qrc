@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file alias="tray-ok">icons/systemtray.png</file>
+        <file alias="tray-notification">icons/warning.png</file>
+    </qresource>
+</RCC>
