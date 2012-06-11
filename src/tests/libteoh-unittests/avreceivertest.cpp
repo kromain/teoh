@@ -17,5 +17,7 @@ void ReceiverTest::cleanupTestCase()
 
 void ReceiverTest::testConnection()
 {
-    QVERIFY2(true, "Failure");
+    AVReceiver avr;
+
+    QCOMPARE(avr.state(), AVReceiver::Connecting);
 }

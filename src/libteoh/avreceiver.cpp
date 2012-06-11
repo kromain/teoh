@@ -56,6 +56,11 @@ AVReceiver::~AVReceiver()
 {
 }
 
+AVReceiver::State AVReceiver::state() const
+{
+    return Connecting;
+}
+
 void AVReceiver::Private::dataReceived()
 {
     QByteArray data;
