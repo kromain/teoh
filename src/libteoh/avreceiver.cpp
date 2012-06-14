@@ -8,6 +8,8 @@
 #include <QStateMachine>
 #include <QState>
 #include <QHistoryState>
+#include <QFinalState>
+#include <QTimer>
 
 class AVReceiver::Private
 {
@@ -20,8 +22,11 @@ public:
 
     QTcpSocket* connectionSocket;
     QUdpSocket* streamingSocket;
+
     QAudioOutput* audioOutput;
     QIODevice* audioBuffer;
+
+    QTimer* connectionTimer;
 
     QStateMachine* stateMachine;
 };
@@ -59,6 +64,8 @@ AVReceiver::AVReceiver(QObject *parent) :
     d->audioOutput = new QAudioOutput(outputDevice, audioFormat, this);
     d->audioBuffer = d->audioOutput->start();
 
+    d->connectionTimer = new QTimer(this);
+
     d->stateMachine = new QStateMachine(this);
 
     QState* connectingState = new QState;
@@ -75,7 +82,7 @@ AVReceiver::AVReceiver(QObject *parent) :
     alarmState->setProperty("stateId", Alarm);
     QHistoryState* reconnectingState = new QHistoryState(connectedState);
     reconnectingState->setProperty("stateId", Reconnecting);
-    QState* disconnectedState = new QState;
+    QFinalState* disconnectedState = new QFinalState;
     disconnectedState->setProperty("stateId", Disconnected);
 
     connectedState->setInitialState(standbyState);
@@ -86,6 +93,14 @@ AVReceiver::AVReceiver(QObject *parent) :
     d->stateMachine->addState(disconnectedState);
     d->stateMachine->setInitialState(connectingState);
     d->stateMachine->start();
+
+    connectingState->addTransition(d->connectionSocket, SIGNAL(connected()), connectedState);
+    connectingState->addTransition(d->connectionTimer, SIGNAL(timeout()), disconnectedState);
+    connectedState->addTransition(d->connectionTimer, SIGNAL(timeout()), disconnectedState);
+
+    Q_FOREACH( QAbstractState* s, d->stateMachine->findChildren<QAbstractState*>() ) {
+        connect(s, SIGNAL(entered()), this, SIGNAL(stateChanged()));
+    }
 }
 
 AVReceiver::~AVReceiver()
@@ -94,20 +109,15 @@ AVReceiver::~AVReceiver()
 
 AVReceiver::State AVReceiver::state() const
 {
-    const int numStates = d->stateMachine->configuration().count();
-    Q_ASSERT(numStates >= 1);
-
-    QAbstractState* state = 0;
+    QAbstractState* foundState = 0;
     Q_FOREACH( QAbstractState* s, d->stateMachine->configuration() ) {
+        foundState = s;
         // ensure we use the child state if we have nested states
-        if ( numStates == 1 || s->parentState() ) {
-            state = s;
+        if ( s->parentState() )
             break;
-        }
     }
 
-    Q_ASSERT(state);
-    return static_cast<State>(state->property("stateId").toInt());
+    return foundState ? static_cast<State>(foundState->property("stateId").toInt()) : Disconnected;
 }
 
 void AVReceiver::Private::dataReceived()

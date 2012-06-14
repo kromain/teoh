@@ -14,7 +14,7 @@ class AVReceiver : public QObject
 public:
 
     enum State {
-        Connecting   = 0x0,
+        Connecting   = 0x01,
         Connected    = 0x10,
         Standby      = 0x11,
         Listening    = 0x12,
