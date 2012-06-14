@@ -20,7 +20,8 @@ public:
         Listening    = 0x12,
         Notification = 0x14,
         Alarm        = 0x18,
-        Reconnecting = 0x20
+        Reconnecting = 0x20,
+        Disconnected = 0x80
     };
 
     explicit AVReceiver(QObject *parent = 0);

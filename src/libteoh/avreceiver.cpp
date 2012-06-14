@@ -75,12 +75,15 @@ AVReceiver::AVReceiver(QObject *parent) :
     alarmState->setProperty("stateId", Alarm);
     QHistoryState* reconnectingState = new QHistoryState(connectedState);
     reconnectingState->setProperty("stateId", Reconnecting);
+    QState* disconnectedState = new QState;
+    disconnectedState->setProperty("stateId", Disconnected);
 
     connectedState->setInitialState(standbyState);
     reconnectingState->setDefaultState(standbyState);
 
     d->stateMachine->addState(connectingState);
     d->stateMachine->addState(connectedState);
+    d->stateMachine->addState(disconnectedState);
     d->stateMachine->setInitialState(connectingState);
     d->stateMachine->start();
 }
