@@ -13,7 +13,7 @@ public:
 private Q_SLOTS:
     void initTestCase();
     void cleanupTestCase();
-    void testConnection();
+    void testConnectionFailure();
 };
 
 #endif // AVRECEIVERTEST_H
