@@ -4,6 +4,9 @@
 #include <QAudioFormat>
 #include <QAudioDeviceInfo>
 #include <QUdpSocket>
+#include <QStateMachine>
+#include <QState>
+#include <QHistoryState>
 
 class AVReceiver::Private
 {
@@ -17,6 +20,8 @@ public:
     QUdpSocket* socket;
     QAudioOutput* audioOutput;
     QIODevice* audioBuffer;
+
+    QStateMachine* stateMachine;
 };
 
 AVReceiver::AVReceiver(QObject *parent) :
@@ -50,6 +55,31 @@ AVReceiver::AVReceiver(QObject *parent) :
 
     d->audioOutput = new QAudioOutput(outputDevice, audioFormat, this);
     d->audioBuffer = d->audioOutput->start();
+
+    d->stateMachine = new QStateMachine(this);
+
+    QState* connectingState = new QState;
+    connectingState->setProperty("stateId", Connecting);
+    QState* connectedState = new QState;
+    connectedState->setProperty("stateId", Connected);
+    QState* standbyState = new QState(connectedState);
+    standbyState->setProperty("stateId", Standby);
+    QState* listeningState = new QState(connectedState);
+    listeningState->setProperty("stateId", Listening);
+    QState* notificationState = new QState(connectedState);
+    notificationState->setProperty("stateId", Notification);
+    QState* alarmState = new QState(connectedState);
+    alarmState->setProperty("stateId", Alarm);
+    QHistoryState* reconnectingState = new QHistoryState(connectedState);
+    reconnectingState->setProperty("stateId", Reconnecting);
+
+    connectedState->setInitialState(standbyState);
+    reconnectingState->setDefaultState(standbyState);
+
+    d->stateMachine->addState(connectingState);
+    d->stateMachine->addState(connectedState);
+    d->stateMachine->setInitialState(connectingState);
+    d->stateMachine->start();
 }
 
 AVReceiver::~AVReceiver()
