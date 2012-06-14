@@ -3,7 +3,8 @@ TEMPLATE = app
 QT       -= gui
 QT       += network multimedia testlib
 
-CONFIG   += console
+# unneeded and annoying with QtCreator
+#CONFIG   += console
 CONFIG   -= app_bundle
 
 include(../../libteoh.pri)
