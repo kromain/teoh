@@ -94,7 +94,20 @@ AVReceiver::~AVReceiver()
 
 AVReceiver::State AVReceiver::state() const
 {
-    return Connecting;
+    const int numStates = d->stateMachine->configuration().count();
+    Q_ASSERT(numStates >= 1);
+
+    QAbstractState* state = 0;
+    Q_FOREACH( QAbstractState* s, d->stateMachine->configuration() ) {
+        // ensure we use the child state if we have nested states
+        if ( numStates == 1 || s->parentState() ) {
+            state = s;
+            break;
+        }
+    }
+
+    Q_ASSERT(state);
+    return static_cast<State>(state->property("stateId").toInt());
 }
 
 void AVReceiver::Private::dataReceived()
