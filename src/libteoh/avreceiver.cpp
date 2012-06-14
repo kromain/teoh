@@ -3,6 +3,7 @@
 #include <QAudioOutput>
 #include <QAudioFormat>
 #include <QAudioDeviceInfo>
+#include <QTcpSocket>
 #include <QUdpSocket>
 #include <QStateMachine>
 #include <QState>
@@ -17,7 +18,8 @@ public:
     void socketError();
     void dataReceived();
 
-    QUdpSocket* socket;
+    QTcpSocket* connectionSocket;
+    QUdpSocket* streamingSocket;
     QAudioOutput* audioOutput;
     QIODevice* audioBuffer;
 
@@ -28,15 +30,16 @@ AVReceiver::AVReceiver(QObject *parent) :
     QObject(parent),
     d( new Private(this) )
 {
-    d->socket = new QUdpSocket(this);
-    d->socket->bind(2012);
+    d->connectionSocket = new QTcpSocket(this);
+    d->streamingSocket = new QUdpSocket(this);
+    d->streamingSocket->bind(2012);
 #if QT_VERSION >=0x040800
-    d->socket->setSocketOption(QAbstractSocket::MulticastTtlOption, 1);
-    d->socket->joinMulticastGroup( QHostAddress("239.51.67.81") );
+    d->streamingSocket->setSocketOption(QAbstractSocket::MulticastTtlOption, 1);
+    d->streamingSocket->joinMulticastGroup( QHostAddress("239.51.67.81") );
 #endif
 
-    connect( d->socket, SIGNAL(readyRead()), SLOT(dataReceived()) );
-    connect( d->socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketError()) );
+    connect( d->streamingSocket, SIGNAL(readyRead()), SLOT(dataReceived()) );
+    connect( d->streamingSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(socketError()) );
 
     QAudioFormat audioFormat;
     audioFormat.setFrequency(8000);
@@ -94,16 +97,16 @@ AVReceiver::State AVReceiver::state() const
 void AVReceiver::Private::dataReceived()
 {
     QByteArray data;
-    while( socket->hasPendingDatagrams() ) {
+    while( streamingSocket->hasPendingDatagrams() ) {
         QByteArray datagram;
-        datagram.resize(socket->pendingDatagramSize());
-        socket->readDatagram(datagram.data(), datagram.size());
+        datagram.resize(streamingSocket->pendingDatagramSize());
+        streamingSocket->readDatagram(datagram.data(), datagram.size());
         if (data.isEmpty())
             data = datagram;
         else
             data.append(datagram);
     }
-    qDebug() << "Received" << data.count() << "bytes (socket status:" << socket->errorString() << ")";
+    qDebug() << "Received" << data.count() << "bytes (socket status:" << streamingSocket->errorString() << ")";
 
     audioBuffer->write(data);
     audioOutput->resume();
@@ -111,7 +114,7 @@ void AVReceiver::Private::dataReceived()
 
 void AVReceiver::Private::socketError()
 {
-    qWarning() << "socket error:" << socket->error() << socket->errorString();
+    qWarning() << "socket error:" << streamingSocket->error() << streamingSocket->errorString();
     // TODO better error handling
 }
 
