@@ -36,6 +36,8 @@ private:
     class Private;
     QScopedPointer<Private> d;
 
+    Q_PRIVATE_SLOT( d, void initializeConnection() )
+    Q_PRIVATE_SLOT( d, void finalizeConnection() )
     Q_PRIVATE_SLOT( d, void socketError() )
     Q_PRIVATE_SLOT( d, void dataReceived() )
 };
