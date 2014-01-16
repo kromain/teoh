@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+
+//  SONY CONFIDENTIAL MATERIAL. DO NOT DISTRIBUTE.
+//  SNEI Captain Harlock
+//  Copyright (C) Sony Network Entertainment Inc
+//  All Rights Reserved
+
+// The skynet script is just a wrapper around Mocha defined in lib/skynet.js
+require("./lib/bootstrap.js").run();
