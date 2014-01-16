@@ -4,6 +4,9 @@ describe("What's New", function(){
 		test("should navigate the grid", function(){
 			assert.equal(true, true);
 
+			SkyNet.login("WHATS_NEW")
+			//SkyNet.login("STORE")
+
 			SkyNet.press("DOWN");
 			// Some assert here
 
@@ -11,8 +14,6 @@ describe("What's New", function(){
 			// Some other assert here
 
 			SkyNet.press("DOWN");
-
-			SkyNet.press("FOOBAR");
 		})
 	})
 })
