@@ -13,7 +13,8 @@ describe("What's New", function(){
 			console.log("\t%s".yellow, SkyNet.whatsNew.getTileInfo());
 
 			SkyNet.press("CROSS");
-			SkyNet.wait(2000);
+			SkyNet.wait(5000);
+
 			console.log("\t%s".yellow, SkyNet.whatsNew.getGalleryButtons());
 		});
 	});
