@@ -28,7 +28,7 @@ describe("Store", function(){
 
 			SkyNet.wait(2000);
 
-			SkyNet.store.activeElementText.should.equal("Join PS+ $49.99", "PDP should show a Subscribe button with price")
+			SkyNet.store.activeElementText.should.equal("Subscribe $49.99", "PDP should show a Subscribe button with price")
 		});
 	});
 });
