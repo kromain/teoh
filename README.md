@@ -89,6 +89,7 @@ Add your test file under `tests` directory
    * Need to make SkyNet standalone: tests should not be included in the distribution. Maybe something like `./skynet init`?
    * Screenshot capture is not fully integrated yet and does not allow visual image comparison (coming soon)
    * API is not flushed out for querying Swordfish state
+   * Also need to flush out extension API for drivers & adapters
  * Documentation & training
    * Need to write tutorial about how to use SkyNet
    * Training engineers?
