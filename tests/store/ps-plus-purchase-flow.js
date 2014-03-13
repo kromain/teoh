@@ -1,6 +1,6 @@
 describe("Store", function(){
 	describe("PS+ purchase flow", function(){
-		test("should allow user to purchase 12 months sub", function(){
+		it("should allow user to purchase 12 months sub", function(){
 
 			// Deeplink to the store
 			SkyNet.store.open();
