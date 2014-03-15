@@ -3,7 +3,7 @@ describe("Store", function(){
 		it("should allow user to purchase 12 months sub", function(){
 
 			// Deeplink to the store
-			SkyNet.store.open();
+			psStore.open();
 			SkyNet.wait(3000);
 
 			// Go back to global menu
@@ -13,9 +13,9 @@ describe("Store", function(){
 			SkyNet.press("CROSS");
 
 			// Navigate in menu and verify entry labels
-			SkyNet.store.activeElementText.should.equal("Welcome", "Welcome entry is missing in store menu");
+			psStore.activeElementText.should.equal("Welcome", "Welcome entry is missing in store menu");
 			SkyNet.press("DOWN");
-			SkyNet.store.activeElementText.should.equal("PlayStation®Plus", "PS+ entry is missing in store menu");
+			psStore.activeElementText.should.equal("PlayStation®Plus", "PS+ entry is missing in store menu");
 
 			// Navigate the caroussel
 			SkyNet.press("RIGHT");
@@ -28,7 +28,7 @@ describe("Store", function(){
 
 			SkyNet.wait(2000);
 
-			SkyNet.store.activeElementText.should.equal("Subscribe $49.99", "PDP should show a Subscribe button with price")
+			psStore.activeElementText.should.equal("Subscribe $49.99", "PDP should show a Subscribe button with price")
 		});
 	});
 });

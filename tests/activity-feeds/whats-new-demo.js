@@ -4,18 +4,18 @@ describe("What's New", function(){
 			SkyNet.login("WHATS_NEW");
 
 			SkyNet.press("DOWN");
-			console.log("\t%s".yellow, SkyNet.whatsNew.getTileInfo());
+			console.log("\t%s".yellow, whatsNew.getTileInfo());
 
 			SkyNet.press("DOWN");
-			console.log("\t%s".yellow, SkyNet.whatsNew.getTileInfo());
+			console.log("\t%s".yellow, whatsNew.getTileInfo());
 
 			SkyNet.press("DOWN");
-			console.log("\t%s".yellow, SkyNet.whatsNew.getTileInfo());
+			console.log("\t%s".yellow, whatsNew.getTileInfo());
 
 			SkyNet.press("CROSS");
 			SkyNet.wait(5000);
 
-			console.log("\t%s".yellow, SkyNet.whatsNew.getGalleryButtons());
+			console.log("\t%s".yellow, whatsNew.getGalleryButtons());
 		});
 	});
 });
