@@ -23,6 +23,8 @@
     "moment": "~2.4.0",
     "timekeeper": "~0.0.3",
     "chrome-remote-interface": "~0.4.1",
-    "fibers": "~1.0.1"
+    "fibers": "~1.0.1",
+    "webdriver-http-sync": "~0.7.1",
+    "selenium-standalone": "2.40.0-2.9.0"
   }
 }
