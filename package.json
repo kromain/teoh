@@ -26,5 +26,8 @@
     "fibers": "~1.0.1",
     "webdriver-http-sync": "~0.7.1",
     "selenium-standalone": "2.40.0-2.9.0"
+  },
+  "scripts": {
+    "start": "./node_modules/.bin/start-selenium"
   }
 }
