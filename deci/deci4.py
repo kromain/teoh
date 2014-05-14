@@ -511,7 +511,7 @@ netmp.connect()
 
 ctrlp = netmp.register_ctrlp()
 
-#print ctrlp.get_conf()
+print ctrlp.get_conf()
 
 #ctrlp.rec_start()
 
@@ -520,18 +520,17 @@ ctrlp = netmp.register_ctrlp()
 #    data = ctrlp.read_data()
 #    print len(data["data"])
 #    for line in data["data"]:
-        #print line
 #        print "Timestamp ", line["timestamp"], " buttons", hex(line["buttons"])
 
-#ctrlp.rec_stop()
+ctrlp.rec_stop()
 
 ctrlp.play_start()
 
 def dobutton(ctrlp, button):
-    for i in xrange(40):
+    for i in xrange(10):
         ctrlp.play_data([button] * 8)
 
-    for i in xrange(40):
+    for i in xrange(10):
         ctrlp.play_data([0x0] * 8)
 
 while True:
@@ -547,10 +546,28 @@ while True:
         dobutton(ctrlp,0x40)
     elif ch == 'd':
         dobutton(ctrlp,0x20)
-    elif ch == 'x':
+    elif ch == 'D': #r1
+        dobutton(ctrlp,0x400)
+    elif ch == 'W': #l1
+        dobutton(ctrlp,0x800)
+    elif ch == 'r': #r2
+        dobutton(ctrlp,0x200)
+    elif ch == 'l': #l2
+        dobutton(ctrlp,0x100)
+    elif ch == 'x': # cross
         dobutton(ctrlp,0x4000)
-    elif ch == 'z':
+    elif ch == 'z': #circle
         dobutton(ctrlp,0x2000)
+    elif ch == 'c': #square
+        dobutton(ctrlp,0x8000)
+    elif ch == 't': #triangle
+        dobutton(ctrlp,0x1000)
+    elif ch == 'o': #option
+        dobutton(ctrlp,0x8)
+    elif ch == 'h': #share - doesn't seem to work
+        dobutton(ctrlp,0x100000)
+    elif ch == 'p':
+        dobutton(ctrlp,0x10000)
 
 
 ctrlp.play_stop()
