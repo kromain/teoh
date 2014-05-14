@@ -7,6 +7,7 @@ import copy
 import datetime
 import time
 import sys
+import getch
 
 enable_logging = False
 
@@ -157,6 +158,9 @@ class Deci:
             {"type":'<Q', "length":8, "name":"timestamp2"},
 
             {"type":"zeros", "length":4}  # list term, assume zero for now  (no list)
+        ],
+        "SceCtrlpPlayDataRes":[
+            {"type":'<L', "length":4, "name":"count"}  # number of entries left in buffer?
         ]
     }
     sequence = 0x1234
@@ -361,18 +365,17 @@ class CtrlpProt(Deci):
         return self.make_deci_cmd_header(buffer, self.SCE_CTRLP_TYPE_PLAY_START_CMD, self.PROTOCOL)
 
     def play_start_msg(self, stream, controller=0xffffffff):
-        self.timeoff = 1
         buffer = self.sendrecv(stream, self.play_start_cmd(controller))
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_PLAY_START_RES)
 
     def play_data_cmd(self, events):
         buffer = self.build_buffer(Deci.recorddefs["SceCtrlpPlayCmd"], threshold=0)
 
-        self.timeoff = 1
+        timeoff = 0
         for button in events:
             buffer.extend(self.build_buffer(Deci.recorddefs["SceCtrlpData"], 
                 size = 56,
-                timestamp = self.timeoff,
+                timestamp = timeoff,
                 unionsize = 44,
                 datatype = 0,
                 datasize = 36,
@@ -387,13 +390,19 @@ class CtrlpProt(Deci):
                 touchsize = 12,
                 timestamp2 = 0))
 
-            self.timeoff += 1250
+            timeoff += 0
             
         return self.make_deci_cmd_header(buffer, self.SCE_CTRLP_TYPE_PLAY_DATA_CMD, self.PROTOCOL)
 
     def play_data_msg(self, stream, events):
         buffer = self.sendrecv(stream, self.play_data_cmd(events))
-        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_PLAY_DATA_RES)
+        res = self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_PLAY_DATA_RES)
+
+        # if result is 1, we've filled memory.  Could wait and retry
+        if res["result"] != 0:
+            print "Oh noes!", res["result"]
+
+        return res
 
     def play_stop_cmd(self):
         return self.make_deci_cmd_header(None, self.SCE_CTRLP_TYPE_PLAY_STOP_CMD, self.PROTOCOL)
@@ -406,10 +415,11 @@ class CtrlpProt(Deci):
         if res["msgtype"] == self.SCE_CTRLP_TYPE_GET_CONF_RES:
             buffer = self.parse_buffer(buffer, Deci.recorddefs["SceDeciCommonConfig"], res)
             buffer = self.parse_buffer(buffer, Deci.recorddefs["SceCtrlpGetConfCmd"], res)
+        elif res["msgtype"] == self.SCE_CTRLP_TYPE_PLAY_DATA_RES:
+            buffer = self.parse_buffer(buffer, Deci.recorddefs["SceCtrlpPlayDataRes"], res)
         elif (res["msgtype"] == self.SCE_CTRLP_TYPE_REC_START_RES or 
               res["msgtype"] == self.SCE_CTRLP_TYPE_REC_STOP_RES or
               res["msgtype"] == self.SCE_CTRLP_TYPE_PLAY_START_RES or
-              res["msgtype"] == self.SCE_CTRLP_TYPE_PLAY_DATA_RES or
               res["msgtype"] == self.SCE_CTRLP_TYPE_PLAY_STOP_RES ):
             pass
 
@@ -503,7 +513,7 @@ ctrlp = netmp.register_ctrlp()
 
 #print ctrlp.get_conf()
 
-ctrlp.rec_start()
+#ctrlp.rec_start()
 
 #start = datetime.datetime.now();
 #while( datetime.datetime.now() - start).seconds < 1:
@@ -513,33 +523,35 @@ ctrlp.rec_start()
         #print line
 #        print "Timestamp ", line["timestamp"], " buttons", hex(line["buttons"])
 
-ctrlp.rec_stop()
+#ctrlp.rec_stop()
 
 ctrlp.play_start()
 
-for i in xrange(50):
-    ctrlp.play_data([0x80] * 8)
+def dobutton(ctrlp, button):
+    for i in xrange(40):
+        ctrlp.play_data([button] * 8)
 
-for i in xrange(100):
-    ctrlp.play_data([0x0] * 8)
+    for i in xrange(40):
+        ctrlp.play_data([0x0] * 8)
 
-for i in xrange(50):
-    ctrlp.play_data([0x20] * 8)
+while True:
+    ch = getch.getch()
 
-for i in xrange(100):
-    ctrlp.play_data([0x0] * 8)
+    if ch == 'q':
+        break
+    elif ch == 'w':
+        dobutton(ctrlp,0x10)
+    elif ch == 'a':
+        dobutton(ctrlp,0x80)
+    elif ch == 's':
+        dobutton(ctrlp,0x40)
+    elif ch == 'd':
+        dobutton(ctrlp,0x20)
+    elif ch == 'x':
+        dobutton(ctrlp,0x4000)
+    elif ch == 'z':
+        dobutton(ctrlp,0x2000)
 
-for i in xrange(50):
-    ctrlp.play_data([0x10] * 8)
-
-for i in xrange(100):
-    ctrlp.play_data([0x0] * 8)
-
-for i in xrange(50):
-    ctrlp.play_data([0x40] * 8)
-
-for i in xrange(100):
-    ctrlp.play_data([0x0] * 8)
 
 ctrlp.play_stop()
 
