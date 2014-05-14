@@ -6,6 +6,7 @@ import struct
 import copy
 import datetime
 import time
+import sys
 
 enable_logging = False
 
@@ -382,10 +383,12 @@ class CtrlpProt(Deci):
 
 
 class Netmp:
-    def __init__(self):
+    def __init__(self, ip, port=8550):
         self.prot = NetmpProt()
+        self.ip = ip
+        self.port = port
         self.stream1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.stream1.connect(("43.138.15.26", 8550))
+        self.stream1.connect((self.ip, self.port))
 
     def connect(self):
         res = self.prot.connect_msg(self.stream1, client_id='steve@43.138.12.225, foobar', udpport=0)
@@ -398,7 +401,7 @@ class Netmp:
 
     def register_ctrlp(self):
         self.stream2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.stream2.connect(("43.138.15.26", 8550))
+        self.stream2.connect((self.ip, self.port))
 
         res = self.prot.register_msg(self.stream2, netmp_key=self.netmp_key, reg_protocol=CtrlpProt.PROTOCOL)
 
@@ -432,7 +435,7 @@ class Ctrlp:
     def read_data(self):
         return self.prot.read_data(self.stream)
 
-netmp = Netmp()
+netmp = Netmp(ip=sys.argv[1])
 #print netmp.get_conf()
 
 netmp.connect()
