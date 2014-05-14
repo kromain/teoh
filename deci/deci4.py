@@ -356,18 +356,68 @@ class CtrlpProt(Deci):
         buffer = self.sendrecv(stream, self.rec_stop_cmd())
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_REC_STOP_RES)
 
+    def play_start_cmd(self, controller=0xffffffff):
+        buffer = self.build_buffer(Deci.recorddefs["SceCtrlpDevices"], controller=controller)
+        return self.make_deci_cmd_header(buffer, self.SCE_CTRLP_TYPE_PLAY_START_CMD, self.PROTOCOL)
+
+    def play_start_msg(self, stream, controller=0xffffffff):
+        self.timeoff = 1
+        buffer = self.sendrecv(stream, self.play_start_cmd(controller))
+        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_PLAY_START_RES)
+
+    def play_data_cmd(self, events):
+        buffer = self.build_buffer(Deci.recorddefs["SceCtrlpPlayCmd"], threshold=0)
+
+        self.timeoff = 1
+        for button in events:
+            buffer.extend(self.build_buffer(Deci.recorddefs["SceCtrlpData"], 
+                size = 56,
+                timestamp = self.timeoff,
+                unionsize = 44,
+                datatype = 0,
+                datasize = 36,
+                controller = 0,
+                buttons = button,
+                lx = 128,
+                ly = 128,
+                rx = 128,
+                ry = 128,
+                l2 = 0,
+                r2 = 0,
+                touchsize = 12,
+                timestamp2 = 0))
+
+            self.timeoff += 1250
+            
+        return self.make_deci_cmd_header(buffer, self.SCE_CTRLP_TYPE_PLAY_DATA_CMD, self.PROTOCOL)
+
+    def play_data_msg(self, stream, events):
+        buffer = self.sendrecv(stream, self.play_data_cmd(events))
+        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_PLAY_DATA_RES)
+
+    def play_stop_cmd(self):
+        return self.make_deci_cmd_header(None, self.SCE_CTRLP_TYPE_PLAY_STOP_CMD, self.PROTOCOL)
+
+    def play_stop_msg(self, stream):
+        buffer = self.sendrecv(stream, self.play_stop_cmd())
+        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_PLAY_STOP_RES)
+
     def parse(self, res, buffer):
         if res["msgtype"] == self.SCE_CTRLP_TYPE_GET_CONF_RES:
             buffer = self.parse_buffer(buffer, Deci.recorddefs["SceDeciCommonConfig"], res)
             buffer = self.parse_buffer(buffer, Deci.recorddefs["SceCtrlpGetConfCmd"], res)
         elif (res["msgtype"] == self.SCE_CTRLP_TYPE_REC_START_RES or 
-              res["msgtype"] == self.SCE_CTRLP_TYPE_REC_STOP_RES ):
+              res["msgtype"] == self.SCE_CTRLP_TYPE_REC_STOP_RES or
+              res["msgtype"] == self.SCE_CTRLP_TYPE_PLAY_START_RES or
+              res["msgtype"] == self.SCE_CTRLP_TYPE_PLAY_DATA_RES or
+              res["msgtype"] == self.SCE_CTRLP_TYPE_PLAY_STOP_RES ):
             pass
 
         return buffer, res
 
     def read_data(self, stream):
         buffer = stream.recv(1024)
+        log( "Recv (%s):\n%s" % (stream, make_dump(buffer)) )
         buffer, res = self.parse_header(buffer)
 
         res["data"] = []
@@ -435,6 +485,15 @@ class Ctrlp:
     def read_data(self):
         return self.prot.read_data(self.stream)
 
+    def play_start(self):
+        self.prot.play_start_msg(self.stream)
+
+    def play_data(self, events):
+        self.prot.play_data_msg(self.stream, events)
+
+    def play_stop(self):
+        self.prot.play_stop_msg(self.stream)
+
 netmp = Netmp(ip=sys.argv[1])
 #print netmp.get_conf()
 
@@ -446,14 +505,43 @@ ctrlp = netmp.register_ctrlp()
 
 ctrlp.rec_start()
 
-start = datetime.datetime.now();
-while( datetime.datetime.now() - start).seconds < 1:
-    data = ctrlp.read_data()
-    print len(data["data"])
-    for line in data["data"]:
-        print "Timestamp ", line["timestamp"], " buttons", hex(line["buttons"])
+#start = datetime.datetime.now();
+#while( datetime.datetime.now() - start).seconds < 1:
+#    data = ctrlp.read_data()
+#    print len(data["data"])
+#    for line in data["data"]:
+        #print line
+#        print "Timestamp ", line["timestamp"], " buttons", hex(line["buttons"])
 
 ctrlp.rec_stop()
+
+ctrlp.play_start()
+
+for i in xrange(50):
+    ctrlp.play_data([0x80] * 8)
+
+for i in xrange(100):
+    ctrlp.play_data([0x0] * 8)
+
+for i in xrange(50):
+    ctrlp.play_data([0x20] * 8)
+
+for i in xrange(100):
+    ctrlp.play_data([0x0] * 8)
+
+for i in xrange(50):
+    ctrlp.play_data([0x10] * 8)
+
+for i in xrange(100):
+    ctrlp.play_data([0x0] * 8)
+
+for i in xrange(50):
+    ctrlp.play_data([0x40] * 8)
+
+for i in xrange(100):
+    ctrlp.play_data([0x0] * 8)
+
+ctrlp.play_stop()
 
 netmp.unregister_ctrlp()
 
