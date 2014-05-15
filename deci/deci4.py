@@ -4,6 +4,7 @@ import socket
 import array
 import struct
 import getpass
+import time
 
 enable_logging = False
 
@@ -213,6 +214,7 @@ class Deci4H:
 
         if inbuff:
             buffer.extend(inbuff)
+
         self.set_length(buffer, Deci4H.recorddefs["SceDeciHeader"], len(buffer))
 
         return buffer
@@ -397,6 +399,26 @@ class CtrlpProt(Deci4H):
 
         return res
 
+    def play_raw_data_cmd(self, block):
+        buffer = self.build_buffer(Deci4H.recorddefs["SceCtrlpPlayCmd"], threshold=0)
+        buffer += block
+        buffer = self.make_deci_cmd_header(buffer, self.SCE_CTRLP_TYPE_PLAY_DATA_CMD, self.PROTOCOL)
+        return buffer
+
+    def play_raw_data_msg(self, stream, block):
+        while True:
+            buffer = self.sendrecv(stream, self.play_raw_data_cmd(block))
+            res = self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_PLAY_DATA_RES)
+
+            # if result is 1, we've filled memory.  Wait and retry
+            if res["result"] != 1:
+                # check errors!
+                break
+
+            time.sleep(0.01)
+
+        return res
+
     def play_stop_cmd(self):
         return self.make_deci_cmd_header(None, self.SCE_CTRLP_TYPE_PLAY_STOP_CMD, self.PROTOCOL)
 
@@ -433,6 +455,10 @@ class CtrlpProt(Deci4H):
 
         return res
 
+    def read_raw_data(self, stream):
+        buffer = stream.recv(1024)
+        log( "Recv (%s):\n%s" % (stream, make_dump(buffer)) )
+        return self.parse_header(buffer)[0]
 
 
 class Netmp:
@@ -489,11 +515,17 @@ class Ctrlp:
     def read_data(self):
         return self.prot.read_data(self.stream)
 
+    def read_raw_data(self):
+        return self.prot.read_raw_data(self.stream)
+
     def play_start(self):
         self.prot.play_start_msg(self.stream)
 
     def play_data(self, events):
         self.prot.play_data_msg(self.stream, events)
+
+    def play_raw_data(self, events):
+        self.prot.play_raw_data_msg(self.stream, events)
 
     def play_stop(self):
         self.prot.play_stop_msg(self.stream)
