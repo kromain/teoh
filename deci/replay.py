@@ -6,9 +6,15 @@ import array
 from deci4 import Netmp
 
 
-blocks = []
-
 with open("capture.dat", "rb") as f:
+    netmp = Netmp(ip=sys.argv[1])
+
+    netmp.connect()
+
+    ctrlp = netmp.register_ctrlp()
+
+    ctrlp.play_start()
+
     while True:
         length = f.read(4)
 
@@ -20,25 +26,13 @@ with open("capture.dat", "rb") as f:
         str = f.read(length)
         arr = array.array('B')
         arr.fromstring(str)
-        blocks.append(arr)
 
-print "%d blocks read" % len(blocks)
+        ctrlp.play_raw_data(arr)
 
 
-netmp = Netmp(ip=sys.argv[1])
 
-netmp.connect()
+    ctrlp.play_stop()
 
-ctrlp = netmp.register_ctrlp()
+    netmp.unregister_ctrlp()
 
-ctrlp.play_start()
-
-for block in blocks:
-    ctrlp.play_raw_data(block)
-    time.sleep(0.01)
-
-ctrlp.play_stop()
-
-netmp.unregister_ctrlp()
-
-netmp.disconnect()
+    netmp.disconnect()
