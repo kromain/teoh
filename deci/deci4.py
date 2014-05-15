@@ -3,11 +3,7 @@
 import socket
 import array
 import struct
-import copy
-import datetime
-import time
-import sys
-import getch
+import getpass
 
 enable_logging = False
 
@@ -65,9 +61,6 @@ def log_bytes(text, bytes):
 
 
 
-def revlookup(dict, key):
-    return {dict[k]:k for k in dict.keys()}[key]
-
 def pad_len(bytes, multiple):
     if (bytes / multiple) * multiple != bytes:
         return ((bytes / multiple) + 1 ) * multiple
@@ -84,7 +77,7 @@ class ParseException(Exception):
     def __str__(self):
         return "Unexpected message protocol %x type %x" % (self.protocol, self.type)
 
-class Deci:
+class Deci4H:
     recorddefs = {
         "SceDeciHeader": [
             {"type":'B', "length":1, "name":"version"},
@@ -214,20 +207,20 @@ class Deci:
 
     def make_deci_cmd_header(self, inbuff, message, protocol):
 
-        buffer = self.build_buffer(Deci.recorddefs["SceDeciHeader"], version=0x41, protocol=protocol)
-        buffer.extend(self.build_buffer(Deci.recorddefs["SceDeciUlpCmdHdr"], seqnumber=Deci.sequence, fraginfo=0, msgtype=message))
-        Deci.sequence += 1
+        buffer = self.build_buffer(Deci4H.recorddefs["SceDeciHeader"], version=0x41, protocol=protocol)
+        buffer.extend(self.build_buffer(Deci4H.recorddefs["SceDeciUlpCmdHdr"], seqnumber=Deci4H.sequence, fraginfo=0, msgtype=message))
+        Deci4H.sequence += 1
 
         if inbuff:
             buffer.extend(inbuff)
-        self.set_length(buffer, Deci.recorddefs["SceDeciHeader"], len(buffer))
+        self.set_length(buffer, Deci4H.recorddefs["SceDeciHeader"], len(buffer))
 
         return buffer
 
     def parse_header(self, buffer):
         res = {}
-        buffer = self.parse_buffer(buffer, Deci.recorddefs["SceDeciHeader"], res)
-        buffer = self.parse_buffer(buffer, Deci.recorddefs["SceDeciUlpResHdr"], res)
+        buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciHeader"], res)
+        buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciUlpResHdr"], res)
 
         return buffer, res
 
@@ -246,7 +239,7 @@ class Deci:
 
         return self.parse(res, buffer)[1]
 
-class NetmpProt(Deci):
+class NetmpProt(Deci4H):
     SCE_NETMP_TYPE_GET_CONF_CMD = 0x0
     SCE_NETMP_TYPE_GET_CONF_RES = 0x1
     SCE_NETMP_TYPE_CONNECT_CMD = 0x2
@@ -268,13 +261,13 @@ class NetmpProt(Deci):
 
     def connect_cmd(self, client_id, udpport):
 
-        buffer = self.build_buffer(Deci.recorddefs["SceNetmpConnectCmd"], client_id=client_id, udpport=udpport)
+        buffer = self.build_buffer(Deci4H.recorddefs["SceNetmpConnectCmd"], client_id=client_id, udpport=udpport)
         buffer = self.make_deci_cmd_header(buffer, self.SCE_NETMP_TYPE_CONNECT_CMD, self.PROTOCOL)
 
         return buffer
 
     def connect_msg(self, stream, client_id, udpport):
-        buffer = self.sendrecv(stream, self.connect_cmd(client_id='steve@43.138.12.225, foobar', udpport=0))
+        buffer = self.sendrecv(stream, self.connect_cmd(client_id, udpport))
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_NETMP_TYPE_CONNECT_RES)
 
     def disconnect_cmd(self):
@@ -289,7 +282,7 @@ class NetmpProt(Deci):
 
     def register_cmd(self, netmp_key, reg_protocol):
 
-        buffer = self.build_buffer(Deci.recorddefs["SceNetmpRegisterCmd"], netmp_key=netmp_key, reg_protocol=reg_protocol)
+        buffer = self.build_buffer(Deci4H.recorddefs["SceNetmpRegisterCmd"], netmp_key=netmp_key, reg_protocol=reg_protocol)
         buffer = self.make_deci_cmd_header(buffer, self.SCE_NETMP_TYPE_REGISTER_CMD, self.PROTOCOL)
 
         return buffer
@@ -300,7 +293,7 @@ class NetmpProt(Deci):
 
     def unregister_cmd(self, reg_protocol):
 
-        buffer = self.build_buffer(Deci.recorddefs["SceNetmpUnregisterCmd"], reg_protocol=reg_protocol)
+        buffer = self.build_buffer(Deci4H.recorddefs["SceNetmpUnregisterCmd"], reg_protocol=reg_protocol)
         buffer = self.make_deci_cmd_header(None, self.SCE_NETMP_TYPE_UNREGISTER_CMD, self.PROTOCOL)
 
         return buffer
@@ -311,9 +304,9 @@ class NetmpProt(Deci):
 
     def parse(self, res, buffer):
         if res["msgtype"] == self.SCE_NETMP_TYPE_GET_CONF_RES:
-            buffer = self.parse_buffer(buffer, Deci.recorddefs["SceDeciCommonConfig"], res)
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
         elif res["msgtype"] == self.SCE_NETMP_TYPE_CONNECT_RES:
-            buffer = self.parse_buffer(buffer, Deci.recorddefs["SceNetmpConnectRes"], res)
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceNetmpConnectRes"], res)
         elif (res["msgtype"] == self.SCE_NETMP_TYPE_REGISTER_RES or 
               res["msgtype"] == self.SCE_NETMP_TYPE_UNREGISTER_RES or
               res["msgtype"] == self.SCE_NETMP_TYPE_DISCONNECT_RES):
@@ -322,7 +315,7 @@ class NetmpProt(Deci):
         return buffer, res
 
 
-class CtrlpProt(Deci):
+class CtrlpProt(Deci4H):
     SCE_CTRLP_TYPE_GET_CONF_CMD = 0x0
     SCE_CTRLP_TYPE_GET_CONF_RES = 0x1
     SCE_CTRLP_TYPE_REC_START_CMD = 0x2
@@ -346,7 +339,7 @@ class CtrlpProt(Deci):
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_GET_CONF_RES)
 
     def rec_start_cmd(self, controller=0xffffffff):
-        buffer = self.build_buffer(Deci.recorddefs["SceCtrlpDevices"], controller=controller)
+        buffer = self.build_buffer(Deci4H.recorddefs["SceCtrlpDevices"], controller=controller)
         return self.make_deci_cmd_header(buffer, self.SCE_CTRLP_TYPE_REC_START_CMD, self.PROTOCOL)
 
     def rec_start_msg(self, stream, controller=0xffffffff):
@@ -361,7 +354,7 @@ class CtrlpProt(Deci):
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_REC_STOP_RES)
 
     def play_start_cmd(self, controller=0xffffffff):
-        buffer = self.build_buffer(Deci.recorddefs["SceCtrlpDevices"], controller=controller)
+        buffer = self.build_buffer(Deci4H.recorddefs["SceCtrlpDevices"], controller=controller)
         return self.make_deci_cmd_header(buffer, self.SCE_CTRLP_TYPE_PLAY_START_CMD, self.PROTOCOL)
 
     def play_start_msg(self, stream, controller=0xffffffff):
@@ -369,11 +362,11 @@ class CtrlpProt(Deci):
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_PLAY_START_RES)
 
     def play_data_cmd(self, events):
-        buffer = self.build_buffer(Deci.recorddefs["SceCtrlpPlayCmd"], threshold=0)
+        buffer = self.build_buffer(Deci4H.recorddefs["SceCtrlpPlayCmd"], threshold=0)
 
         timeoff = 0
         for button in events:
-            buffer.extend(self.build_buffer(Deci.recorddefs["SceCtrlpData"], 
+            buffer.extend(self.build_buffer(Deci4H.recorddefs["SceCtrlpData"], 
                 size = 56,
                 timestamp = timeoff,
                 unionsize = 44,
@@ -390,7 +383,7 @@ class CtrlpProt(Deci):
                 touchsize = 12,
                 timestamp2 = 0))
 
-            timeoff += 0
+            timeoff += 0  # not sure what this does if not zero.  Seems to have no effect
             
         return self.make_deci_cmd_header(buffer, self.SCE_CTRLP_TYPE_PLAY_DATA_CMD, self.PROTOCOL)
 
@@ -413,10 +406,10 @@ class CtrlpProt(Deci):
 
     def parse(self, res, buffer):
         if res["msgtype"] == self.SCE_CTRLP_TYPE_GET_CONF_RES:
-            buffer = self.parse_buffer(buffer, Deci.recorddefs["SceDeciCommonConfig"], res)
-            buffer = self.parse_buffer(buffer, Deci.recorddefs["SceCtrlpGetConfCmd"], res)
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceCtrlpGetConfCmd"], res)
         elif res["msgtype"] == self.SCE_CTRLP_TYPE_PLAY_DATA_RES:
-            buffer = self.parse_buffer(buffer, Deci.recorddefs["SceCtrlpPlayDataRes"], res)
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceCtrlpPlayDataRes"], res)
         elif (res["msgtype"] == self.SCE_CTRLP_TYPE_REC_START_RES or 
               res["msgtype"] == self.SCE_CTRLP_TYPE_REC_STOP_RES or
               res["msgtype"] == self.SCE_CTRLP_TYPE_PLAY_START_RES or
@@ -434,7 +427,7 @@ class CtrlpProt(Deci):
         terminator = struct.unpack_from("<l", buffer, 0)[0]
         while(terminator > 0):
             resdata = {}
-            buffer = self.parse_buffer(buffer, Deci.recorddefs["SceCtrlpData"], resdata)
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceCtrlpData"], resdata)
             res["data"].append(resdata)
             terminator = struct.unpack_from("<l", buffer, 0)[0]
 
@@ -451,7 +444,8 @@ class Netmp:
         self.stream1.connect((self.ip, self.port))
 
     def connect(self):
-        res = self.prot.connect_msg(self.stream1, client_id='steve@43.138.12.225, foobar', udpport=0)
+        client_id = "%s@%s, EXDGDECI4" % ( getpass.getuser(), socket.gethostbyname(socket.gethostname()))
+        res = self.prot.connect_msg(self.stream1, client_id=client_id, udpport=0)
         self.netmp_key = res["netmp_key"]
 
         #checkexception
@@ -504,75 +498,5 @@ class Ctrlp:
     def play_stop(self):
         self.prot.play_stop_msg(self.stream)
 
-netmp = Netmp(ip=sys.argv[1])
-#print netmp.get_conf()
-
-netmp.connect()
-
-ctrlp = netmp.register_ctrlp()
-
-print ctrlp.get_conf()
-
-#ctrlp.rec_start()
-
-#start = datetime.datetime.now();
-#while( datetime.datetime.now() - start).seconds < 1:
-#    data = ctrlp.read_data()
-#    print len(data["data"])
-#    for line in data["data"]:
-#        print "Timestamp ", line["timestamp"], " buttons", hex(line["buttons"])
-
-ctrlp.rec_stop()
-
-ctrlp.play_start()
-
-def dobutton(ctrlp, button):
-    for i in xrange(10):
-        ctrlp.play_data([button] * 8)
-
-    for i in xrange(10):
-        ctrlp.play_data([0x0] * 8)
-
-while True:
-    ch = getch.getch()
-
-    if ch == 'q':
-        break
-    elif ch == 'w':
-        dobutton(ctrlp,0x10)
-    elif ch == 'a':
-        dobutton(ctrlp,0x80)
-    elif ch == 's':
-        dobutton(ctrlp,0x40)
-    elif ch == 'd':
-        dobutton(ctrlp,0x20)
-    elif ch == 'D': #r1
-        dobutton(ctrlp,0x400)
-    elif ch == 'W': #l1
-        dobutton(ctrlp,0x800)
-    elif ch == 'r': #r2
-        dobutton(ctrlp,0x200)
-    elif ch == 'l': #l2
-        dobutton(ctrlp,0x100)
-    elif ch == 'x': # cross
-        dobutton(ctrlp,0x4000)
-    elif ch == 'z': #circle
-        dobutton(ctrlp,0x2000)
-    elif ch == 'c': #square
-        dobutton(ctrlp,0x8000)
-    elif ch == 't': #triangle
-        dobutton(ctrlp,0x1000)
-    elif ch == 'o': #option
-        dobutton(ctrlp,0x8)
-    elif ch == 'h': #share - doesn't seem to work
-        dobutton(ctrlp,0x100000)
-    elif ch == 'p':
-        dobutton(ctrlp,0x10000)
-
-
-ctrlp.play_stop()
-
-netmp.unregister_ctrlp()
-
-netmp.disconnect()
-
+if __name__ ==  "__main__":
+    pass
