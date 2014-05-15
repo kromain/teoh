@@ -14,7 +14,7 @@ def log(*args):
         for arg in args:
             log_string += str(arg)
         if (len(log_string)):
-            print log_string
+            print( log_string )
     return
 
     
@@ -50,16 +50,6 @@ def make_dump(bytes):
                                   ' '.join(makewords(line)),
                                   ''.join(map(ascdisp,line)))
     return rc
-
-def log_bytes(text, bytes):
-
-    if enable_logging:
-        for addr, line in enumerate(chunker(map(hex, bytes), 16)):
-            print "%s %6s: %-39s %s" % (text,
-                                        hex(addr * 16),
-                                        ' '.join(makewords(line)),
-                                        ''.join(map(ascdisp,line)))
-
 
 
 def pad_len(bytes, multiple):
@@ -530,5 +520,29 @@ class Ctrlp:
     def play_stop(self):
         self.prot.play_stop_msg(self.stream)
 
+class Controller:
+    UP = 0x10
+    LEFT = 0x80
+    RIGHT = 0x20
+    DOWN = 0x40
+    R1 = 0x400
+    L1 = 0x800
+    R2 = 0x200
+    L2 = 0x100
+    CROSS = 0x4000
+    CIRCLE = 0x2000
+    SQUARE = 0x8000
+    TRIANGLE = 0x1000
+    OPTION = 0x8
+    SHARE = 0x1
+    PS = 0x10000
+
+    def buttonpress(button, time=10):
+        for i in xrange(time):
+            ctrlp.play_data([button] * 8)
+
+        for i in xrange(10):
+            ctrlp.play_data([0x0] * 8)
+        
 if __name__ ==  "__main__":
     pass
