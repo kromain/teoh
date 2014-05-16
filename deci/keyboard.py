@@ -1,7 +1,7 @@
 import sys
 import time
 from Tkinter import *
-from deci4 import Netmp, Controller
+from controller import Controller
 
 
 root = Tk()
