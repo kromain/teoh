@@ -68,6 +68,13 @@ class ParseException(Exception):
     def __str__(self):
         return "Unexpected message protocol %x type %x" % (self.protocol, self.type)
 
+class PlayException(Exception):
+    def __init__(self, length):
+        self.length = length
+
+    def __str__(self):
+        return "You set the length to %d but the max is 8.  This will cause the playback system to bork, and you'll need to reboot, so don't do that" % self.length
+
 class Deci4H:
     recorddefs = {
         "SceDeciHeader": [
@@ -354,6 +361,9 @@ class CtrlpProt(Deci4H):
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_CTRLP_TYPE_PLAY_START_RES)
 
     def play_data_cmd(self, events):
+        if len(events) > 8:
+            raise PlayException(len(events))
+
         buffer = self.build_buffer(Deci4H.recorddefs["SceCtrlpPlayCmd"], threshold=0)
 
         timeoff = 0
@@ -520,6 +530,10 @@ class Ctrlp:
     def play_stop(self):
         self.prot.play_stop_msg(self.stream)
 
+
+import sys
+import threading
+
 class Controller:
     UP = 0x10
     LEFT = 0x80
@@ -537,12 +551,119 @@ class Controller:
     SHARE = 0x1
     PS = 0x10000
 
-    def buttonpress(button, time=10):
-        for i in xrange(time):
-            ctrlp.play_data([button] * 8)
+    class KeyThread(threading.Thread):
 
-        for i in xrange(10):
-            ctrlp.play_data([0x0] * 8)
+        def run(self):
+
+            self.buttonstate = 0x0
+            self.stop = False
+
+            while not self.stop:
+                self.ctrlp.play_data([self.buttonstate] * 8)
+                time.sleep(0.1)
+
+    def start(self):
+
+        self.netmp = Netmp(ip=sys.argv[1])
+
+        self.netmp.connect()
+
+        self.ctrlp = self.netmp.register_ctrlp()
+
+        self.ctrlp.play_start()
+
+        self.thread = self.KeyThread()
+        self.thread.ctrlp = self.ctrlp
+
+        self.thread.ready = False
+        self.thread.start()
+
+        time.sleep(0.1)
+
+    def stop(self):
+        self.thread.stop = True
+        self.thread.join()
+
+        self.ctrlp.play_stop()
+
+        self.netmp.unregister_ctrlp()
+
+        self.netmp.disconnect()
+
+    def keydown(self,button):
+        self.thread.buttonstate |= button
+
+    def keyup(self,button):
+        self.thread.buttonstate &= ~button
+
+    def buttonpress(self, button, timetopress=0.1):
+        print "press %x" % button
+        self.keydown(button)
+        time.sleep(timetopress)
+        self.keyup(button)
+        time.sleep(0.1)
         
 if __name__ ==  "__main__":
-    pass
+    
+    controller = Controller()
+
+    controller.start()
+    controller.buttonpress(Controller.RIGHT)
+    controller.buttonpress(Controller.RIGHT)
+    controller.buttonpress(Controller.RIGHT)
+    controller.buttonpress(Controller.RIGHT)
+    controller.buttonpress(Controller.UP)
+    controller.buttonpress(Controller.DOWN)
+    controller.buttonpress(Controller.LEFT, 1.0)
+    controller.buttonpress(Controller.RIGHT, 1.0)
+    controller.buttonpress(Controller.PS, 1.0)
+    time.sleep(1)
+    controller.buttonpress(Controller.DOWN)
+    controller.buttonpress(Controller.CROSS)
+    time.sleep(5)
+    controller.buttonpress(Controller.RIGHT)
+    controller.buttonpress(Controller.CROSS)
+    time.sleep(3)
+    controller.buttonpress(Controller.UP)
+    controller.buttonpress(Controller.LEFT, 1.0)
+    controller.buttonpress(Controller.CROSS)
+    controller.buttonpress(Controller.RIGHT)
+    time.sleep(15)
+    controller.buttonpress(Controller.OPTION)
+    controller.buttonpress(Controller.DOWN)
+    controller.buttonpress(Controller.DOWN)
+    controller.buttonpress(Controller.DOWN)
+    controller.buttonpress(Controller.DOWN)
+    controller.buttonpress(Controller.CROSS)
+    time.sleep(5)
+    controller.buttonpress(Controller.DOWN,3.0)
+    controller.buttonpress(Controller.CIRCLE)
+    time.sleep(4)
+    controller.buttonpress(Controller.CIRCLE)
+    controller.buttonpress(Controller.DOWN)
+    controller.buttonpress(Controller.SHARE)
+    time.sleep(2)
+    controller.buttonpress(Controller.CIRCLE)
+    controller.buttonpress(Controller.UP)
+    controller.buttonpress(Controller.RIGHT, 1.0)
+    controller.buttonpress(Controller.LEFT)
+    controller.buttonpress(Controller.CROSS)
+    time.sleep(4)
+    controller.buttonpress(Controller.CROSS)
+    time.sleep(4)
+    controller.buttonpress(Controller.CROSS)
+    time.sleep(15)
+    controller.buttonpress(Controller.CROSS)
+    time.sleep(4)
+    controller.buttonpress(Controller.CROSS)
+    controller.buttonpress(Controller.LEFT, 1.0)
+    controller.buttonpress(Controller.DOWN)
+    controller.buttonpress(Controller.CROSS)
+    controller.buttonpress(Controller.UP)
+    controller.buttonpress(Controller.CROSS)
+
+
+
+    time.sleep(1)
+
+    controller.stop()

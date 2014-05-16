@@ -1,107 +1,78 @@
 import sys
 import time
-import threading
 from Tkinter import *
 from deci4 import Netmp, Controller
 
-class KeyThread(threading.Thread):
-
-    def run(self):
-        self.buttonstate = 0x0
-        self.stop = False
-        self.blocks = []
-
-        netmp = Netmp(ip=sys.argv[1])
-
-        netmp.connect()
-
-        ctrlp = netmp.register_ctrlp()
-
-        ctrlp.play_start()
-
-        while not self.stop:
-            ctrlp.play_data([self.buttonstate] * 8)
-            time.sleep(0.01)
-
-        ctrlp.play_stop()
-
-        netmp.unregister_ctrlp()
-
-        netmp.disconnect()
-
-
-thread = KeyThread()
 
 root = Tk()
-
 
 def keyup(event):
     global thread
 
     if event.char == 'w':
-        thread.buttonstate &= ~Controller.UP
+        controller.keyup(Controller.UP)
     elif event.char == 'a':
-        thread.buttonstate &= ~Controller.LEFT
+        controller.keyup(Controller.LEFT)
     elif event.char == 's':
-        thread.buttonstate &= ~Controller.DOWN
+        controller.keyup(Controller.DOWN)
     elif event.char == 'd':
-        thread.buttonstate &= ~Controller.RIGHT
+        controller.keyup(Controller.RIGHT)
     elif event.char == 'D': 
-        thread.buttonstate &= ~Controller.R1
+        controller.keyup(Controller.R1)
     elif event.char == 'W': 
-        thread.buttonstate &= ~Controller.L1
+        controller.keyup(Controller.L1)
     elif event.char == 'r': 
-        thread.buttonstate &= ~Controller.R2
+        controller.keyup(Controller.R2)
     elif event.char == 'l': 
-        thread.buttonstate &= ~Controller.L2
+        controller.keyup(Controller.L2)
     elif event.char == 'x': 
-        thread.buttonstate &= ~Controller.CROSS
+        controller.keyup(Controller.CROSS)
     elif event.char == 'z': 
-        thread.buttonstate &= ~Controller.CIRCLE
+        controller.keyup(Controller.CIRCLE)
     elif event.char == 'c': 
-        thread.buttonstate &= ~Controller.SQUARE
+        controller.keyup(Controller.SQUARE)
     elif event.char == 't': 
-        thread.buttonstate &= ~Controller.TRIANGLE
+        controller.keyup(Controller.TRIANGLE)
     elif event.char == 'o': 
-        thread.buttonstate &= ~Controller.OPTION
+        controller.keyup(Controller.OPTION)
     elif event.char == 'h': 
-        thread.buttonstate &= ~Controller.SHARE
+        controller.keyup(Controller.SHARE)
     elif event.char == 'p':
-        thread.buttonstate &= ~Controller.PS
+        controller.keyup(Controller.PS)
 
 def keydown(event):
     global thread
 
     if event.char == 'w':
-        thread.buttonstate |= Controller.UP
+        controller.keydown(Controller.UP)
     elif event.char == 'a':
-        thread.buttonstate |= Controller.LEFT
+        controller.keydown(Controller.LEFT)
     elif event.char == 's':
-        thread.buttonstate |= Controller.DOWN
+        controller.keydown(Controller.DOWN)
     elif event.char == 'd':
-        thread.buttonstate |= Controller.RIGHT
+        controller.keydown(Controller.RIGHT)
     elif event.char == 'D': 
-        thread.buttonstate |= Controller.R1
+        controller.keydown(Controller.R1)
     elif event.char == 'W': 
-        thread.buttonstate |= Controller.L1
+        controller.keydown(Controller.L1)
     elif event.char == 'r': 
-        thread.buttonstate |= Controller.R2
+        controller.keydown(Controller.R2)
     elif event.char == 'l': 
-        thread.buttonstate |= Controller.L2
+        controller.keydown(Controller.L2)
     elif event.char == 'x': 
-        thread.buttonstate |= Controller.CROSS
+        controller.keydown(Controller.CROSS)
     elif event.char == 'z': 
-        thread.buttonstate |= Controller.CIRCLE
+        controller.keydown(Controller.CIRCLE)
     elif event.char == 'c': 
-        thread.buttonstate |= Controller.SQUARE
+        controller.keydown(Controller.SQUARE)
     elif event.char == 't': 
-        thread.buttonstate |= Controller.TRIANGLE
+        controller.keydown(Controller.TRIANGLE)
     elif event.char == 'o': 
-        thread.buttonstate |= Controller.OPTION
+        controller.keydown(Controller.OPTION)
     elif event.char == 'h': 
-        thread.buttonstate |= Controller.SHARE
+        controller.keydown(Controller.SHARE)
     elif event.char == 'p':
-        thread.buttonstate |= Controller.PS
+        controller.keydown(Controller.PS)
 
 
 def callback(event):
@@ -113,7 +84,9 @@ frame.bind("<KeyRelease>", keyup)
 frame.bind("<Button-1>", callback)
 frame.pack()
 
-thread.start()
+controller = Controller()
+controller.start()
+
 root.mainloop()
-thread.stop = True
-thread.join()
+
+controller.stop()
