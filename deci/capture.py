@@ -40,7 +40,7 @@ thread.stop = True
 
 thread.join()
 
-print "%d blocks read" % len(thread.blocks)
+print("%d blocks read" % len(thread.blocks))
 
 f = open("capture.dat", "wb")
 for block in thread.blocks:

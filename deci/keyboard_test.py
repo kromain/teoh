@@ -11,10 +11,10 @@ ctrlp = netmp.register_ctrlp()
 ctrlp.play_start()
 
 def dobutton(ctrlp, button):
-    for i in xrange(10):
+    for i in range(10):
         ctrlp.play_data([button] * 8)
 
-    for i in xrange(10):
+    for i in range(10):
         ctrlp.play_data([0x0] * 8)
 
 while True:

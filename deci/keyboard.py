@@ -1,6 +1,6 @@
 import sys
 import time
-from Tkinter import *
+from tkinter import *
 from controller import Controller
 
 

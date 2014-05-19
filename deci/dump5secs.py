@@ -13,9 +13,9 @@ ctrlp.rec_start()
 start = datetime.datetime.now();
 while( datetime.datetime.now() - start).seconds < 5:
     data = ctrlp.read_data()
-    print len(data["data"])
+    print(len(data["data"]))
     for line in data["data"]:
-        print "Timestamp ", line["timestamp"], " buttons", hex(line["buttons"])
+        print("Timestamp ", line["timestamp"], " buttons", hex(line["buttons"]))
 
 ctrlp.rec_stop()
 

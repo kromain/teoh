@@ -19,11 +19,11 @@ def log(*args):
 
     
 def chunker(l,n):
-    for i in xrange(0,len(l),n):
+    for i in range(0,len(l),n):
         yield l[i:i+n]
 
 def makewords(l):
-    for i in xrange(0,len(l),2):
+    for i in range(0,len(l),2):
         s = l[i][2:]
 
         if i+1 < len(l):
@@ -45,7 +45,7 @@ def make_dump(bytes):
         bytes = [ord(x) for x in bytes]
 
     rc = ""
-    for addr, line in enumerate(chunker(map(hex, bytes), 16)):
+    for addr, line in enumerate(chunker(list(map(hex, bytes)), 16)):
         rc += "%6s: %-39s %s\n" % (hex(addr * 16),
                                   ' '.join(makewords(line)),
                                   ''.join(map(ascdisp,line)))
@@ -177,7 +177,7 @@ class Deci4H:
                     struct.pack_into(f["type"], buffer, offset, val)
                 else:
                     struct.pack_into("<l", buffer, offset, len(val))
-                    struct.pack_into("%ds" % len(val), buffer, offset+4, val)
+                    struct.pack_into("%ds" % len(val), buffer, offset+4, val.encode("utf8"))
 
 
             offset += f["length"]
@@ -395,7 +395,7 @@ class CtrlpProt(Deci4H):
 
         # if result is 1, we've filled memory.  Could wait and retry
         if res["result"] != 0:
-            print "Oh noes!", res["result"]
+            print("Oh noes!", res["result"])
 
         return res
 

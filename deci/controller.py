@@ -66,7 +66,7 @@ class Controller:
         self.thread.buttonstate &= ~button
 
     def buttonpress(self, button, timetopress=0.1):
-        print "press %x" % button
+        print("press %x" % button)
         self.keydown(button)
         time.sleep(timetopress)
         self.keyup(button)
