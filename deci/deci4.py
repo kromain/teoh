@@ -124,6 +124,9 @@ class Deci4H:
         "SceCtrlpGetConfCmd":[
             {"type":'<l', "length":4, "name":"in_buf_size"}
         ],
+        "SceTtypGetConfCmd":[
+            {"type":'<l', "length":4, "name":"in_buf_size"}
+        ],
         "SceCtrlpDevices":[
             {"type":'<L', "length":4, "name":"controller"}  # actually bitfield
         ],
@@ -152,6 +155,13 @@ class Deci4H:
         ],
         "SceCtrlpPlayDataRes":[
             {"type":'<L', "length":4, "name":"count"}  # number of entries left in buffer?
+        ],
+        "SceTtypOut": [
+            {"type":'<L', "length":4, "name":"port"},
+            {"type":'<L', "length":4, "name":"category"},
+            {"type":'<L', "length":4, "name":"pid"},
+            {"type":'<L', "length":4, "name":"tid"},
+            {"type":'SceDeciTtyStreamData', "name":"message"},
         ]
     }
     sequence = 0x1234
@@ -196,10 +206,16 @@ class Deci4H:
     def parse_buffer(self, buffer, format, res):
         offset = 0
         for f in format:
-            if f["type"] != "zeros":
-                res[f["name"]] = struct.unpack_from(f["type"], buffer, offset)[0]
+            if f["type"] == "SceDeciTtyStreamData":
+                length = struct.unpack_from("<L", buffer, offset)[0]
+                offset += 4
+                res[f["name"]] = struct.unpack_from("<%ds" % length, buffer, offset)[0].decode("utf-8")
+                offset += pad_len(length, 4)
+            else:
+                if f["type"] != "zeros":
+                    res[f["name"]] = struct.unpack_from(f["type"], buffer, offset)[0]
 
-            offset += f["length"]
+                offset += f["length"]
 
         return buffer[offset:]
 
@@ -460,6 +476,39 @@ class CtrlpProt(Deci4H):
         log( "Recv (%s):\n%s" % (stream, make_dump(buffer)) )
         return self.parse_header(buffer)[0]
 
+class TtypProt(Deci4H):
+    SCE_TTYP_TYPE_GET_CONF_CMD = 0x0
+    SCE_TTYP_TYPE_GET_CONF_RES = 0x1
+    SCE_TTYP_TYPE_TTY_IN_CMD = 0x2
+    SCE_TTYP_TYPE_TTY_IN_RES = 0x3
+    SCE_TTYP_TYPE_GET_PORT_STATES_CMD = 0x4
+    SCE_TTYP_TYPE_GET_PORT_STATES_RES = 0x5
+    SCE_TTYP_TYPE_SET_PORT_STATES_CMD = 0x7
+    SCE_TTYP_TYPE_SET_PORT_STATES_RES = 0x8
+    SCE_TTYP_TYPE_TTY_OUT_NOTIFICATION = 0x80
+    SCE_TTYP_TYPE_IN_BUFF_READY_NOTIFICATION = 0x81
+    SCE_TTYP_TYPE_IN_CLOSE_NOTIFICATION = 0x82
+    SCE_TTYP_TYPE_FATALHEAD_NOTIFICATION = 0xE0
+    SCE_TTYP_TYPE_INVALHEAD_NOTIFICATION = 0xE1
+    SCE_TTYP_TYPE_INVALPROTO_NOTIFICATION = 0xE2
+    PROTOCOL = 0x80003000
+
+    def get_conf_cmd(self):
+        return self.make_deci_cmd_header(None, self.SCE_TTYP_TYPE_GET_CONF_CMD, self.PROTOCOL)
+
+    def get_conf_msg(self, stream):
+        buffer = self.sendrecv(stream, self.get_conf_cmd())
+        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TTYP_TYPE_GET_CONF_RES)
+
+    def parse(self, res, buffer):
+        if res["msgtype"] == self.SCE_TTYP_TYPE_GET_CONF_RES:
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypGetConfCmd"], res)
+
+        elif res["msgtype"] == self.SCE_TTYP_TYPE_TTY_OUT_NOTIFICATION:
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypOut"], res)
+
+        return buffer, res
 
 class Netmp:
     def __init__(self, ip, port=8550):
@@ -478,6 +527,20 @@ class Netmp:
 
     def get_conf(self):
         return self.prot.get_conf_msg(self.stream1)
+
+    def register_ttyp(self):
+        self.stream2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.stream2.connect((self.ip, self.port))
+
+        res = self.prot.register_msg(self.stream2, netmp_key=self.netmp_key, reg_protocol=TtypProt.PROTOCOL)
+
+        #checkexception
+        return Ttyp(self.stream2)
+
+    def unregister_ttyp(self):
+        res = self.prot.unregister_msg(self.stream1, reg_protocol=TtypProt.PROTOCOL)
+
+        #checkexception
 
     def register_ctrlp(self):
         self.stream2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -530,4 +593,17 @@ class Ctrlp:
     def play_stop(self):
         self.prot.play_stop_msg(self.stream)
 
+class Ttyp:
+    def __init__(self, stream):
+        self.prot = TtypProt()
+        self.stream = stream
+
+    def get_conf(self):
+        return self.prot.get_conf_msg(self.stream)
+
+    def read(self):
+        buffer = self.stream.recv(1024)
+        buffer, res = self.prot.parse_header(buffer)
+        return self.prot.parse(res,buffer)[1]
+                
 
