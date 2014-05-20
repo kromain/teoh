@@ -7,11 +7,16 @@ netmp.connect()
 
 ttyp = netmp.register_ttyp()
 
-#print ("Conf", ttyp.get_conf())
+try:
+    while True:
+        res = ttyp.read()
+        if res:
+            if "message" in res:
+                if len(res["message"]) > 1:
+                    print ("%s" % res["message"])
 
-while True:
-    print (ttyp.read()["message"])
-
+except KeyboardInterrupt:
+    print("Closing connection")
 
 netmp.unregister_ttyp()
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import socket
+import select
 import array
 import struct
 import getpass
@@ -53,11 +54,9 @@ def make_dump(bytes):
 
 
 def pad_len(bytes, multiple):
-    if (bytes / multiple) * multiple != bytes:
-        return ((bytes / multiple) + 1 ) * multiple
+    if (bytes // multiple) * multiple != bytes:
+        return ((bytes // multiple) + 1 ) * multiple
     return bytes
-
-
 
 class ParseException(Exception):
 
@@ -75,7 +74,32 @@ class PlayException(Exception):
     def __str__(self):
         return "You set the length to %d but the max is 8.  This will cause the playback system to bork, and you'll need to reboot, so don't do that" % self.length
 
+# Basic description of the protocol
+#
+# DECI contains multiple sub-protocols which are very similar to each other.  Each protocol is intended to be used
+# with a different socket connection.  This is to allow the client to easily keep messages for each protocol 
+# separate.
+#
+# The primary protocol is "NETMP".  This is used to control initiation of all other protocols.  In order to use DECI,
+# you connect to the device using a socket connection to port 8550.  The docs call this "stream 1".  In order
+# to access other protocols, you must "register" them with NETMP.  You do this by sending a REGISTER command with
+# the appropriate protocol id for the one you wish to register.  You then must talk to the devkit with this 
+# protocol on an entirely new socket connection.  So, to start using CTRLP, you must do the following:
+#
+# * Create a socket connection to port 8550 of the devkit
+# * Send a SCE_NETMP_TYPE_CONNECT_CMD message on that socket
+# * Receive the SCE_NETMP_TYPE_CONNECT_RES response on that socket.  This will contain the "netmp key"
+# * Create a second socket connection to port 8550 of the devkit
+# * Send a SCE_NETMP_TYPE_REGISTER_CMD message with the netmp key and the CTRLP protocol id (0x0002c000) on the new socket
+# * Receive the SCE_NETMP_TYPE_REGISTER_RES response on that socket.
+# * Use CTRLP by sending CTRLP messages on the second socket connection
+# 
+# When the script ends, it should send an "UNREGISTER" message to NETMP using the appropriate protocol key on the
+# NETMP socket connection.  It should then send a disconnect message through NETMP
+#
+# When a "CONNECT" message is sent through NETMP, any connections through target manager will be disconnected.
 class Deci4H:
+    """ Common base class for protocol classes.  Not intended to be instatiated.  Used to contain common code.  """
     recorddefs = {
         "SceDeciHeader": [
             {"type":'B', "length":1, "name":"version"},
@@ -161,7 +185,7 @@ class Deci4H:
             {"type":'<L', "length":4, "name":"category"},
             {"type":'<L', "length":4, "name":"pid"},
             {"type":'<L', "length":4, "name":"tid"},
-            {"type":'SceDeciTtyStreamData', "name":"message"},
+            {"type":'SceDeciTtyStreamData', "name":"message"}
         ]
     }
     sequence = 0x1234
@@ -507,6 +531,10 @@ class TtypProt(Deci4H):
 
         elif res["msgtype"] == self.SCE_TTYP_TYPE_TTY_OUT_NOTIFICATION:
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypOut"], res)
+        else:
+            print("None")
+            pass
+            
 
         return buffer, res
 
@@ -529,13 +557,13 @@ class Netmp:
         return self.prot.get_conf_msg(self.stream1)
 
     def register_ttyp(self):
-        self.stream2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.stream2.connect((self.ip, self.port))
+        self.stream_ttyp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.stream_ttyp.connect((self.ip, self.port))
 
-        res = self.prot.register_msg(self.stream2, netmp_key=self.netmp_key, reg_protocol=TtypProt.PROTOCOL)
+        res = self.prot.register_msg(self.stream_ttyp, netmp_key=self.netmp_key, reg_protocol=TtypProt.PROTOCOL)
 
         #checkexception
-        return Ttyp(self.stream2)
+        return Ttyp(self.stream_ttyp)
 
     def unregister_ttyp(self):
         res = self.prot.unregister_msg(self.stream1, reg_protocol=TtypProt.PROTOCOL)
@@ -543,13 +571,13 @@ class Netmp:
         #checkexception
 
     def register_ctrlp(self):
-        self.stream2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.stream2.connect((self.ip, self.port))
+        self.stream_ctrlp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.stream_ctrlp.connect((self.ip, self.port))
 
-        res = self.prot.register_msg(self.stream2, netmp_key=self.netmp_key, reg_protocol=CtrlpProt.PROTOCOL)
+        res = self.prot.register_msg(self.stream_ctrlp, netmp_key=self.netmp_key, reg_protocol=CtrlpProt.PROTOCOL)
 
         #checkexception
-        return Ctrlp(self.stream2)
+        return Ctrlp(self.stream_ctrlp)
 
     def unregister_ctrlp(self):
         res = self.prot.unregister_msg(self.stream1, reg_protocol=CtrlpProt.PROTOCOL)
@@ -593,17 +621,46 @@ class Ctrlp:
     def play_stop(self):
         self.prot.play_stop_msg(self.stream)
 
+# Unlike the CTRLP protocol, the TTYP protocol seems to send multiple messages in a single
+# packet
+# It would probably be gone to have a generic read routine to do this and use it everywhere.
 class Ttyp:
     def __init__(self, stream):
         self.prot = TtypProt()
         self.stream = stream
+        self.queued = None
+        self.needmore = False
 
     def get_conf(self):
         return self.prot.get_conf_msg(self.stream)
 
     def read(self):
-        buffer = self.stream.recv(1024)
+        if not self.queued or self.needmore:
+            if select.select([self.stream], [], [], 0.1):
+                buffer = self.stream.recv(1024)
+                if self.needmore:
+                    buffer = self.queued + buffer
+                    self.needmore = False
+            else:
+                return None
+        else:
+            buffer = self.queued
+
+        self.queued = buffer
+
         buffer, res = self.prot.parse_header(buffer)
-        return self.prot.parse(res,buffer)[1]
+
+        if len(self.queued) < res["length"]:
+            self.needmore = True
+            return None
+
+        buffer, res = self.prot.parse(res,buffer)
+
+        if len(buffer) > 0:
+            self.queued = buffer
+        else:
+            self.queued = None
+
+        return res
                 
 

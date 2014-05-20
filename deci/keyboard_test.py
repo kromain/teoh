@@ -1,12 +1,33 @@
 import sys
 import getch
+import threading
 from deci4 import Netmp
+
+class ConsoleThread(threading.Thread):
+
+    def init(self, ttyp):
+        self.ttyp = ttyp
+        self.stop = False
+
+    def run(self):
+        while not self.stop:
+            res = ttyp.read()
+            if res:
+                if len(res["message"]) > 1:
+                    print ("%s" % res["message"])
 
 netmp = Netmp(ip=sys.argv[1])
 
 netmp.connect()
 
 ctrlp = netmp.register_ctrlp()
+
+ttyp = netmp.register_ttyp()
+
+thread = ConsoleThread()
+
+thread.init(ttyp)
+thread.start()
 
 ctrlp.play_start()
 
@@ -21,6 +42,7 @@ while True:
     ch = getch.getch()
 
     if ch == 'q':
+        thread.stop = True
         break
     elif ch == 'w':
         dobutton(ctrlp,0x10)
@@ -55,6 +77,10 @@ while True:
 
 
 ctrlp.play_stop()
+
+thread.join()
+
+netmp.unregister_ttyp()
 
 netmp.unregister_ctrlp()
 
