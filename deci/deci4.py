@@ -228,6 +228,7 @@ class Deci4H:
             offset = offset + f["length"]
         
     def parse_buffer(self, buffer, format, res):
+        tmpbuff = buffer
         offset = 0
         for f in format:
             if f["type"] == "SceDeciTtyStreamData":
@@ -647,6 +648,10 @@ class Ttyp:
             buffer = self.queued
 
         self.queued = buffer
+
+        if len(self.queued) < 28:
+            self.needmore = True
+            return None
 
         buffer, res = self.prot.parse_header(buffer)
 
