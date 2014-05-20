@@ -19,28 +19,29 @@ def log(*args):
     return
 
     
-def chunker(l,n):
-    for i in range(0,len(l),n):
-        yield l[i:i+n]
-
-def makewords(l):
-    for i in range(0,len(l),2):
-        s = l[i][2:]
-
-        if i+1 < len(l):
-            s += l[i+1][2:].zfill(2)
-
-        yield s.zfill(4)
-
-def ascdisp(b):
-    x = int(b,16)
-    
-    if x < 32 or x > 127:
-        return '.'
-    else:
-        return chr(x)
-         
 def make_dump(bytes):
+
+    def chunker(l,n):
+        for i in range(0,len(l),n):
+            yield l[i:i+n]
+
+    def makewords(l):
+        for i in range(0,len(l),2):
+            s = l[i][2:]
+
+            if i+1 < len(l):
+                s += l[i+1][2:].zfill(2)
+
+            yield s.zfill(4)
+
+    def ascdisp(b):
+        x = int(b,16)
+        
+        if x < 32 or x > 127:
+            return '.'
+        else:
+            return chr(x)
+             
 
     if type(bytes) is str:
         bytes = [ord(x) for x in bytes]
@@ -53,26 +54,6 @@ def make_dump(bytes):
     return rc
 
 
-def pad_len(bytes, multiple):
-    if (bytes // multiple) * multiple != bytes:
-        return ((bytes // multiple) + 1 ) * multiple
-    return bytes
-
-class ParseException(Exception):
-
-    def __init__(self, protocol, type):
-        self.protocol = protocol
-        self.type = type
-         
-    def __str__(self):
-        return "Unexpected message protocol %x type %x" % (self.protocol, self.type)
-
-class PlayException(Exception):
-    def __init__(self, length):
-        self.length = length
-
-    def __str__(self):
-        return "You set the length to %d but the max is 8.  This will cause the playback system to bork, and you'll need to reboot, so don't do that" % self.length
 
 # Basic description of the protocol
 #
@@ -100,6 +81,31 @@ class PlayException(Exception):
 # When a "CONNECT" message is sent through NETMP, any connections through target manager will be disconnected.
 class Deci4H:
     """ Common base class for protocol classes.  Not intended to be instatiated.  Used to contain common code.  """
+
+    @staticmethod
+    def pad_len(bytes, multiple):
+        if (bytes // multiple) * multiple != bytes:
+            return ((bytes // multiple) + 1 ) * multiple
+        return bytes
+
+    class ParseException(Exception):
+
+        def __init__(self, protocol, type, expprotocol, exptype):
+            self.protocol = protocol
+            self.type = type
+            self.expprotocol = expprotocol
+            self.exptype = exptype
+             
+        def __str__(self):
+            return ("Unexpected message protocol %x type %x (expected %x and %x" % 
+                            (self.protocol, self.type, self.expprotocol, self.exptype))
+
+    class PlayException(Exception):
+        def __init__(self, length):
+            self.length = length
+
+        def __str__(self):
+            return "You set the length to %d but the max is 8.  This will cause the playback system to bork, and you'll need to reboot, so don't do that" % self.length
     recorddefs = {
         "SceDeciHeader": [
             {"type":'B', "length":1, "name":"version"},
@@ -186,7 +192,13 @@ class Deci4H:
             {"type":'<L', "length":4, "name":"pid"},
             {"type":'<L', "length":4, "name":"tid"},
             {"type":'SceDeciTtyStreamData', "name":"message"}
-        ]
+        ],
+        "SceTsmpNameValueDisplay": [
+            {"type":'<L', "length":4, "name":"size"},
+            {"type":"SceDeciStringUtf8", "name":"name"},
+            {"type":"SceDeciVariant", "name":"value"},
+            {"type":'<L', "length":4, "name":"format"},
+        ],
     }
     sequence = 0x1234
 
@@ -235,7 +247,39 @@ class Deci4H:
                 length = struct.unpack_from("<L", buffer, offset)[0]
                 offset += 4
                 res[f["name"]] = struct.unpack_from("<%ds" % length, buffer, offset)[0].decode("utf-8")
-                offset += pad_len(length, 4)
+                offset += self.pad_len(length, 4)
+
+            elif f["type"] == "SceDeciStringUtf8":
+                length = struct.unpack_from("<L", buffer, offset)[0]
+                offset += 4
+                res[f["name"]] = struct.unpack_from("<%ds" % length, buffer, offset)[0].decode("utf-8")
+                print ("read", res[f["name"]])
+                offset += self.pad_len(length,4)
+
+            elif f["type"] == "SceDeciVariant":
+                size = struct.unpack_from("<L", buffer, offset)[0]
+                type = struct.unpack_from("<L", buffer, offset+4)[0]
+
+                print ("type", type)
+                if type == 0:
+                    res[f["name"]] = struct.unpack_from("<l", buffer, offset+8)[0]
+                elif type == 1:
+                    res[f["name"]] = struct.unpack_from("<L", buffer, offset+8)[0]
+                if type == 2:
+                    res[f["name"]] = struct.unpack_from("<q", buffer, offset+8)[0]
+                elif type == 3:
+                    res[f["name"]] = struct.unpack_from("<Q", buffer, offset+8)[0]
+                elif type == 4 or type == 5:
+                    pass # ignore 128 bit for now
+                elif type == 7:
+                    length = struct.unpack_from("<L", buffer, offset+8)[0]
+                    res[f["name"]] = struct.unpack_from("<%ds" % length, buffer, offset+12)[0].decode("utf-8")
+                elif type == 8:
+                    length = struct.unpack_from("<L", buffer, offset+8)[0]
+                    res[f["name"]] = struct.unpack_from("<%ds" % length, buffer, offset+12)[0]
+
+                offset += size
+
             else:
                 if f["type"] != "zeros":
                     res[f["name"]] = struct.unpack_from(f["type"], buffer, offset)[0]
@@ -264,18 +308,69 @@ class Deci4H:
 
         return buffer, res
 
+    class Queue:
+        def __init__(self):
+            self.buffer = None
+            self.needmore = False
 
+    queues = {}
+
+    def recv_core(self, stream, timeout=0):
+        """ Turn the input stream into messages.  Some protocals will split or combine messages
+            between packets.  This method returns the earliest message received.  This may cause
+            subsequent messages already received to be queued for future recv_core calls.
+
+            stream - socket to read on.
+            timeout - time to wait for full message before returning.
+
+            Returns buffer or None if nothing could be read before the timeout
+        """
+        if stream not in self.queues:
+            self.queues[stream] = self.Queue()
+
+        queue = self.queues[stream]
+        if not queue.buffer or queue.needmore:
+            rd,wr,ex = select.select([stream], [], [], timeout)
+
+            if stream in rd:
+                buffer = stream.recv(2048)  # note: will bork if message can be larger than this value
+                                            # todo: detect case and read more if timeout != 0
+                if queue.needmore:
+                    buffer = queue.buffer + buffer
+                    queue.needmore = False
+            else:
+                return None
+        else:
+            buffer = queue.buffer
+
+        queue.buffer = buffer
+
+        # We need at least 8 bytes because the length is stored in bytes 5-8
+        if len(queue.buffer) < 8:
+            queue.needmore = True
+            return None
+
+        length = struct.unpack_from("<L", buffer, 4)[0]
+
+        if len(queue.buffer) < length:
+            queue.needmore = True
+            return None
+
+        queue.buffer = buffer[length:]
+        return buffer
+
+        
     def sendrecv(self, stream, buffer):
         log( "Send (%s):\n%s" % (stream, make_dump(buffer)) )
         stream.send(buffer)
-        buffer = stream.recv(1024)
+        buffer = self.recv_core(stream,30)
         log( "Recv (%s):\n%s" % (stream, make_dump(buffer)) )
         return buffer
 
     def parse_assert(self, buffer, protocol, message):
         buffer, res = self.parse_header(buffer)
         if res["protocol"] != protocol or res["msgtype"] != message:
-            raise ParseException(res["protocol"], res["msgtype"])
+            raise self.ParseException(res["protocol"], res["msgtype"], protocol, message)
 
         return self.parse(res, buffer)[1]
 
@@ -403,7 +498,7 @@ class CtrlpProt(Deci4H):
 
     def play_data_cmd(self, events):
         if len(events) > 8:
-            raise PlayException(len(events))
+            raise self.PlayException(len(events))
 
         buffer = self.build_buffer(Deci4H.recorddefs["SceCtrlpPlayCmd"], threshold=0)
 
@@ -482,7 +577,8 @@ class CtrlpProt(Deci4H):
         return buffer, res
 
     def read_data(self, stream):
-        buffer = stream.recv(1024)
+        buffer = self.recv_core(stream,30)
+
         log( "Recv (%s):\n%s" % (stream, make_dump(buffer)) )
         buffer, res = self.parse_header(buffer)
 
@@ -497,7 +593,7 @@ class CtrlpProt(Deci4H):
         return res
 
     def read_raw_data(self, stream):
-        buffer = stream.recv(1024)
+        buffer = self.recv_core(stream,30)
         log( "Recv (%s):\n%s" % (stream, make_dump(buffer)) )
         return self.parse_header(buffer)[0]
 
@@ -535,7 +631,58 @@ class TtypProt(Deci4H):
         else:
             print("None")
             pass
-            
+
+        return buffer, res
+
+    def recv(self, stream):
+        buffer = self.recv_core(stream)
+        if not buffer:
+            return None
+
+        return buffer
+
+class TsmpProt(Deci4H):
+    SCE_TSMP_TYPE_GET_CONF_CMD = 0x0
+    SCE_TSMP_TYPE_GET_CONF_RES = 0x1
+    SCE_TSMP_TYPE_GET_INFO_CMD = 0x2
+    SCE_TSMP_TYPE_GET_INFO_RES = 0x3
+    SCE_TSMP_TYPE_GET_PSN_STATE_CMD = 0x20
+    SCE_TSMP_TYPE_GET_PSN_STATE_RES = 0x21
+    PROTOCOL = 0x80004000
+
+    def get_conf_cmd(self):
+        return self.make_deci_cmd_header(None, self.SCE_TSMP_TYPE_GET_CONF_CMD, self.PROTOCOL)
+
+    def get_conf_msg(self, stream):
+        buffer = self.sendrecv(stream, self.get_conf_cmd())
+        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TSMP_TYPE_GET_CONF_RES)
+
+    def get_info_cmd(self):
+        return self.make_deci_cmd_header(None, self.SCE_TSMP_TYPE_GET_INFO_CMD, self.PROTOCOL)
+
+    def get_info_msg(self, stream):
+        buffer = self.sendrecv(stream, self.get_info_cmd())
+        buffer, res = self.parse_header(buffer)
+
+        res["data"] = []
+        terminator = struct.unpack_from("<l", buffer, 0)[0]
+        while(terminator > 0):
+            resdata = {}
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTsmpNameValueDisplay"], resdata)
+            res["data"].append(resdata)
+            terminator = struct.unpack_from("<l", buffer, 0)[0]
+
+        return res
+
+    def parse(self, res, buffer):
+        if res["msgtype"] == self.SCE_TSMP_TYPE_GET_CONF_RES:
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypGetConfCmd"], res)
+
+        elif res["msgtype"] == self.SCE_TSMP_TYPE_GET_CONF_RES:
+            pass
+        else:
+            pass
 
         return buffer, res
 
@@ -585,6 +732,19 @@ class Netmp:
 
         #checkexception
         
+    def register_tsmp(self):
+        self.stream_tsmp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.stream_tsmp.connect((self.ip, self.port))
+
+        res = self.prot.register_msg(self.stream_tsmp, netmp_key=self.netmp_key, reg_protocol=TsmpProt.PROTOCOL)
+
+        #checkexception
+        return Tsmp(self.stream_tsmp)
+
+    def unregister_tsmp(self):
+        res = self.prot.unregister_msg(self.stream1, reg_protocol=TsmpProt.PROTOCOL)
+
+        #checkexception
     def disconnect(self):
         res = self.prot.disconnect_msg(self.stream1)
 
@@ -622,50 +782,35 @@ class Ctrlp:
     def play_stop(self):
         self.prot.play_stop_msg(self.stream)
 
-# Unlike the CTRLP protocol, the TTYP protocol seems to send multiple messages in a single
-# packet
-# It would probably be gone to have a generic read routine to do this and use it everywhere.
 class Ttyp:
     def __init__(self, stream):
         self.prot = TtypProt()
         self.stream = stream
-        self.queued = None
-        self.needmore = False
 
     def get_conf(self):
         return self.prot.get_conf_msg(self.stream)
 
     def read(self):
-        if not self.queued or self.needmore:
-            if select.select([self.stream], [], [], 0.1):
-                buffer = self.stream.recv(1024)
-                if self.needmore:
-                    buffer = self.queued + buffer
-                    self.needmore = False
-            else:
-                return None
-        else:
-            buffer = self.queued
+        """ Reads a tty message without blocking.  If no messages pending, returns None """
+        buffer = self.prot.recv(self.stream)
 
-        self.queued = buffer
-
-        if len(self.queued) < 28:
-            self.needmore = True
+        if not buffer:
             return None
 
         buffer, res = self.prot.parse_header(buffer)
-
-        if len(self.queued) < res["length"]:
-            self.needmore = True
-            return None
-
         buffer, res = self.prot.parse(res,buffer)
-
-        if len(buffer) > 0:
-            self.queued = buffer
-        else:
-            self.queued = None
 
         return res
                 
 
+class Tsmp:
+    def __init__(self, stream):
+        self.prot = TsmpProt()
+        self.stream = stream
+
+    def get_conf(self):
+        return self.prot.get_conf_msg(self.stream)
+
+    def get_info(self):
+        return self.prot.get_info_msg(self.stream)
+    
