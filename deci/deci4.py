@@ -371,58 +371,24 @@ class Deci4H:
     queues = {}
 
     def recv_core(self, stream, timeout=0):
-        """ Turn the input stream into messages.  Some protocals will split or combine messages
-            between packets.  This method returns the earliest message received.  This may cause
-            subsequent messages already received to be queued for future recv_core calls.
+        """ Turn the input stream into messages. 
 
             stream - socket to read on.
             timeout - time to wait for full message before returning.
 
             Returns buffer or None if nothing could be read before the timeout
         """
-        if stream not in self.queues:
-            self.queues[stream] = self.Queue()
 
-        queue = self.queues[stream]
+        rd,wr,ex = select.select([stream], [], [], timeout)
 
-        # if there is nothing in our queues, read more data from the socket 
-        if not queue.buffer or queue.needmore:
-            rd,wr,ex = select.select([stream], [], [], timeout)
+        if stream in rd:
+            buffer = stream.recv(8)
+            length = struct.unpack_from("<L", buffer, 4)[0]
+            buffer += stream.recv(length-8)
 
-            if stream in rd:
-                buffer = stream.recv(2048)  # note: will bork if message can be larger than this value
-                                            # todo: detect case and read more if timeout != 0
+            return buffer
 
-                # We had a partial message waiting.  Paste what we just read to it
-                if queue.needmore:
-                    buffer = queue.buffer + buffer
-                    queue.needmore = False
-            else:
-                # timeout
-                return None
-        else:
-            # Just act on what is waiting
-            buffer = queue.buffer
-
-        queue.buffer = buffer
-
-        # We need at least 8 bytes because the length is stored in bytes 5-8
-        if len(queue.buffer) < 8:
-            queue.needmore = True
-            return None
-
-        # read the length.  (Assumes always wSceDeciHeader)
-        length = struct.unpack_from("<L", buffer, 4)[0]
-
-        # If we don't have a full message, just save and tell the caller we have nothing
-        if len(queue.buffer) < length:
-            queue.needmore = True
-            return None
-
-        # Save off what isn't part of the current message
-        queue.buffer = buffer[length:]
-
-        return buffer
+        return None
 
         
     def sendrecv(self, stream, buffer):
