@@ -20,12 +20,17 @@ def log(*args):
 
     
 def make_dump(bytes):
+    """ print a byte array as a memory dump, 16 bytes per line, both as hex and ASCII """
 
     def chunker(l,n):
+        """ chop iterable l into n length pieces """
         for i in range(0,len(l),n):
             yield l[i:i+n]
 
     def makewords(l):
+        """ Return list of bytes as hex strings in 2 byte blocks as string 
+            i.e.   1234 5678 9ABC DEF0 """
+
         for i in range(0,len(l),2):
             s = l[i][2:]
 
@@ -35,6 +40,7 @@ def make_dump(bytes):
             yield s.zfill(4)
 
     def ascdisp(b):
+        """ return as ASCII, using '.' for control codes """
         x = int(b,16)
         
         if x < 32 or x > 127:
@@ -83,10 +89,12 @@ class Deci4H:
     """ Common base class for protocol classes.  Not intended to be instatiated.  Used to contain common code.  """
 
     @staticmethod
-    def pad_len(bytes, multiple):
-        if (bytes // multiple) * multiple != bytes:
-            return ((bytes // multiple) + 1 ) * multiple
-        return bytes
+    def pad_len(length, multiple):
+        """ Return first multiple above length """
+
+        if (length // multiple) * multiple != length:
+            return ((length // multiple) + 1 ) * multiple
+        return length
 
     class ParseException(Exception):
 
@@ -106,6 +114,8 @@ class Deci4H:
 
         def __str__(self):
             return "You set the length to %d but the max is 8.  This will cause the playback system to bork, and you'll need to reboot, so don't do that" % self.length
+
+
     recorddefs = {
         "SceDeciHeader": [
             {"type":'B', "length":1, "name":"version"},
@@ -203,7 +213,13 @@ class Deci4H:
     sequence = 0x1234
 
     def build_buffer(self, format, **kwargs):
+        """ Format bytes according to the passed in format, using kwargs as values """
 
+        # formats
+        #
+        # SceDeciStringUtf8 - string begining with 32 bit length
+        # zeros - padding.  Ignored
+        # All others are python struct formats
         for f in format:
             if f["type"] == "SceDeciStringUtf8":
                 f["length"] = len(kwargs[f["name"]]) + 4
@@ -231,6 +247,7 @@ class Deci4H:
         return buffer
 
     def set_length(sef, buffer, format, length):
+        """ write the length bytes as specified in the length field in the format """
         offset = 0
         for f in format:
             if f["type"] != "zeros":
@@ -240,6 +257,18 @@ class Deci4H:
             offset = offset + f["length"]
         
     def parse_buffer(self, buffer, format, res):
+        """ Read a byte array and return a set of key/valye pairs
+
+            buffer - byte array input
+            format - list of formats to apply to buffer
+            res - key/value pairs from previous parses
+                  new values inserted into this
+                
+            returns:
+                buffer
+
+        """
+
         tmpbuff = buffer
         offset = 0
         for f in format:
@@ -252,15 +281,15 @@ class Deci4H:
             elif f["type"] == "SceDeciStringUtf8":
                 length = struct.unpack_from("<L", buffer, offset)[0]
                 offset += 4
-                res[f["name"]] = struct.unpack_from("<%ds" % length, buffer, offset)[0].decode("utf-8")
-                print ("read", res[f["name"]])
+
+                # Ignore null terminator
+                res[f["name"]] = struct.unpack_from("<%ds" % (length-1), buffer, offset)[0].decode("utf-8")
                 offset += self.pad_len(length,4)
 
             elif f["type"] == "SceDeciVariant":
                 size = struct.unpack_from("<L", buffer, offset)[0]
                 type = struct.unpack_from("<L", buffer, offset+4)[0]
 
-                print ("type", type)
                 if type == 0:
                     res[f["name"]] = struct.unpack_from("<l", buffer, offset+8)[0]
                 elif type == 1:
@@ -273,7 +302,7 @@ class Deci4H:
                     pass # ignore 128 bit for now
                 elif type == 7:
                     length = struct.unpack_from("<L", buffer, offset+8)[0]
-                    res[f["name"]] = struct.unpack_from("<%ds" % length, buffer, offset+12)[0].decode("utf-8")
+                    res[f["name"]] = struct.unpack_from("<%ds" % (length-1), buffer, offset+12)[0].decode("utf-8")
                 elif type == 8:
                     length = struct.unpack_from("<L", buffer, offset+8)[0]
                     res[f["name"]] = struct.unpack_from("<%ds" % length, buffer, offset+12)[0]
@@ -289,6 +318,13 @@ class Deci4H:
         return buffer[offset:]
 
     def make_deci_cmd_header(self, inbuff, message, protocol):
+        """ put a standard deci cmd header in front of the message in inbuff 
+        
+        
+            inbuff - A Deci message with no header as bytes
+            message - The message id of the message
+            protocol - the protocol of the message
+        """
 
         buffer = self.build_buffer(Deci4H.recorddefs["SceDeciHeader"], version=0x41, protocol=protocol)
         buffer.extend(self.build_buffer(Deci4H.recorddefs["SceDeciUlpCmdHdr"], seqnumber=Deci4H.sequence, fraginfo=0, msgtype=message))
@@ -302,6 +338,24 @@ class Deci4H:
         return buffer
 
     def parse_header(self, buffer):
+        """ Read the standard response headers from a byte array 
+
+            buffer - byte array representing the entire message
+
+            returns:
+
+                buffer - A byte array with the headers stripped off
+                res - A set of key/value pairs representing data pulled from headers.
+
+                important ones include:
+
+                    version - deci version.  (Must be 0x41 or we likely break)
+                    length - length of the entire message including header
+                    protocol - The protocol id
+                    seqnumber - Sequence number that matches value passed in CMD message
+                    msgtype - The message id
+        """
+
         res = {}
         buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciHeader"], res)
         buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciUlpResHdr"], res)
@@ -309,6 +363,7 @@ class Deci4H:
         return buffer, res
 
     class Queue:
+        """ Helper class to store input blocks not yet dealt with """
         def __init__(self):
             self.buffer = None
             self.needmore = False
@@ -329,18 +384,24 @@ class Deci4H:
             self.queues[stream] = self.Queue()
 
         queue = self.queues[stream]
+
+        # if there is nothing in our queues, read more data from the socket 
         if not queue.buffer or queue.needmore:
             rd,wr,ex = select.select([stream], [], [], timeout)
 
             if stream in rd:
                 buffer = stream.recv(2048)  # note: will bork if message can be larger than this value
                                             # todo: detect case and read more if timeout != 0
+
+                # We had a partial message waiting.  Paste what we just read to it
                 if queue.needmore:
                     buffer = queue.buffer + buffer
                     queue.needmore = False
             else:
+                # timeout
                 return None
         else:
+            # Just act on what is waiting
             buffer = queue.buffer
 
         queue.buffer = buffer
@@ -350,17 +411,23 @@ class Deci4H:
             queue.needmore = True
             return None
 
+        # read the length.  (Assumes always wSceDeciHeader)
         length = struct.unpack_from("<L", buffer, 4)[0]
 
+        # If we don't have a full message, just save and tell the caller we have nothing
         if len(queue.buffer) < length:
             queue.needmore = True
             return None
 
+        # Save off what isn't part of the current message
         queue.buffer = buffer[length:]
+
         return buffer
 
         
     def sendrecv(self, stream, buffer):
+        """ send a message and immediately read the response. """
+
         log( "Send (%s):\n%s" % (stream, make_dump(buffer)) )
         stream.send(buffer)
         buffer = self.recv_core(stream,30)
@@ -368,11 +435,27 @@ class Deci4H:
         return buffer
 
     def parse_assert(self, buffer, protocol, message):
+        """ parse a message, but fail if it isn't waht is expected """
         buffer, res = self.parse_header(buffer)
         if res["protocol"] != protocol or res["msgtype"] != message:
             raise self.ParseException(res["protocol"], res["msgtype"], protocol, message)
 
         return self.parse(res, buffer)[1]
+
+# Basic organization
+# 
+# Each protocol has two classes:
+#
+# FooProt - Derived from Deci4H, responsible for generating messages and parsing responses.
+# Foo - Ties a stream to a protocol and presents method interface to caller
+#
+# FooProt organization:
+# Set of constants in form SCE_*_TYPE_* representing message ids
+# Constant for protocol id
+# methods for each message type:
+# *_cmd method - returns a buffer formated as a message, takes values to apply as arguments
+# *_msg method - formats a message, sends it, then waits for the expected response, parsing and returning it
+# parse - Parses all responses that are expected
 
 class NetmpProt(Deci4H):
     SCE_NETMP_TYPE_GET_CONF_CMD = 0x0
@@ -598,6 +681,8 @@ class CtrlpProt(Deci4H):
         return self.parse_header(buffer)[0]
 
 class TtypProt(Deci4H):
+    """ Protocol for tty messages.  Note that merely registering this protocol will cause it to spit
+        tty messages at you. """
     SCE_TTYP_TYPE_GET_CONF_CMD = 0x0
     SCE_TTYP_TYPE_GET_CONF_RES = 0x1
     SCE_TTYP_TYPE_TTY_IN_CMD = 0x2
@@ -812,5 +897,6 @@ class Tsmp:
         return self.prot.get_conf_msg(self.stream)
 
     def get_info(self):
-        return self.prot.get_info_msg(self.stream)
+        info = self.prot.get_info_msg(self.stream)
+        return {item["name"]:item["value"] for item in info["data"]}
     
