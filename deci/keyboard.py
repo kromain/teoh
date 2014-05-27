@@ -4,89 +4,56 @@ from tkinter import *
 from controller import Controller
 
 
-root = Tk()
 
-def keyup(event):
-    global thread
+class App:
+    keymap = {'w':Controller.UP,
+           'a':Controller.LEFT,
+           's':Controller.DOWN,
+           'd':Controller.RIGHT,
+           'D': Controller.R1,
+           'W': Controller.L1,
+           'r': Controller.R2,
+           'l': Controller.L2,
+           'x': Controller.CROSS,
+           'z': Controller.CIRCLE,
+           'c': Controller.SQUARE,
+           't': Controller.TRIANGLE,
+           'o': Controller.OPTION,
+           'h': Controller.SHARE,
+           'p':Controller.PS}
 
-    if event.char == 'w':
-        controller.keyup(Controller.UP)
-    elif event.char == 'a':
-        controller.keyup(Controller.LEFT)
-    elif event.char == 's':
-        controller.keyup(Controller.DOWN)
-    elif event.char == 'd':
-        controller.keyup(Controller.RIGHT)
-    elif event.char == 'D': 
-        controller.keyup(Controller.R1)
-    elif event.char == 'W': 
-        controller.keyup(Controller.L1)
-    elif event.char == 'r': 
-        controller.keyup(Controller.R2)
-    elif event.char == 'l': 
-        controller.keyup(Controller.L2)
-    elif event.char == 'x': 
-        controller.keyup(Controller.CROSS)
-    elif event.char == 'z': 
-        controller.keyup(Controller.CIRCLE)
-    elif event.char == 'c': 
-        controller.keyup(Controller.SQUARE)
-    elif event.char == 't': 
-        controller.keyup(Controller.TRIANGLE)
-    elif event.char == 'o': 
-        controller.keyup(Controller.OPTION)
-    elif event.char == 'h': 
-        controller.keyup(Controller.SHARE)
-    elif event.char == 'p':
-        controller.keyup(Controller.PS)
+    def __init__(self):
+        self.root = Tk()
+        self.frame = Frame(self.root, width=100, height=100)
+        self.frame.bind("<Key>", self.keydown)
+        self.frame.bind("<KeyRelease>", self.keyup)
+        self.frame.bind("<Button-1>", self.callback)
+        self.frame.pack()
 
-def keydown(event):
-    global thread
+        self.controller = Controller(ip=sys.argv[1])
+        
+    def run(self):
+        self.controller.start()
 
-    if event.char == 'w':
-        controller.keydown(Controller.UP)
-    elif event.char == 'a':
-        controller.keydown(Controller.LEFT)
-    elif event.char == 's':
-        controller.keydown(Controller.DOWN)
-    elif event.char == 'd':
-        controller.keydown(Controller.RIGHT)
-    elif event.char == 'D': 
-        controller.keydown(Controller.R1)
-    elif event.char == 'W': 
-        controller.keydown(Controller.L1)
-    elif event.char == 'r': 
-        controller.keydown(Controller.R2)
-    elif event.char == 'l': 
-        controller.keydown(Controller.L2)
-    elif event.char == 'x': 
-        controller.keydown(Controller.CROSS)
-    elif event.char == 'z': 
-        controller.keydown(Controller.CIRCLE)
-    elif event.char == 'c': 
-        controller.keydown(Controller.SQUARE)
-    elif event.char == 't': 
-        controller.keydown(Controller.TRIANGLE)
-    elif event.char == 'o': 
-        controller.keydown(Controller.OPTION)
-    elif event.char == 'h': 
-        controller.keydown(Controller.SHARE)
-    elif event.char == 'p':
-        controller.keydown(Controller.PS)
+        self.root.mainloop()
 
+        self.controller.stop()
 
-def callback(event):
-    frame.focus_set()
+    def keyup(self,event):
 
-frame = Frame(root, width=100, height=100)
-frame.bind("<Key>", keydown)
-frame.bind("<KeyRelease>", keyup)
-frame.bind("<Button-1>", callback)
-frame.pack()
+        try:
+            self.controller.keyup(self.keymap[event.char])
+        except:
+            pass # ignore bad keys
 
-controller = Controller()
-controller.start()
+    def keydown(self,event):
 
-root.mainloop()
+        try:
+            self.controller.keydown(self.keymap[event.char])
+        except:
+            pass # ignore bad keys
 
-controller.stop()
+    def callback(self,event):
+        self.frame.focus_set()
+
+App().run()

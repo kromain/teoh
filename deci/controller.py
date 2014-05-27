@@ -1,9 +1,14 @@
 import time
 import sys
 import threading
-from deci4 import Netmp
+from deci4 import Netmp, NetmpManager
 
-class Controller:
+class Controller(NetmpManager):
+    """ Input at the controller level.  
+    
+        While in operation, sends constant events to the device even if no
+        keys pressed.
+    """
     UP = 0x10
     LEFT = 0x80
     RIGHT = 0x20
@@ -21,6 +26,7 @@ class Controller:
     PS = 0x10000
 
     class KeyThread(threading.Thread):
+        """ Thread that sends the current button state to the device once every 10 msecs. """
 
         def run(self):
 
@@ -31,11 +37,24 @@ class Controller:
                 self.ctrlp.play_data([self.buttonstate] * 8)
                 time.sleep(0.1)
 
+
+    def __init__(self, ip):
+        self.ip = ip
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.stop()
+
     def start(self):
+        """ Connect to the device and prepare to send events """
 
-        self.netmp = Netmp(ip=sys.argv[1])
+        #self.netmp = Netmp(ip=self.ip)
 
-        self.netmp.connect()
+        #self.netmp.connect()
+        self.netmp = super(Controller,self).startnetmp(self.ip)
 
         self.ctrlp = self.netmp.register_ctrlp()
 
@@ -50,6 +69,7 @@ class Controller:
         time.sleep(0.1)
 
     def stop(self):
+        """ stop sending events. """
         self.thread.stop = True
         self.thread.join()
 
@@ -57,16 +77,37 @@ class Controller:
 
         self.netmp.unregister_ctrlp()
 
-        self.netmp.disconnect()
+        self.netmp = super(Controller, self).stopnetmp(self.ip)
+        #self.netmp.disconnect()
 
     def keydown(self,button):
+        """ sets button in the key down state, leaving other buttons as is. 
+        
+            button - bitfield of buttons to set in down state.
+                     ex Controller.UP | Controller.RIGHT
+        """
         self.thread.buttonstate |= button
 
     def keyup(self,button):
+        """ sets button in the key up state, leaving other buttons as is. 
+        
+            button - bitfield of buttons to set in up state.
+                     ex Controller.UP | Controller.RIGHT
+        """
         self.thread.buttonstate &= ~button
 
-    def buttonpress(self, button, timetopress=0.1):
-        print("press %x" % button)
+    def buttonpress(self, button, timetopress=0.2):
+        """ sets a button or buttons in the down state, waits for a period of time,
+            then sets them back in the up state. 
+            
+            Buttons already down when invoked will be in up state when done.
+            All other buttons left as is.
+
+
+            timetopress - Time to wait between states.
+                          defaults to 0.2, which seems to reliably be seen by console as keypress
+        """
+
         self.keydown(button)
         time.sleep(timetopress)
         self.keyup(button)
@@ -74,17 +115,19 @@ class Controller:
         
 if __name__ ==  "__main__":
     
-    controller = Controller()
+    with Controller(ip=sys.argv[1]) as controller:
 
-    controller.start()
-    controller.buttonpress(Controller.RIGHT)
-    controller.buttonpress(Controller.RIGHT)
-    controller.buttonpress(Controller.RIGHT)
-    controller.buttonpress(Controller.RIGHT)
-    controller.buttonpress(Controller.UP)
-    controller.buttonpress(Controller.DOWN)
-    controller.buttonpress(Controller.LEFT, 1.0)
-    controller.buttonpress(Controller.RIGHT, 1.0)
-    controller.buttonpress(Controller.PS, 1.0)
-    time.sleep(1)
-    controller.buttonpress(Controller.CIRCLE)
+        for i in range(10):
+            controller.buttonpress(Controller.RIGHT)
+            controller.buttonpress(Controller.RIGHT)
+            controller.buttonpress(Controller.RIGHT)
+            controller.buttonpress(Controller.RIGHT)
+            controller.buttonpress(Controller.UP)
+            controller.buttonpress(Controller.DOWN)
+            controller.buttonpress(Controller.LEFT, 1.0)
+            controller.buttonpress(Controller.RIGHT, 1.0)
+            controller.buttonpress(Controller.PS, 1.0)
+            time.sleep(1)
+            controller.buttonpress(Controller.CIRCLE)
+            controller.buttonpress(Controller.PS, 0.2)
+            time.sleep(1)

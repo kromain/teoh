@@ -209,6 +209,12 @@ class Deci4H:
             {"type":"SceDeciVariant", "name":"value"},
             {"type":'<L', "length":4, "name":"format"},
         ],
+        "SceTtypPortState": [
+            {"type":'<L', "length":4, "name":"size"},
+            {"type":'<L', "length":4, "name":"port"},
+            {"type":'<L', "length":4, "name":"mask"},
+            {"type":'<L', "length":4, "name":"state"}
+        ],
     }
     sequence = 0x1234
 
@@ -361,14 +367,6 @@ class Deci4H:
         buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciUlpResHdr"], res)
 
         return buffer, res
-
-    class Queue:
-        """ Helper class to store input blocks not yet dealt with """
-        def __init__(self):
-            self.buffer = None
-            self.needmore = False
-
-    queues = {}
 
     def recv_core(self, stream, timeout=0):
         """ Turn the input stream into messages. 
@@ -672,15 +670,31 @@ class TtypProt(Deci4H):
         buffer = self.sendrecv(stream, self.get_conf_cmd())
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TTYP_TYPE_GET_CONF_RES)
 
+    def get_port_states_cmd(self):
+        return self.make_deci_cmd_header(None, self.SCE_TTYP_TYPE_GET_PORT_STATES_CMD, self.PROTOCOL)
+
+    def get_port_states_msg(self, stream):
+        buffer = self.sendrecv(stream, self.get_port_states_cmd())
+        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TTYP_TYPE_GET_PORT_STATES_RES)
+
     def parse(self, res, buffer):
         if res["msgtype"] == self.SCE_TTYP_TYPE_GET_CONF_RES:
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypGetConfCmd"], res)
 
+        elif res["msgtype"] == self.SCE_TTYP_TYPE_GET_PORT_STATES_RES:
+            res["data"] = []
+            elements = struct.unpack_from("<l", buffer, 0)[0]
+            buffer = buffer[8:] # skip num elements and elment size
+
+            for i in range(elements):
+                resdata = {}
+                buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypPortState"], resdata)
+                res["data"].append(resdata)
+
         elif res["msgtype"] == self.SCE_TTYP_TYPE_TTY_OUT_NOTIFICATION:
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypOut"], res)
         else:
-            print("None")
             pass
 
         return buffer, res
@@ -841,6 +855,9 @@ class Ttyp:
     def get_conf(self):
         return self.prot.get_conf_msg(self.stream)
 
+    def get_port_states(self):
+        return self.prot.get_port_states_msg(self.stream)
+
     def read(self):
         """ Reads a tty message without blocking.  If no messages pending, returns None """
         buffer = self.prot.recv(self.stream)
@@ -866,3 +883,26 @@ class Tsmp:
         info = self.prot.get_info_msg(self.stream)
         return {item["name"]:item["value"] for item in info["data"]}
     
+
+class NetmpManager:
+    """ Base class that lets subclasses share netmp instances by ip """
+    _netmp = {}
+    _count = {}
+
+    def startnetmp(self, ip):
+
+        if ip not in self._netmp:
+            self._netmp[ip] = Netmp(ip=self.ip)
+            self._netmp[ip].connect()
+            self._count[ip] = 0
+
+        self._count[ip] += 1
+
+        return self._netmp[ip]
+
+    def stopnetmp(self, ip):
+        if ip in self._netmp:
+            self._count[ip] -= 1
+            if self._count[ip] == 0:
+                self._netmp[ip].disconnect()
+
