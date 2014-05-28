@@ -760,7 +760,11 @@ class Netmp:
         self.stream1.connect((self.ip, self.port))
 
     def connect(self):
-        client_id = "%s@%s, EXDGDECI4" % ( getpass.getuser(), socket.gethostbyname(socket.gethostname()))
+        try:
+            client_id = "%s@%s, EXDGDECI4" % ( getpass.getuser(), socket.gethostbyname(socket.gethostname()))
+        except socket.gaierror:
+            client_id = "%s@%s, EXDGDECI4" % ( getpass.getuser(), socket.gethostname())
+            
         res = self.prot.connect_msg(self.stream1, client_id=client_id, udpport=0)
         self.netmp_key = res["netmp_key"]
 
@@ -870,6 +874,10 @@ class Ttyp:
 
         return res
                 
+    def readsync(self):
+        rd,wr,ex = select.select([self.stream], [], [], 30)
+        return self.read()
+        
 
 class Tsmp:
     def __init__(self, stream):
