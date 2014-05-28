@@ -33,6 +33,13 @@ class Console(NetmpManager):
 
         return None
 
+    def readsync(self):
+        while True:
+            res = self.ttyp.readsync()
+
+            if len(res["message"]) > 1:
+                return ("{port}:{category}:{tid:x}:{pid:x}:{message}".format(**res))
+
 
 if __name__ == "__main__":
 
@@ -41,7 +48,7 @@ if __name__ == "__main__":
 
         try:
             while True:
-                line = console.read()
+                line = console.readsync()
                 if line:
                     print (line)
                 else:

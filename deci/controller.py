@@ -51,9 +51,6 @@ class Controller(NetmpManager):
     def start(self):
         """ Connect to the device and prepare to send events """
 
-        #self.netmp = Netmp(ip=self.ip)
-
-        #self.netmp.connect()
         self.netmp = super(Controller,self).startnetmp(self.ip)
 
         self.ctrlp = self.netmp.register_ctrlp()
@@ -78,7 +75,6 @@ class Controller(NetmpManager):
         self.netmp.unregister_ctrlp()
 
         self.netmp = super(Controller, self).stopnetmp(self.ip)
-        #self.netmp.disconnect()
 
     def keydown(self,button):
         """ sets button in the key down state, leaving other buttons as is. 
@@ -105,7 +101,8 @@ class Controller(NetmpManager):
 
 
             timetopress - Time to wait between states.
-                          defaults to 0.2, which seems to reliably be seen by console as keypress
+                          defaults to 0.2, which seems to reliably be seen by
+                          console as keypress
         """
 
         self.keydown(button)
