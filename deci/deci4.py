@@ -6,6 +6,10 @@ import array
 import struct
 import getpass
 import time
+import sys
+
+if sys.version_info[0] < 3:
+    raise Exception("Python 3 required")
 
 enable_logging = False
 
