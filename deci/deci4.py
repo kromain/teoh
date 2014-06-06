@@ -7,6 +7,7 @@ import struct
 import getpass
 import time
 import sys
+import threading
 
 if sys.version_info[0] < 3:
     raise Exception("Python 3 required")
@@ -900,8 +901,10 @@ class NetmpManager:
     """ Base class that lets subclasses share netmp instances by ip """
     _netmp = {}
     _count = {}
+    _lock = threading.Lock()
 
     def startnetmp(self, ip):
+        self._lock.acquire()
 
         if ip not in self._netmp:
             self._netmp[ip] = Netmp(ip=self.ip)
@@ -910,11 +913,18 @@ class NetmpManager:
 
         self._count[ip] += 1
 
+        self._lock.release()
+
         return self._netmp[ip]
 
     def stopnetmp(self, ip):
+        self._lock.acquire()
+
         if ip in self._netmp:
             self._count[ip] -= 1
             if self._count[ip] == 0:
                 self._netmp[ip].disconnect()
+                del self._netmp[ip]
+
+        self._lock.release()
 
