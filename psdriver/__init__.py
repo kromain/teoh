@@ -17,12 +17,12 @@ class PSDriverServer(object):
         # TODO detect if psdriver.exe is running and start it if needed
 
     def connect(self, target_ip, target_port):
-        chromeDriverOptions = {'debuggerAddress': ":".join((target_ip, target_port))}
+        chromeDriverOptions = {'debuggerAddress': "{}:{}".format(target_ip, target_port)}
         capabilities = webdriver.DesiredCapabilities.CHROME.copy()
         capabilities['chromeOptions'] = chromeDriverOptions
 
         # may throw a WebDriverException if connection fails
-        driver = webdriver.Remote("http://" + ":".join((self.server_ip, self.server_port)), capabilities)
+        driver = webdriver.Remote("http://{}:{}".format(self.server_ip, self.server_port), capabilities)
         # connection was successful, update target_ip and target_port
         self.target_ip = target_ip
         self.target_port = target_port
