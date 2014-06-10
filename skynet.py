@@ -9,7 +9,7 @@ import sys
 
 def main():
     print("[08/29/1997 02:14] Skynet becomes self-aware.")
-    psd = psdriver.connectToTarget('43.138.15.55')
+    psd = psdriver.connect_to_target('43.138.15.55')
     psd.quit()
     return 0
 

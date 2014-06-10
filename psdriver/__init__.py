@@ -11,4 +11,4 @@ except ImportError:
     print("Required module 'selenium' not found! Aborting.")
     sys.exit(-1)
 
-from .psdriver import connectToTarget
+from .psdriver import PSDriverError, connect_to_target
