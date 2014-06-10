@@ -2,10 +2,8 @@
 #
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 
-import inspect
 import os
 import sys
-import skynet
 import subprocess
 
 from signal import SIGTERM, CTRL_C_EVENT
@@ -14,7 +12,7 @@ from subprocess import CalledProcessError, TimeoutExpired
 try:
     from selenium import webdriver
 except ImportError:
-    print("Required module 'selenium' not found! Exiting.")
+    print("Required module 'selenium' not found! Aborting.")
     sys.exit(-1)
 
 class PSDriverError(Exception):
@@ -23,14 +21,16 @@ class PSDriverError(Exception):
 def _iswindows():
     return sys.platform == 'win32'
 
-def _psdriverexe():
+def _psdrivername():
     exename = 'psdriver'
     if _iswindows():
         exename += '.exe'
     return exename
 
-def _psdriverexedir():
-    return os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(skynet))), 'bin')
+def _psdriverpath():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        'bin',
+                        _psdrivername())
 
 def _psdriverpid():
     # NOTE Assume no more than one psdriver instance running for now
@@ -38,17 +38,17 @@ def _psdriverpid():
         if _iswindows():
             stdout = subprocess.check_output(['tasklist.exe',
                                               '/NH', # no table headers
-                                              '/FI', '"IMAGENAME eq {}"'.format(_psdriverexe())],
+                                              '/FI', 'IMAGENAME eq {}'.format(_psdrivername())],
                                              universal_newlines=True).strip()
             commandname, sep, stdout = stdout.partition(' ')
             # tasklist.exe prints a message and returns errorcode 0 even when no files are matched,
             # otherwise the command is first token in the line
-            if commandname != _psdriverexe():
+            if commandname != _psdrivername():
                 raise CalledProcessError(1, '')
         else:
             stdout = subprocess.check_output(['ps',
                                               '--no-headers',
-                                              '-C', _psdriverexe()]).strip()
+                                              '-C', _psdrivername()]).strip()
 
         # PID is the 1st token on the line on Unix and the 2nd on Windows
         # (1st token on Windows is the command itself, already removed above)
@@ -76,22 +76,23 @@ class PSDriverServer(object):
         if pid is not None:
             return False
         try:
-            p = subprocess.Popen([_psdriverexe(),
+            p = subprocess.Popen([_psdriverpath(),
                                   '--port={}'.format(server_port)],
                                  stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT,
-                                 cwd=_psdriverexedir())
-            # Wait up to 100ms to detect early process exit, for example if it couldn't open the port
+                                 stderr=subprocess.STDOUT)
+            # Wait up to 100ms to detect early process exit due to e.g. unavailable port
             p.wait(0.1)
             # TODO should we retry with the next port maybe?
-            raise PSDriverError("Fatal error during psdriver startup: " + p.stdout)
+            errormsg = "Fatal error during psdriver server startup: " + p.stdout
+            raise PSDriverError(errormsg)
         except TimeoutExpired:
             # All good, this means the server is up and running
             self.server_ip = '127.0.0.1'
             self.server_port = server_port
             return True
         except OSError as e:
-            raise PSDriverError("Couldn't start PSDriver: " + e)
+            errormsg = "Couldn't execute {}!".format(_psdriverpath())
+            raise PSDriverError(errormsg) from e
 
 
     def stopLocalServer(self):
