@@ -72,27 +72,33 @@ class PSDriverServer(object):
     def startLocalServer(self, server_port):
         if server_port is None:
             return False
-        pid = _psdriverpid()
-        if pid is not None:
-            return False
-        try:
-            p = subprocess.Popen([_psdriverpath(),
-                                  '--port={}'.format(server_port)],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
-            # Wait up to 100ms to detect early process exit due to e.g. unavailable port
-            p.wait(0.1)
-            # TODO should we retry with the next port maybe?
-            errormsg = "Fatal error during psdriver server startup: " + p.stdout
-            raise PSDriverError(errormsg)
-        except TimeoutExpired:
-            # All good, this means the server is up and running
-            self.server_ip = '127.0.0.1'
-            self.server_port = server_port
-            return True
-        except OSError as e:
-            errormsg = "Couldn't execute {}!".format(_psdriverpath())
-            raise PSDriverError(errormsg) from e
+        if _psdriverpid() is None:
+            try:
+                p = subprocess.Popen([_psdriverpath(),
+                                      '--port={}'.format(server_port)],
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT)
+                # Wait up to 100ms to detect early process exit due to e.g. unavailable port
+                p.wait(0.1)
+                # TODO should we retry with the next port maybe?
+                errormsg = "Fatal error during psdriver server startup: " + p.stdout
+                raise PSDriverError(errormsg)
+            except TimeoutExpired:
+                # All good, this means the server is up and running
+                pass
+            except OSError as e:
+                errormsg = "Couldn't execute {}!".format(_psdriverpath())
+                raise PSDriverError(errormsg) from e
+        else:
+            # TODO currently assumes that the running server listens on server_port,
+            # which may not always be the case. We may also have many servers on multiple ports.
+            # So we should check the ports that are actually used by the running servers
+            # and start a new instance on server_port if it wasn't bound to any server.
+            pass
+
+        self.server_ip = '127.0.0.1'
+        self.server_port = server_port
+        return True
 
 
     def stopLocalServer(self):
