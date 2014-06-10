@@ -1,8 +1,7 @@
 import sys
-import time
 from tkinter import *
-from controller import Controller
 
+from deci.controller import Controller
 
 
 class App:

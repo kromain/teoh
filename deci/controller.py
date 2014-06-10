@@ -1,7 +1,8 @@
-import time
 import sys
 import threading
-from deci4 import Netmp, NetmpManager
+import time
+
+from .deci4 import NetmpManager
 
 class Controller(NetmpManager):
     """ Input at the controller level.  

@@ -1,9 +1,9 @@
-import sys
 import datetime
-import threading
-import time
 import struct
-from deci4 import Netmp
+import sys
+import threading
+
+from deci.deci4 import Netmp
 
 class CaptureThread(threading.Thread):
 

@@ -1,9 +1,8 @@
-import sys
-import datetime
-import time
-import struct
 import array
-from deci4 import Netmp
+import struct
+import sys
+
+from deci.deci4 import Netmp
 
 
 with open("capture.dat", "rb") as f:

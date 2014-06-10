@@ -1,8 +1,9 @@
-import sys
 import getch
+import sys
 import threading
-from controller import Controller
-from console import Console
+
+from deci.controller import Controller
+from deci.console import Console
 
 class ConsoleThread(threading.Thread):
 
