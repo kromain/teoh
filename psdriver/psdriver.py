@@ -5,10 +5,10 @@
 import os
 import subprocess
 from subprocess import CalledProcessError, TimeoutExpired
+import signal
 import sys
 
 from selenium import webdriver
-from signal import SIGTERM, CTRL_C_EVENT
 
 def _iswindows():
     return sys.platform == 'win32'
@@ -96,7 +96,10 @@ class PSDriverServer(object):
         pid = self.pid()
         if pid is None:
             return False
-        os.kill(pid, CTRL_C_EVENT if _iswindows() else SIGTERM)
+        if _iswindows():
+            os.kill(pid, signal.CTRL_C_EVENT)
+        else:
+            os.kill(pid, signal.SIGTERM)
         return True
 
 
