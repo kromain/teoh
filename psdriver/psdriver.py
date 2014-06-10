@@ -3,12 +3,12 @@
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 
 import os
-import sys
 import subprocess
+from subprocess import CalledProcessError, TimeoutExpired
+import sys
 
 from selenium import webdriver
 from signal import SIGTERM, CTRL_C_EVENT
-from subprocess import CalledProcessError, TimeoutExpired
 
 def _iswindows():
     return sys.platform == 'win32'
@@ -107,7 +107,7 @@ class PSDriverServer(object):
         self.start_local_server(server_port)
 
 
-    def connect(self, target_ip, target_port):
+    def connect(self, target_ip, target_port=860):
         if self.server_ip is None or self.server_port is None:
             return None
         chromeDriverOptions = {'debuggerAddress': "{}:{}".format(target_ip, target_port)}
@@ -127,6 +127,3 @@ class PSDriverServer(object):
 server = PSDriverServer()
 #if config.useLocalPSDriverServer:
 server.start_local_server(9515)
-
-def connect_to_target(target_ip, target_port=860):
-    return server.connect(target_ip, target_port)
