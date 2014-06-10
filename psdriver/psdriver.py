@@ -39,7 +39,7 @@ class PSDriverServer(object):
                 stdout = subprocess.check_output(['tasklist.exe',
                                                   '/NH', # no table headers
                                                   '/FI', 'IMAGENAME eq ' + self.executable_name()],
-                                                 universal_newlines=True).strip()
+                                                 universal_newlines=True).lstrip()
                 commandname, sep, stdout = stdout.partition(' ')
                 # tasklist.exe returns 0 with an info message even when no files are matched,
                 # otherwise the command is first token in the line
@@ -48,20 +48,17 @@ class PSDriverServer(object):
             else:
                 stdout = subprocess.check_output(['ps',
                                                   '--no-headers',
-                                                  '-C', self.executable_name()]).strip()
-
-            # PID is the 1st token on the line on Unix and the 2nd on Windows
-            # (1st token on Windows is the command itself, already removed above)
-            pid, sep, stdout = stdout.partition(' ')
-            return pid
-
+                                                  '-C', self.executable_name()])
         except CalledProcessError:
             # Non-zero return code means process not running
             return None
         except OSError:
             # This really shouldn't happen unless we're running on an OS from Outer Space
             raise PSDriverError("Couldn't query OS for running processes. What OS is this?!")
-
+        # PID is the 1st token on the line on Unix and the 2nd on Windows
+        # (1st token on Windows is the command itself, already removed above)
+        pid, sep, stdout = stdout.lstrip().partition(' ')
+        return pid
 
     def start_local_server(self, server_port):
         if server_port is None:
