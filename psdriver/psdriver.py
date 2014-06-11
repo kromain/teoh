@@ -39,16 +39,15 @@ class PSDriverServer(object):
                 stdout = subprocess.check_output(['tasklist.exe',
                                                   '/NH', # no table headers
                                                   '/FI', 'IMAGENAME eq ' + self.executable_name()],
-                                                 universal_newlines=True).lstrip()
-                commandname, sep, stdout = stdout.partition(' ')
+                                                 universal_newlines=True)
+                commandname, sep, stdout = stdout.lstrip().partition(' ')
                 # tasklist.exe returns 0 with an info message even when no files are matched,
                 # otherwise the command is first token in the line
                 if commandname != self.executable_name():
                     raise CalledProcessError(1, '')
             else:
-                stdout = subprocess.check_output(['ps',
-                                                  '--no-headers',
-                                                  '-C', self.executable_name()])
+                stdout = subprocess.check_output(['pgrep', '-l', self.executable_name()],
+                                                 universal_newlines=True)
         except CalledProcessError:
             # Non-zero return code means process not running
             return None
