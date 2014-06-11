@@ -4,7 +4,7 @@ import time
 
 from .deci4 import NetmpManager
 
-class Controller(NetmpManager):
+class DualShock(NetmpManager):
     """ Input at the controller level.  
     
         While in operation, sends constant events to the device even if no
@@ -52,7 +52,7 @@ class Controller(NetmpManager):
     def start(self):
         """ Connect to the device and prepare to send events """
 
-        self.netmp = super(Controller,self).startnetmp(self.ip)
+        self.netmp = super(DualShock,self).startnetmp(self.ip)
 
         self.ctrlp = self.netmp.register_ctrlp()
 
@@ -75,21 +75,21 @@ class Controller(NetmpManager):
 
         self.netmp.unregister_ctrlp()
 
-        self.netmp = super(Controller, self).stopnetmp(self.ip)
+        self.netmp = super(DualShock, self).stopnetmp(self.ip)
 
-    def keydown(self,button):
+    def buttondown(self,button):
         """ sets button in the key down state, leaving other buttons as is. 
         
             button - bitfield of buttons to set in down state.
-                     ex Controller.UP | Controller.RIGHT
+                     ex DualShock.UP | DualShock.RIGHT
         """
         self.thread.buttonstate |= button
 
-    def keyup(self,button):
+    def buttonup(self,button):
         """ sets button in the key up state, leaving other buttons as is. 
         
             button - bitfield of buttons to set in up state.
-                     ex Controller.UP | Controller.RIGHT
+                     ex DualShock.UP | DualShock.RIGHT
         """
         self.thread.buttonstate &= ~button
 
@@ -106,26 +106,26 @@ class Controller(NetmpManager):
                           console as keypress
         """
 
-        self.keydown(button)
+        self.buttondown(button)
         time.sleep(timetopress)
-        self.keyup(button)
+        self.buttonup(button)
         time.sleep(0.1)
         
 if __name__ ==  "__main__":
     
-    with Controller(ip=sys.argv[1]) as controller:
+    with DualShock(ip=sys.argv[1]) as controller:
 
         for i in range(10):
-            controller.buttonpress(Controller.RIGHT)
-            controller.buttonpress(Controller.RIGHT)
-            controller.buttonpress(Controller.RIGHT)
-            controller.buttonpress(Controller.RIGHT)
-            controller.buttonpress(Controller.UP)
-            controller.buttonpress(Controller.DOWN)
-            controller.buttonpress(Controller.LEFT, 1.0)
-            controller.buttonpress(Controller.RIGHT, 1.0)
-            controller.buttonpress(Controller.PS, 1.0)
+            controller.buttonpress(DualShock.RIGHT)
+            controller.buttonpress(DualShock.RIGHT)
+            controller.buttonpress(DualShock.RIGHT)
+            controller.buttonpress(DualShock.RIGHT)
+            controller.buttonpress(DualShock.UP)
+            controller.buttonpress(DualShock.DOWN)
+            controller.buttonpress(DualShock.LEFT, 1.0)
+            controller.buttonpress(DualShock.RIGHT, 1.0)
+            controller.buttonpress(DualShock.PS, 1.0)
             time.sleep(1)
-            controller.buttonpress(Controller.CIRCLE)
-            controller.buttonpress(Controller.PS, 0.2)
+            controller.buttonpress(DualShock.CIRCLE)
+            controller.buttonpress(DualShock.PS, 0.2)
             time.sleep(1)

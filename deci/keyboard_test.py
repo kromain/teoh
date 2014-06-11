@@ -2,7 +2,7 @@ import getch
 import sys
 import threading
 
-from deci.controller import Controller
+from deci.dualshock import DualShock
 from deci.console import Console
 
 class ConsoleThread(threading.Thread):
@@ -17,7 +17,7 @@ class ConsoleThread(threading.Thread):
 
 thread = ConsoleThread()
 
-with Controller(ip=sys.argv[1]) as controller:
+with DualShock(ip=sys.argv[1]) as controller:
 
     thread.start()
     while True:
@@ -29,21 +29,21 @@ with Controller(ip=sys.argv[1]) as controller:
             break
 
         try:
-            button =  {'w':Controller.UP,
-                   'a':Controller.LEFT,
-                   's':Controller.DOWN,
-                   'd':Controller.RIGHT,
-                   'D': Controller.R1,
-                   'W': Controller.L1,
-                   'r': Controller.R2,
-                   'l': Controller.L2,
-                   'x': Controller.CROSS,
-                   'z': Controller.CIRCLE,
-                   'c': Controller.SQUARE,
-                   't': Controller.TRIANGLE,
-                   'o': Controller.OPTION,
-                   'h': Controller.SHARE,
-                   'p':Controller.PS} [ ch ]
+            button =  {'w':DualShock.UP,
+                   'a':DualShock.LEFT,
+                   's':DualShock.DOWN,
+                   'd':DualShock.RIGHT,
+                   'D': DualShock.R1,
+                   'W': DualShock.L1,
+                   'r': DualShock.R2,
+                   'l': DualShock.L2,
+                   'x': DualShock.CROSS,
+                   'z': DualShock.CIRCLE,
+                   'c': DualShock.SQUARE,
+                   't': DualShock.TRIANGLE,
+                   'o': DualShock.OPTION,
+                   'h': DualShock.SHARE,
+                   'p':DualShock.PS} [ ch ]
 
             controller.buttonpress(button)
         except:

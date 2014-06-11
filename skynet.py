@@ -5,7 +5,7 @@
 import sys
 
 import psdriver
-from deci import Controller as DualShock
+from deci import DualShock
 
 class PSTarget(object):
     def __init__(self, target_ip):

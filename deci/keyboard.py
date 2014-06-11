@@ -1,25 +1,25 @@
 import sys
 from tkinter import *
 
-from deci.controller import Controller
+from deci.dualshock import DualShock
 
 
 class App:
-    keymap = {'w':Controller.UP,
-           'a':Controller.LEFT,
-           's':Controller.DOWN,
-           'd':Controller.RIGHT,
-           'D': Controller.R1,
-           'W': Controller.L1,
-           'r': Controller.R2,
-           'l': Controller.L2,
-           'x': Controller.CROSS,
-           'z': Controller.CIRCLE,
-           'c': Controller.SQUARE,
-           't': Controller.TRIANGLE,
-           'o': Controller.OPTION,
-           'h': Controller.SHARE,
-           'p':Controller.PS}
+    keymap = {'w':DualShock.UP,
+           'a':DualShock.LEFT,
+           's':DualShock.DOWN,
+           'd':DualShock.RIGHT,
+           'D': DualShock.R1,
+           'W': DualShock.L1,
+           'r': DualShock.R2,
+           'l': DualShock.L2,
+           'x': DualShock.CROSS,
+           'z': DualShock.CIRCLE,
+           'c': DualShock.SQUARE,
+           't': DualShock.TRIANGLE,
+           'o': DualShock.OPTION,
+           'h': DualShock.SHARE,
+           'p':DualShock.PS}
 
     def __init__(self):
         self.root = Tk()
@@ -29,7 +29,7 @@ class App:
         self.frame.bind("<Button-1>", self.callback)
         self.frame.pack()
 
-        self.controller = Controller(ip=sys.argv[1])
+        self.controller = DualShock(ip=sys.argv[1])
         
     def run(self):
         self.controller.start()
@@ -41,14 +41,14 @@ class App:
     def keyup(self,event):
 
         try:
-            self.controller.keyup(self.keymap[event.char])
+            self.controller.buttonup(self.keymap[event.char])
         except:
             pass # ignore bad keys
 
     def keydown(self,event):
 
         try:
-            self.controller.keydown(self.keymap[event.char])
+            self.controller.buttondown(self.keymap[event.char])
         except:
             pass # ignore bad keys
 

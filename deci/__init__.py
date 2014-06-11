@@ -4,5 +4,5 @@
 
 __version__ = "0.1"
 
-from .controller import Controller
+from .dualshock import DualShock
 from .console import Console
