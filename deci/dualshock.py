@@ -1,14 +1,11 @@
-import time
 import sys
 import threading
-from deci4 import Netmp, NetmpManager
+import time
+from enum import Enum
 
-class Controller(NetmpManager):
-    """ Input at the controller level.  
-    
-        While in operation, sends constant events to the device even if no
-        keys pressed.
-    """
+from .deci4 import NetmpManager
+
+class Buttons(Enum):
     UP = 0x10
     LEFT = 0x80
     RIGHT = 0x20
@@ -24,6 +21,13 @@ class Controller(NetmpManager):
     OPTION = 0x8
     SHARE = 0x1
     PS = 0x10000
+
+class DualShock(NetmpManager):
+    """ Input at the controller level.
+
+        While in operation, sends constant events to the device even if no
+        keys pressed.
+    """
 
     class KeyThread(threading.Thread):
         """ Thread that sends the current button state to the device once every 10 msecs. """
@@ -51,7 +55,7 @@ class Controller(NetmpManager):
     def start(self):
         """ Connect to the device and prepare to send events """
 
-        self.netmp = super(Controller,self).startnetmp(self.ip)
+        self.netmp = super(DualShock,self).startnetmp(self.ip)
 
         self.ctrlp = self.netmp.register_ctrlp()
 
@@ -74,23 +78,23 @@ class Controller(NetmpManager):
 
         self.netmp.unregister_ctrlp()
 
-        self.netmp = super(Controller, self).stopnetmp(self.ip)
+        self.netmp = super(DualShock, self).stopnetmp(self.ip)
 
-    def keydown(self,button):
+    def buttondown(self,button):
         """ sets button in the key down state, leaving other buttons as is. 
         
-            button - bitfield of buttons to set in down state.
-                     ex Controller.UP | Controller.RIGHT
+            button - Buttons enum member for the button to set in down state.
+                     ex Buttons.UP
         """
-        self.thread.buttonstate |= button
+        self.thread.buttonstate |= button.value
 
-    def keyup(self,button):
+    def buttonup(self,button):
         """ sets button in the key up state, leaving other buttons as is. 
         
-            button - bitfield of buttons to set in up state.
-                     ex Controller.UP | Controller.RIGHT
+            button - Buttons enum member for the button to set in up state.
+                     ex Buttons.UP
         """
-        self.thread.buttonstate &= ~button
+        self.thread.buttonstate &= ~button.value
 
     def buttonpress(self, button, timetopress=0.2):
         """ sets a button or buttons in the down state, waits for a period of time,
@@ -105,26 +109,26 @@ class Controller(NetmpManager):
                           console as keypress
         """
 
-        self.keydown(button)
+        self.buttondown(button)
         time.sleep(timetopress)
-        self.keyup(button)
+        self.buttonup(button)
         time.sleep(0.1)
         
 if __name__ ==  "__main__":
     
-    with Controller(ip=sys.argv[1]) as controller:
+    with DualShock(ip=sys.argv[1]) as controller:
 
         for i in range(10):
-            controller.buttonpress(Controller.RIGHT)
-            controller.buttonpress(Controller.RIGHT)
-            controller.buttonpress(Controller.RIGHT)
-            controller.buttonpress(Controller.RIGHT)
-            controller.buttonpress(Controller.UP)
-            controller.buttonpress(Controller.DOWN)
-            controller.buttonpress(Controller.LEFT, 1.0)
-            controller.buttonpress(Controller.RIGHT, 1.0)
-            controller.buttonpress(Controller.PS, 1.0)
+            controller.buttonpress(Buttons.RIGHT)
+            controller.buttonpress(Buttons.RIGHT)
+            controller.buttonpress(Buttons.RIGHT)
+            controller.buttonpress(Buttons.RIGHT)
+            controller.buttonpress(Buttons.UP)
+            controller.buttonpress(Buttons.DOWN)
+            controller.buttonpress(Buttons.LEFT, 1.0)
+            controller.buttonpress(Buttons.RIGHT, 1.0)
+            controller.buttonpress(Buttons.PS, 1.0)
             time.sleep(1)
-            controller.buttonpress(Controller.CIRCLE)
-            controller.buttonpress(Controller.PS, 0.2)
+            controller.buttonpress(Buttons.CIRCLE)
+            controller.buttonpress(Buttons.PS, 0.2)
             time.sleep(1)

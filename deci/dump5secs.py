@@ -1,6 +1,7 @@
-import sys
 import datetime
-from deci4 import Netmp
+import sys
+
+from deci.deci4 import Netmp
 
 netmp = Netmp(ip=sys.argv[1])
 

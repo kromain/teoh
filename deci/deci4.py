@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-import socket
-import select
 import array
-import struct
 import getpass
-import time
+import select
+import socket
+import struct
 import sys
 import threading
+import time
 
 if sys.version_info[0] < 3:
     raise Exception("Python 3 required")

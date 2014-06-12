@@ -1,5 +1,6 @@
 import sys
-from deci4 import Netmp,make_dump
+
+from .deci4 import Netmp
 
 netmp = Netmp(ip=sys.argv[1])
 

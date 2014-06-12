@@ -1,6 +1,7 @@
 import sys
 import time
-from deci4 import Netmp, NetmpManager
+
+from .deci4 import NetmpManager
 
 class Console(NetmpManager):
     def __init__(self, ip):
