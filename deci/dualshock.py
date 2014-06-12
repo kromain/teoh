@@ -1,15 +1,11 @@
 import sys
 import threading
 import time
+from enum import Enum
 
 from .deci4 import NetmpManager
 
-class DualShock(NetmpManager):
-    """ Input at the controller level.  
-    
-        While in operation, sends constant events to the device even if no
-        keys pressed.
-    """
+class Buttons(Enum):
     UP = 0x10
     LEFT = 0x80
     RIGHT = 0x20
@@ -25,6 +21,13 @@ class DualShock(NetmpManager):
     OPTION = 0x8
     SHARE = 0x1
     PS = 0x10000
+
+class DualShock(NetmpManager):
+    """ Input at the controller level.
+
+        While in operation, sends constant events to the device even if no
+        keys pressed.
+    """
 
     class KeyThread(threading.Thread):
         """ Thread that sends the current button state to the device once every 10 msecs. """
@@ -80,18 +83,18 @@ class DualShock(NetmpManager):
     def buttondown(self,button):
         """ sets button in the key down state, leaving other buttons as is. 
         
-            button - bitfield of buttons to set in down state.
-                     ex DualShock.UP | DualShock.RIGHT
+            button - Buttons enum member for the button to set in down state.
+                     ex Buttons.UP
         """
-        self.thread.buttonstate |= button
+        self.thread.buttonstate |= button.value
 
     def buttonup(self,button):
         """ sets button in the key up state, leaving other buttons as is. 
         
-            button - bitfield of buttons to set in up state.
-                     ex DualShock.UP | DualShock.RIGHT
+            button - Buttons enum member for the button to set in up state.
+                     ex Buttons.UP
         """
-        self.thread.buttonstate &= ~button
+        self.thread.buttonstate &= ~button.value
 
     def buttonpress(self, button, timetopress=0.2):
         """ sets a button or buttons in the down state, waits for a period of time,
@@ -116,16 +119,16 @@ if __name__ ==  "__main__":
     with DualShock(ip=sys.argv[1]) as controller:
 
         for i in range(10):
-            controller.buttonpress(DualShock.RIGHT)
-            controller.buttonpress(DualShock.RIGHT)
-            controller.buttonpress(DualShock.RIGHT)
-            controller.buttonpress(DualShock.RIGHT)
-            controller.buttonpress(DualShock.UP)
-            controller.buttonpress(DualShock.DOWN)
-            controller.buttonpress(DualShock.LEFT, 1.0)
-            controller.buttonpress(DualShock.RIGHT, 1.0)
-            controller.buttonpress(DualShock.PS, 1.0)
+            controller.buttonpress(Buttons.RIGHT)
+            controller.buttonpress(Buttons.RIGHT)
+            controller.buttonpress(Buttons.RIGHT)
+            controller.buttonpress(Buttons.RIGHT)
+            controller.buttonpress(Buttons.UP)
+            controller.buttonpress(Buttons.DOWN)
+            controller.buttonpress(Buttons.LEFT, 1.0)
+            controller.buttonpress(Buttons.RIGHT, 1.0)
+            controller.buttonpress(Buttons.PS, 1.0)
             time.sleep(1)
-            controller.buttonpress(DualShock.CIRCLE)
-            controller.buttonpress(DualShock.PS, 0.2)
+            controller.buttonpress(Buttons.CIRCLE)
+            controller.buttonpress(Buttons.PS, 0.2)
             time.sleep(1)

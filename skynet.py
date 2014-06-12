@@ -6,6 +6,7 @@ import sys
 
 import psdriver
 from deci import DualShock
+from deci import Buttons as DS
 
 class PSTarget(object):
     def __init__(self, target_ip):
@@ -54,9 +55,9 @@ def main():
     print("Connecting to target at {}...".format(sys.argv[1]))
     with PSTarget('43.138.15.55') as target:
         print("URL: " + target.psdriver.current_url)
-        target.dualshock.buttonpress(DualShock.DOWN)
-        target.dualshock.buttonpress(DualShock.DOWN)
-        target.dualshock.buttonpress(DualShock.CIRCLE)
+        target.dualshock.buttonpress(DS.DOWN)
+        target.dualshock.buttonpress(DS.DOWN)
+        target.dualshock.buttonpress(DS.CIRCLE)
     return 0
 
 if __name__ == '__main__':
