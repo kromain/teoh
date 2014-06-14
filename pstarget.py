@@ -4,9 +4,8 @@
 
 import sys
 
-import psdriver
-from deci import DualShock
-from deci import Buttons as DS
+import skynet.deci as deci
+import skynet.psdriver as psdriver
 
 class PSTarget(object):
     def __init__(self, target_ip):
@@ -32,7 +31,7 @@ class PSTarget(object):
         if self.psdriver is None:
             self.psdriver = psdriver.server.connect(self.target_ip)
         if self.dualshock is None:
-            self.dualshock = DualShock(self.target_ip)
+            self.dualshock = deci.DualShock(self.target_ip)
             self.dualshock.start()
 
     def disconnect(self):
@@ -53,11 +52,8 @@ def main():
         return 1
 
     print("Connecting to target at {}...".format(sys.argv[1]))
-    with PSTarget('43.138.15.55') as target:
-        print("URL: " + target.psdriver.current_url)
-        target.dualshock.buttonpress(DS.DOWN)
-        target.dualshock.buttonpress(DS.DOWN)
-        target.dualshock.buttonpress(DS.CIRCLE)
+    with PSTarget(sys.argv[1]) as target:
+        print("Target WebView URL: " + target.psdriver.current_url)
     return 0
 
 if __name__ == '__main__':
