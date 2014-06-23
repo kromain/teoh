@@ -113,6 +113,16 @@ class DualShock(NetmpManager):
         time.sleep(timetopress)
         self.buttonup(button)
         time.sleep(0.1)
+    
+    def press_buttons(self, buttonList, timetopress=0.2, post_delay=0.5):
+        """ iterate through buttonList and simulate button presses
+
+            timedelay - Time to wait between button presses
+        """
+        for x in buttonList:
+            self.buttonpress(x, timetopress)
+            time.sleep(post_delay)
+
         
 if __name__ ==  "__main__":
     
