@@ -792,6 +792,9 @@ class Netmp:
 
         #checkexception
 
+        self.stream_ttyp.shutdown(socket.SHUT_RDWR)
+        self.stream_ttyp.close()
+
     def register_ctrlp(self):
         self.stream_ctrlp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.stream_ctrlp.connect((self.ip, self.port))
@@ -805,7 +808,10 @@ class Netmp:
         res = self.prot.unregister_msg(self.stream1, reg_protocol=CtrlpProt.PROTOCOL)
 
         #checkexception
-        
+
+        self.stream_ctrlp.shutdown(socket.SHUT_RDWR)
+        self.stream_ctrlp.close()
+
     def register_tsmp(self):
         self.stream_tsmp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.stream_tsmp.connect((self.ip, self.port))
@@ -819,10 +825,24 @@ class Netmp:
         res = self.prot.unregister_msg(self.stream1, reg_protocol=TsmpProt.PROTOCOL)
 
         #checkexception
+
+        self.stream_tsmp.shutdown(socket.SHUT_RDWR)
+        self.stream_tsmp.close()
+
     def disconnect(self):
         res = self.prot.disconnect_msg(self.stream1)
 
         #checkexception
+
+        try:
+            self.stream1.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            # the socket may already be in shutdown state when the last protocol was closed,
+            # so ignore the exception that would then be thrown by shutdown()
+            pass
+        finally:
+            self.stream1.close()
+
 
 class Ctrlp:
     def __init__(self, stream):
