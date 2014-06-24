@@ -3,3 +3,7 @@ __pycache__
 
 .idea
 *.swp
+
+MANIFEST
+dist
+skynet.egg-info
