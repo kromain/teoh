@@ -17,5 +17,6 @@ setup(
 
     install_requires=[
         "selenium >= 2.42.1",
+        "pytest >= 2.5.2",
     ],
 )
