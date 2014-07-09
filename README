@@ -1,8 +1,23 @@
-SkyNet
-==========
-The Skynet readme and setup instructions have been moved to Confluence:
+This is the Skynet core component, providing tools and services to remotely control one or more PlayStation DevKits.
+It is meant to be imported into Python test suites or other tools.
 
-Setup Instructions:   
-https://qmjira.snei.sony.com/confluence/pages/viewpage.action?title=Skynet+test+environment+setup&spaceKey=SKYN  
-SkyNet Confluence Page:   
+For more info, see the Skynet project's home on Confluence:
 https://qmjira.snei.sony.com/confluence/display/SKYN/Skynet+Home
+
+API documentation
+=================
+
+https://github.snei.sony.com/pages/SNEI/skynet
+
+Installation
+============
+
+Target and host setup instructions are found on Confluence:
+https://qmjira.snei.sony.com/confluence/pages/viewpage.action?title=Skynet+test+environment+setup&spaceKey=SKYN
+
+Tests suites
+============
+
+Tests using the Skynet core:
+* Swordfish tests: https://github.snei.sony.com/SNEI/snei-skynet-tests
+* ...
