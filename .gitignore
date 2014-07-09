@@ -7,3 +7,5 @@ __pycache__
 MANIFEST
 dist
 skynet.egg-info
+
+doc/_build
