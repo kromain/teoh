@@ -14,26 +14,46 @@ def _iswindows():
     return sys.platform == 'win32'
 
 class PSDriverError(Exception):
+    """
+    Represents an error during startup of the PSDriver server or when trying to connect to a target
+    """
     pass
 
 class PSDriverServer(object):
+    """
+    The backend PSDriver server that handles WebDriver connections to the remote targets
+    """
     def __init__(self):
         self.server_ip = None
         self.server_port = None
 
     def executable_name(self):
+        """
+        :return: The platform-specific server executable name (ie. with '.exe' on Windows)
+        :rtype: String
+        """
         exename = 'psdriver'
         if _iswindows():
             exename += '.exe'
         return exename
 
     def executable_path(self):
+        """
+        :return: The full path on disk of the server executable
+        """
         return os.path.join(os.path.dirname(os.path.abspath(__file__)),
                             'bin',
                             self.executable_name())
 
     def pid(self):
-        # NOTE Assume no more than one psdriver instance running for now
+        """
+        Check if the psdriver server is running and return its pid.
+
+        :note: We assume no more than one psdriver server instance running for now
+
+        :return: The platform-specific executable pid, or None if not running yet
+        :raises PSDriverError: if the pid couldn't be queried from the OS
+        """
         try:
             if _iswindows():
                 stdout = subprocess.check_output(['tasklist.exe',
@@ -60,6 +80,13 @@ class PSDriverServer(object):
         return pid
 
     def start_local_server(self, server_port):
+        """
+        Start the psdriver server on *server_port*, or do nothing if there's already a server running on that port.
+
+        :param int server_port: the listening TCP port for the server
+        :return: True if started successfully, False if *server_port* is invalid
+        :raises PSDriverError: if the server couldn't be started, for example if *server_port* is already in use
+        """
         if server_port is None:
             return False
         if self.pid() is None:
@@ -92,6 +119,11 @@ class PSDriverServer(object):
 
 
     def stop_local_server(self):
+        """
+        Stop the psdriver server if running, do nothing otherwise.
+
+        :return: True if the server was stopped, False otherwise (ie. server not running)
+        """
         pid = self.pid()
         if pid is None:
             return False
@@ -103,6 +135,12 @@ class PSDriverServer(object):
 
 
     def restart_local_server(self, server_port=None):
+        """
+        Restart the psdriver server on *server_port*. If it's not already running, just start it.
+
+        :param int server_port: the listening TCP port for the server
+        :raises PSDriverError: if the server couldn't be started, for example if *server_port* is already in use
+        """
         if server_port is None:
             server_port = self.server_port
         self.stop_local_server()
@@ -110,6 +148,15 @@ class PSDriverServer(object):
 
 
     def connect(self, target_ip, target_port=860):
+        """
+        Create a WebDriver connection to the target at *target_ip*.
+
+        :param String target_ip: the target's IP address
+        :param int target_port: the target's inspector server listening port, by default 860
+        :return: a :class:`selenium.webdriver.Remote` instance if the connection if successful,
+            or None if the server isn't running
+        :raises PSDriverError: if the connection to the target failed
+        """
         if self.server_ip is None or self.server_port is None:
             return None
         chromeDriverOptions = {'debuggerAddress': "{}:{}".format(target_ip, target_port)}
