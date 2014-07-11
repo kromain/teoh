@@ -927,7 +927,7 @@ class NetmpManager:
         self._lock.acquire()
 
         if ip not in self._netmp:
-            self._netmp[ip] = Netmp(ip=self.ip)
+            self._netmp[ip] = Netmp(ip=ip)
             self._netmp[ip].connect()
             self._count[ip] = 0
 

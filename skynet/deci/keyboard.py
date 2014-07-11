@@ -1,25 +1,25 @@
 import sys
 from tkinter import *
 
-from deci.dualshock import DualShock
+from skynet.deci.dualshock import DualShock,Buttons
 
 
 class App:
-    keymap = {'w':DualShock.UP,
-           'a':DualShock.LEFT,
-           's':DualShock.DOWN,
-           'd':DualShock.RIGHT,
-           'D': DualShock.R1,
-           'W': DualShock.L1,
-           'r': DualShock.R2,
-           'l': DualShock.L2,
-           'x': DualShock.CROSS,
-           'z': DualShock.CIRCLE,
-           'c': DualShock.SQUARE,
-           't': DualShock.TRIANGLE,
-           'o': DualShock.OPTION,
-           'h': DualShock.SHARE,
-           'p':DualShock.PS}
+    keymap = {'w':Buttons.UP,
+           'a':Buttons.LEFT,
+           's':Buttons.DOWN,
+           'd':Buttons.RIGHT,
+           'D': Buttons.R1,
+           'W': Buttons.L1,
+           'r': Buttons.R2,
+           'l': Buttons.L2,
+           'x': Buttons.CROSS,
+           'z': Buttons.CIRCLE,
+           'c': Buttons.SQUARE,
+           't': Buttons.TRIANGLE,
+           'o': Buttons.OPTION,
+           'h': Buttons.SHARE,
+           'p':Buttons.PS}
 
     def __init__(self):
         self.root = Tk()
@@ -29,7 +29,7 @@ class App:
         self.frame.bind("<Button-1>", self.callback)
         self.frame.pack()
 
-        self.controller = DualShock(ip=sys.argv[1])
+        self.controller = DualShock(target_ip=sys.argv[1])
         
     def run(self):
         self.controller.start()
