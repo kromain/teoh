@@ -1,12 +1,12 @@
 import sys
 import threading
 import time
-from enum import Enum
+from enum import IntEnum
 
 from .deci4 import NetmpManager
 
 
-class Buttons(Enum):
+class Buttons(IntEnum):
     """
     Represents the DualShock4 buttons.
 
