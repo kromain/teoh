@@ -6,7 +6,7 @@ import sys
 
 import skynet.deci as deci
 import skynet.psdriver as psdriver
-
+import skynet.osk as osk
 
 class PSTarget(object):
     """
@@ -46,6 +46,7 @@ class PSTarget(object):
 
         :type: :class:`skynet.deci.dualshock.DualShock`
         """
+        self.osk = None
         # self.tty = None
         self.connect()
 
@@ -74,6 +75,8 @@ class PSTarget(object):
         if self.dualshock is None:
             self.dualshock = deci.DualShock(self.target_ip)
             self.dualshock.start()
+        if self.osk is None:
+            self.osk = osk.OskEntry(self.dualshock)
 
     def disconnect(self):
         """
@@ -90,6 +93,8 @@ class PSTarget(object):
         if self.dualshock is not None:
             self.dualshock.stop()
             self.dualshock = None
+        if self.osk is not None:
+            self.osk = None
 
 
 def main():
