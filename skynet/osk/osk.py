@@ -2,18 +2,19 @@
 #
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 
+import skynet.deci as deci
+
 from skynet.deci.dualshock import Buttons as DS
 from skynet.osk.osk_graph import osk_graph, nav_path
 from skynet.osk.num_osk import NumOsk
 from skynet.osk.latin_osk import LatinOsk
 
-import skynet.deci as deci
 
 class OskEntry():
     """ entry methods for different types of on-screen keyboards """
     
-    NUM_OSK_START = "5"
-    LATIN_OSK_START = "g"
+    NUM_START = "5"
+    LATIN_START = "g"
     DONE = DS.R2
 
     def __init__(self, ds):
@@ -24,30 +25,55 @@ class OskEntry():
 
             osk_type - Type of osk (e.g numeric)
         """
-        nav = []
+        if not(type(string) == str):
+            raise self.InvalidString(string)
 
         if osk_type == "numeric":
-            nav = self.entry_numeric(string)
+            num_map = NumOsk()
+            self.entry_numeric(num_map, self.NUM_START + string)
+
         if osk_type == "latin_basic":
-            nav = self.entry_latin_basic(string)
+            latin_map = LatinOsk()
+            self.entry_numeric(latin_map, self.LATIN_START + string)
 
-        self.dualshock.press_buttons(nav)   
-        self.dualshock.buttonpress(DONE)   
 
-    def entry_numeric(self, string):
+    def entry_numeric(self, g, string):
         """ takes in string and stimulates on numeric osk """
-        num_map = NumOsk()
+        stringList = list(string)
 
-        string_list = [self.NUM_OSK_START]
-        string_list.extend(list(string))
+        self.check_invalid(g, stringList)
+        
+        nav = nav_path(g, stringList)
+        
+        self.dualshock.press_buttons(nav, postdelay=0.2)   
+        self.dualshock.buttonpress(self.DONE)   
 
-        return nav_path(num_map, string_list)
+    
+    def check_invalid(self, g, string):
+        stringset = set(string)
+        if not(stringset < g.nodes):
+            invalid_keys = stringset - g.nodes
+            raise self.InvalidKey(invalid_keys)
 
-    def entry_latin_basic(self, string):
-        """ takes in string and stimulates on basic-latin osk """
-        latin_map = LatinOsk()
 
-        string_list = [self.LATIN_OSK_START]
-        string_list.extend(list(string))
+    class Error(Exception):
+        """ base class for other exceptions """
+        pass
 
-        return nav_path(latin_map, string_list)
+
+    class InvalidKey(Error):
+        """ raised when input value is not in OSK """
+        def __init__(self, msg):
+            self.msg = msg
+
+        def __str__(self):
+            return "Entry is not valid OSK key: %s" % self.msg
+
+
+    class InvalidString(Error):
+        """ raised when input value is not a string """
+        def __init__(self, msg):
+            self.msg = msg
+
+        def __str__(self):
+            return "Entry is not valid string: %s" % self.msg

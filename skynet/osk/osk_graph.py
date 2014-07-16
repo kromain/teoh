@@ -16,7 +16,7 @@ class osk_graph(object):
         self.distances = {}
         self.case = {}
 
-    def add_node(self, value, case):
+    def add_node(self, value, case="none"):
         self.nodes.add(value)
         self.add_case(value, case)
 
@@ -62,14 +62,12 @@ class osk_graph(object):
 
     def set_edge_overlap(self, layer1, layer2):
         """ Set distance and direction between two overlapping osk layers """
-
         for y in range(len(layer1)):
             for x in range(len(layer1[y])):
                 self.add_edge(layer1[y][x], layer2[y][x], 0, [])  
 
     def set_edge_table(self, table):
         """ Set distance and direction between two nodes in table """
-        
         for key in table.keys():
             self.add_edge(key, key, 0, [])
             for keydef in table[key]:
@@ -85,7 +83,6 @@ class osk_graph(object):
 
 def dijkstra(graph, init_node):
     """ implementation of dijkstra to find shortest path"""
-    # dictionary of visited nodes with distance
     visited = {init_node: 0}
     curr_node = init_node
     path = {}
@@ -97,20 +94,17 @@ def dijkstra(graph, init_node):
             if node in visited:
                 if min_node is None:
                     min_node = node
-                # If distance is less than previously recorded distance
                 elif visited[node] < visited[min_node]:
                     min_node = node
  
         if min_node is None:
             break
         
-        # Remove and return best node
         nodes.remove(min_node)
         curr_weight = visited[min_node]
         
         for edge in graph.edges[min_node]:
             weight = graph.distances[(min_node, edge)] + curr_weight
-            # If shorter path has been found
             if edge not in visited or weight < visited[edge]:
                 visited[edge] = weight
                 path[edge] = min_node
@@ -135,13 +129,9 @@ def direct_path(g, start, end):
     direct_list = []
     path = shortest_path(g, start, end)
 
-    # Iterate through shortest path from start to end
     for x in range(len(path)-1):
-        # Continuously add directions between next nodes 
         direct_list.extend(g.direction[(path[x], path[x+1])])
 
-    # Check for upper case letters
-    # Click shift (DS.L2) to capitalize
     if g.case[end] == "upper":
         direct_list.extend([DS.L2])
 

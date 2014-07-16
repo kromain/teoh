@@ -1,0 +1,40 @@
+<html>
+<script src="./js_ex.js"></script>
+<script>
+curfield = 1;
+maxfield = 13;
+onkeyup = function(evt) {
+    if(evt.keyCode == 37 || evt.keyCode == 39) {
+        if(evt.keyCode == 39 ) {
+            curfield++;
+            if(curfield > maxfield) {
+                curfield = 1;
+            }
+        }
+        else {
+            curfield--;
+            if(curfield < 1) {
+                curfield = maxfield;
+            }
+        }
+
+        document.getElementById(curfield).focus();
+    }
+}
+</script>
+<body onload="sce.didFinishLoading();document.getElementById('1').focus();">
+type=text <input id='1' type="text"/></br>
+type=text x-ps-osk=number <input id='2' type="text" x-ps-osk="number"/></br>
+type=text x-ps-osk=basic-latin <input id='3' type="text" x-ps-osk="basic-latin"/></br>
+type=text lang="de" <input id="4" type="text" lang="de" /></br>
+type=text lang="en" <input id='5' type="text" lang="en"/></br>
+type=text lang="ja" <input id="6" type="text" lang="ja" /></br>
+type=text lang="ru" <input id="7" type="text" lang="ru" /></br>
+type=text lang="po" <input id="8" type="text" lang="po" /></br>
+type=text lang="zh" <input id="9" type="text" lang="zh" /></br>
+type=number <input id="10" type="number"/></br>
+type=password <input id="11" type="password"/></br>
+type=email <input id="12" type="email"/></br>
+type=url <input id="13" type="url"/></br>
+</body>
+</html>
