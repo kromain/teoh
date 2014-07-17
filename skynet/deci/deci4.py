@@ -120,7 +120,6 @@ class Deci4H:
         def __str__(self):
             return "You set the length to %d but the max is 8.  This will cause the playback system to bork, and you'll need to reboot, so don't do that" % self.length
 
-
     recorddefs = {
         "SceDeciHeader": [
             {"type":'B', "length":1, "name":"version"},
@@ -133,6 +132,12 @@ class Deci4H:
             {"type":'<H', "length":2, "name":"fraginfo"},
             {"type":'<l', "length":4, "name":"msgtype"}
 
+        ],
+        "SceDeciUlpNtfHdr":[
+            {"type":'<H', "length":2, "name":"seqnumber"},
+            {"type":'<H', "length":2, "name":"fraginfo"},
+            {"type":'<l', "length":4, "name":"msgtype"},
+            {"type":'<Q', "length":8, "name":"timestamp"}
         ],
         "SceDeciUlpResHdr":[
             {"type":'<H', "length":2, "name":"seqnumber"},
@@ -403,10 +408,15 @@ class Deci4H:
         log( "Recv (%s):\n%s" % (stream, make_dump(buffer)) )
         return buffer
 
-    def parse_assert(self, buffer, protocol, message):
-        """ parse a message, but fail if it isn't waht is expected """
-        buffer, res = self.parse_header(buffer)
-        if res["protocol"] != protocol or res["msgtype"] != message:
+    def parse_assert(self, bufferin, protocol, message):
+        """ parse a message, but fail if it isn't what is expected """
+        buffer, res = self.parse_header(bufferin)
+        if res["protocol"] != protocol and res["protocol"] == NetmpProt.PROTOCOL:
+            netmp_prot = NetmpProt()
+            buffer, res = netmp_prot.parse(res, buffer)
+            print(res)
+
+        elif res["protocol"] != protocol or res["msgtype"] != message:
             raise self.ParseException(res["protocol"], res["msgtype"], protocol, message)
 
         return self.parse(res, buffer)[1]
@@ -437,7 +447,12 @@ class NetmpProt(Deci4H):
     SCE_NETMP_TYPE_REGISTER_RES = 0x7
     SCE_NETMP_TYPE_UNREGISTER_CMD = 0x8
     SCE_NETMP_TYPE_UNREGISTER_RES = 0x9
+    SCE_NETMP_TYPE_FORCE_DISCONNECT_CMD = 0xa
+    SCE_NETMP_TYPE_FORCE_DISCONNECT_RES = 0xb
+    SCE_NETMP_TYPE_INVALPROTO_NOTIFICATION = 0xe2
     PROTOCOL = 0x40001000
+
+    SCE_DECI_NETMP_ERROR_INUSE = 0x1006
 
     def get_conf_cmd(self):
         return self.make_deci_cmd_header(None, self.SCE_NETMP_TYPE_GET_CONF_CMD, self.PROTOCOL)
@@ -467,6 +482,16 @@ class NetmpProt(Deci4H):
         buffer = self.sendrecv(stream, self.disconnect_cmd())
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_NETMP_TYPE_DISCONNECT_RES)
 
+    def force_disconnect_cmd(self):
+
+        buffer = self.make_deci_cmd_header(None, self.SCE_NETMP_TYPE_FORCE_DISCONNECT_CMD, self.PROTOCOL)
+
+        return buffer
+
+    def force_disconnect_msg(self, stream):
+        buffer = self.sendrecv(stream, self.force_disconnect_cmd())
+        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_NETMP_TYPE_FORCE_DISCONNECT_RES)
+
     def register_cmd(self, netmp_key, reg_protocol):
 
         buffer = self.build_buffer(Deci4H.recorddefs["SceNetmpRegisterCmd"], netmp_key=netmp_key, reg_protocol=reg_protocol)
@@ -494,9 +519,12 @@ class NetmpProt(Deci4H):
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
         elif res["msgtype"] == self.SCE_NETMP_TYPE_CONNECT_RES:
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceNetmpConnectRes"], res)
+        elif res["msgtype"] == self.SCE_NETMP_TYPE_INVALPROTO_NOTIFICATION:
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciUlpNtfHdr"], res)
         elif (res["msgtype"] == self.SCE_NETMP_TYPE_REGISTER_RES or 
               res["msgtype"] == self.SCE_NETMP_TYPE_UNREGISTER_RES or
-              res["msgtype"] == self.SCE_NETMP_TYPE_DISCONNECT_RES):
+              res["msgtype"] == self.SCE_NETMP_TYPE_DISCONNECT_RES or
+              res["msgtype"] == self.SCE_NETMP_TYPE_FORCE_DISCONNECT_RES):
             pass
 
         return buffer, res
@@ -583,7 +611,7 @@ class CtrlpProt(Deci4H):
 
         # if result is 1, we've filled memory.  Could wait and retry
         if res["result"] != 0:
-            print("Oh noes!", res["result"])
+            print("Unknown error!", hex(res["result"]))
 
         return res
 
@@ -749,14 +777,25 @@ class TsmpProt(Deci4H):
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypGetConfCmd"], res)
 
-        elif res["msgtype"] == self.SCE_TSMP_TYPE_GET_CONF_RES:
-            pass
         else:
             pass
 
         return buffer, res
 
 class Netmp:
+    class InUseException(Exception):
+        
+        def __str__(self):
+            return "Another system is controlling this device"
+
+    class NetmpException(Exception):
+
+        def __init__(self, err):
+            self.err = err
+
+        def __str__(self):
+            return "Error 0x%x trying to send netmp command" % self.err
+
     def __init__(self, ip, port=8550):
         self.prot = NetmpProt()
         self.ip = ip
@@ -801,6 +840,11 @@ class Netmp:
 
         res = self.prot.register_msg(self.stream_ctrlp, netmp_key=self.netmp_key, reg_protocol=CtrlpProt.PROTOCOL)
 
+        if res["result"] == NetmpProt.SCE_DECI_NETMP_ERROR_INUSE:
+            raise self.InUseException()
+        elif res["result"]:
+            raise self.NetmpException(res["result"])
+
         #checkexception
         return Ctrlp(self.stream_ctrlp)
 
@@ -829,6 +873,9 @@ class Netmp:
         self.stream_tsmp.shutdown(socket.SHUT_RDWR)
         self.stream_tsmp.close()
 
+    def force_disconnect(self):
+        res = self.prot.force_disconnect_msg(self.stream1)
+        
     def disconnect(self):
         res = self.prot.disconnect_msg(self.stream1)
 
@@ -865,7 +912,7 @@ class Ctrlp:
         return self.prot.read_raw_data(self.stream)
 
     def play_start(self):
-        self.prot.play_start_msg(self.stream)
+        rc = self.prot.play_start_msg(self.stream)
 
     def play_data(self, events):
         self.prot.play_data_msg(self.stream, events)
