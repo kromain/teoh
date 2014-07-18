@@ -17,7 +17,7 @@ class ConsoleThread(threading.Thread):
 
 thread = ConsoleThread()
 
-with DualShock(target_ip=sys.argv[1]) as controller:
+with DualShock(target_ip=sys.argv[1], force=True) as controller:
 
     thread.start()
     while True:
