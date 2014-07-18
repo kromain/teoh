@@ -414,7 +414,6 @@ class Deci4H:
         if res["protocol"] != protocol and res["protocol"] == NetmpProt.PROTOCOL:
             netmp_prot = NetmpProt()
             buffer, res = netmp_prot.parse(res, buffer)
-            print(res)
 
         elif res["protocol"] != protocol or res["msgtype"] != message:
             raise self.ParseException(res["protocol"], res["msgtype"], protocol, message)
