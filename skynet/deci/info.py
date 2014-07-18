@@ -1,6 +1,6 @@
 import sys
 
-from .deci4 import Netmp
+from skynet.deci.deci4 import Netmp
 
 netmp = Netmp(ip=sys.argv[1])
 
@@ -19,12 +19,6 @@ tsmp = netmp.register_tsmp()
 
 info = tsmp.get_info()
 print (info)
-
-#for item in info["data"]:
-#    if "value" in item:
-#        print (item["name"], item["value"])
-#    else:
-#        print (item["name"], "????")
 
 netmp.unregister_tsmp()
 
