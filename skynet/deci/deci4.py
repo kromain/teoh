@@ -171,6 +171,12 @@ class Deci4H:
         "SceNetmpUnregisterCmd":[
             {"type":'<L', "length":4, "name":"reg_protocol"}
         ],
+        "SceNetmpRegInfo": [
+            {"type":'<L', "length":4, "name":"size"},
+            {"type":'<L', "length":4, "name":"protocol"},
+            {"type":'<L', "length":4, "name":"timestamp"},
+            {"type":"SceDeciStringUtf8", "name":"owner"}
+        ],
         "SceCtrlpGetConfCmd":[
             {"type":'<l', "length":4, "name":"in_buf_size"}
         ],
@@ -238,7 +244,8 @@ class Deci4H:
         # All others are python struct formats
         for f in format:
             if f["type"] == "SceDeciStringUtf8":
-                f["length"] = len(kwargs[f["name"]]) + 4
+                f["length"] = self.pad_len(len(kwargs[f["name"]]),4) + 4
+                #f["length"] = len(kwargs[f["name"]]) + 4
 
         length = sum(f["length"] for f in format) 
         buffer = array.array('B', [0]*length)
@@ -299,7 +306,11 @@ class Deci4H:
                 offset += 4
 
                 # Ignore null terminator
-                res[f["name"]] = struct.unpack_from("<%ds" % (length-1), buffer, offset)[0].decode("utf-8")
+                if length > 0:
+                    res[f["name"]] = struct.unpack_from("<%ds" % (length-1), buffer, offset)[0].decode("utf-8")
+                else:
+                    res[f["name"]] = ""
+
                 offset += self.pad_len(length,4)
 
             elif f["type"] == "SceDeciVariant":
@@ -448,6 +459,8 @@ class NetmpProt(Deci4H):
     SCE_NETMP_TYPE_UNREGISTER_RES = 0x9
     SCE_NETMP_TYPE_FORCE_DISCONNECT_CMD = 0xa
     SCE_NETMP_TYPE_FORCE_DISCONNECT_RES = 0xb
+    SCE_NETMP_TYPE_GET_REGISTERED_LIST_CMD = 0xe
+    SCE_NETMP_TYPE_GET_REGISTERED_LIST_RES = 0xf
     SCE_NETMP_TYPE_INVALPROTO_NOTIFICATION = 0xe2
     PROTOCOL = 0x40001000
 
@@ -462,6 +475,7 @@ class NetmpProt(Deci4H):
 
     def connect_cmd(self, client_id, udpport):
 
+        print ("Connect with %s" % client_id)
         buffer = self.build_buffer(Deci4H.recorddefs["SceNetmpConnectCmd"], client_id=client_id, udpport=udpport)
         buffer = self.make_deci_cmd_header(buffer, self.SCE_NETMP_TYPE_CONNECT_CMD, self.PROTOCOL)
 
@@ -512,6 +526,22 @@ class NetmpProt(Deci4H):
     def unregister_msg(self, stream, reg_protocol):
         buffer = self.sendrecv(stream, self.unregister_cmd(reg_protocol))
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_NETMP_TYPE_UNREGISTER_RES)
+
+    def get_registered_list_cmd(self):
+        return self.make_deci_cmd_header(None, self.SCE_NETMP_TYPE_GET_REGISTERED_LIST_CMD, self.PROTOCOL)
+
+    def get_registered_list_msg(self, stream):
+        buffer = self.sendrecv(stream, self.get_registered_list_cmd())
+        buffer, res = self.parse_header(buffer)
+        res["data"] = []
+        terminator = struct.unpack_from("<l", buffer, 0)[0]
+        while(terminator > 0):
+            resdata = {}
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceNetmpRegInfo"], resdata)
+            res["data"].append(resdata)
+            terminator = struct.unpack_from("<l", buffer, 0)[0]
+
+        return res
 
     def parse(self, res, buffer):
         if res["msgtype"] == self.SCE_NETMP_TYPE_GET_CONF_RES:
@@ -804,9 +834,9 @@ class Netmp:
 
     def connect(self):
         try:
-            client_id = "%s@%s, EXDGDECI4" % ( getpass.getuser(), socket.gethostbyname(socket.gethostname()))
+            client_id = "%s@%s,EXDGDECI4" % ( getpass.getuser(), socket.gethostbyname(socket.gethostname()))
         except socket.gaierror:
-            client_id = "%s@%s, EXDGDECI4" % ( getpass.getuser(), socket.gethostname())
+            client_id = "%s@%s,EXDGDECI4" % ( getpass.getuser(), socket.gethostname())
             
         res = self.prot.connect_msg(self.stream1, client_id=client_id, udpport=0)
         self.netmp_key = res["netmp_key"]
@@ -874,6 +904,17 @@ class Netmp:
 
     def force_disconnect(self):
         res = self.prot.force_disconnect_msg(self.stream1)
+        
+    def get_registered_list(self):
+        return self.prot.get_registered_list_msg(self.stream1)
+
+    def get_owner(self):
+        res = self.prot.get_registered_list_msg(self.stream1)
+        for l in res["data"]:
+            if l["protocol"] | 0x80000000 != 0:
+                return l["owner"]
+
+        return None
         
     def disconnect(self):
         res = self.prot.disconnect_msg(self.stream1)
