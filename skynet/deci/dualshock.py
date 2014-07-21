@@ -3,7 +3,7 @@ import threading
 import time
 from enum import IntEnum
 
-from .deci4 import NetmpManager
+from .deci4 import NetmpManager, Netmp
 
 
 class Buttons(IntEnum):
@@ -61,8 +61,9 @@ class DualShock(NetmpManager):
                 self.ctrlp.play_data([self.buttonstate] * 8)
                 time.sleep(0.1)
 
-    def __init__(self, target_ip):
+    def __init__(self, target_ip, force=False):
         self.target_ip = target_ip
+        self.force = force
         """The remote target IP address
 
         :type: String
@@ -84,7 +85,17 @@ class DualShock(NetmpManager):
 
         self.netmp = super(DualShock, self).startnetmp(self.target_ip)
 
-        self.ctrlp = self.netmp.register_ctrlp()
+        try:
+            self.ctrlp = self.netmp.register_ctrlp()
+        except Netmp.InUseException:
+
+            if self.force:
+                print("Device in use, forcing disconnection");
+                self.netmp.force_disconnect()
+
+                self.ctrlp = self.netmp.register_ctrlp()
+            else:
+                raise
 
         self.ctrlp.play_start()
 
