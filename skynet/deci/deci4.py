@@ -12,7 +12,7 @@ import time
 if sys.version_info[0] < 3:
     raise Exception("Python 3 required")
 
-enable_logging = True
+enable_logging = False
 
 def log(*args):
     if enable_logging:
