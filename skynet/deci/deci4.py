@@ -155,9 +155,8 @@ class Deci4H:
             {"type":'<l', "length":4, "name":"flags"}
         ],
         "SceNetmpConnectCmd":[
-            #{"type":'<l', "length":4, "name":"foo"},  # found by inspection
-            {"type":'zeros', "length":4},
             {"type":"SceDeciStringUtf8", "name":"client_id"},
+            {"type":"zeros", "length":4},
             {"type":'<H', "length":2, "name":"udpport"},
             {"type":"zeros", "length":2}
         ],
