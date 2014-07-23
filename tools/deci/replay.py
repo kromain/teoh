@@ -2,8 +2,12 @@ import array
 import struct
 import sys
 
-from deci.deci4 import Netmp
+from skynet.deci.deci4 import Netmp
 
+
+if len(sys.argv) < 2:
+    print("USAGE replay.py IPADDRESS")
+    quit()
 
 with open("capture.dat", "rb") as f:
     netmp = Netmp(ip=sys.argv[1])

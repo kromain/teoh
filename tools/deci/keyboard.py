@@ -29,7 +29,11 @@ class App:
         self.frame.bind("<Button-1>", self.callback)
         self.frame.pack()
 
-        self.controller = DualShock(target_ip=sys.argv[1])
+        try:
+            self.controller = DualShock(target_ip=sys.argv[1])
+        except IndexError:
+            print("USAGE keyboard.py IPADDRESS")
+            quit()
         
     def run(self):
         self.controller.start()
@@ -43,6 +47,8 @@ class App:
         try:
             self.controller.buttonup(self.keymap[event.char])
         except:
+            if event.char == 'q':
+                self.frame.quit()
             pass # ignore bad keys
 
     def keydown(self,event):

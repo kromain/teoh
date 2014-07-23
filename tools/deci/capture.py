@@ -3,7 +3,7 @@ import struct
 import sys
 import threading
 
-from deci.deci4 import Netmp
+from skynet.deci.deci4 import Netmp
 
 class CaptureThread(threading.Thread):
 
@@ -29,6 +29,10 @@ class CaptureThread(threading.Thread):
 
         netmp.disconnect()
 
+
+if len(sys.argv) < 2:
+    print("USAGE capture.py IPADDRESS")
+    quit()
 
 thread = CaptureThread()
 

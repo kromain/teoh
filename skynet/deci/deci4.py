@@ -573,6 +573,11 @@ class CtrlpProt(Deci4H):
     SCE_CTRLP_TYPE_PLAY_DATA_RES = 0xD
     PROTOCOL = 0x0002c000
 
+    class OutOfMemoryException(Exception):
+        
+        def __str__(self):
+            return "Out of playback buffer space on remote"
+
     def get_conf_cmd(self):
         return self.make_deci_cmd_header(None, self.SCE_CTRLP_TYPE_GET_CONF_CMD, self.PROTOCOL)
 
