@@ -11,9 +11,9 @@ from selenium import webdriver
 
 
 class oskTestCase(PSTestCase, unittest.TestCase):
+      
       # FIXME temporary hack, we should instead have the devkit IP(s) stored in a config file
-
-      target_ip = "43.138.15.41"
+      target_ip = "YOUR IP HERE"
 
       def test_invalid_string(self):
             """ Basic test for entry_osk """
