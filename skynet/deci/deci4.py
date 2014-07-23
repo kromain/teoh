@@ -474,7 +474,6 @@ class NetmpProt(Deci4H):
 
     def connect_cmd(self, client_id, udpport):
 
-        print ("Connect with %s" % client_id)
         buffer = self.build_buffer(Deci4H.recorddefs["SceNetmpConnectCmd"], client_id=client_id, udpport=udpport)
         buffer = self.make_deci_cmd_header(buffer, self.SCE_NETMP_TYPE_CONNECT_CMD, self.PROTOCOL)
 
