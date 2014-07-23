@@ -127,7 +127,7 @@ class DualShock(NetmpManager):
         :param button: The button to set in pressed state
         :type button: :class:`Buttons`
         """
-        self.thread.buttonstate |= button.value
+        self.thread.buttonstate |= button
 
     def buttonup(self, button):
         """
@@ -136,7 +136,7 @@ class DualShock(NetmpManager):
         :param button: The button to set in released state
         :type button: :class:`Buttons`
         """
-        self.thread.buttonstate &= ~button.value
+        self.thread.buttonstate &= ~button
 
     def buttonpress(self, button, timetopress=0.2):
         """

@@ -4,6 +4,4 @@
 
 __version__ = "0.1"
 
-from .pstarget import PSTarget
-from .deci.dualshock import Buttons as DS
-from .osk.osk import OskEntry
+from .osk import OskEntry
