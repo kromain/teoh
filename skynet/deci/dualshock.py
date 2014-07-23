@@ -138,7 +138,7 @@ class DualShock(NetmpManager):
         """
         self.thread.buttonstate &= ~button
 
-    def buttonpress(self, button, timetopress=0.2):
+    def buttonpress(self, button, timetopress=0.1, timetorelease=0.1):
         """
         Simulate a button press (click) by setting *button* in the 'pressed' state for *timetopress* seconds,
         then back to the 'released' state.
@@ -154,6 +154,7 @@ class DualShock(NetmpManager):
         self.buttondown(button)
         time.sleep(timetopress)
         self.buttonup(button)
+        time.sleep(timetorelease)
 
     def press_buttons(self, buttonlist, timetopress=0.2, postdelay=0.5):
         """
