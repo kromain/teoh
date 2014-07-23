@@ -25,19 +25,19 @@ class OskEntry():
 
             osk_type - Type of osk (e.g numeric)
         """
-        if not(type(string) == str):
+        if type(string) != str:
             raise self.InvalidString(string)
 
         if osk_type == "numeric":
             num_map = NumOsk()
-            self.entry_numeric(num_map, self.NUM_START + string)
+            self._entry_osk(num_map, self.NUM_START + string)
 
         if osk_type == "latin_basic":
             latin_map = BasicLatinOsk()
-            self.entry_numeric(latin_map, self.LATIN_START + string)
+            self._entry_osk(latin_map, self.LATIN_START + string)
 
 
-    def entry_numeric(self, g, string):
+    def _entry_osk(self, g, string):
         """ takes in string and stimulates on numeric osk """
         stringList = list(string)
 
