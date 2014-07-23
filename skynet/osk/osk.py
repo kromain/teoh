@@ -7,7 +7,7 @@ import skynet.deci as deci
 from skynet.deci.dualshock import Buttons as DS
 from skynet.osk.osk_graph import osk_graph, nav_path
 from skynet.osk.num_osk import NumOsk
-from skynet.osk.latin_osk import LatinOsk
+from skynet.osk.latin_osk import BasicLatinOsk
 
 
 class OskEntry():
@@ -33,7 +33,7 @@ class OskEntry():
             self.entry_numeric(num_map, self.NUM_START + string)
 
         if osk_type == "latin_basic":
-            latin_map = LatinOsk()
+            latin_map = BasicLatinOsk()
             self.entry_numeric(latin_map, self.LATIN_START + string)
 
 

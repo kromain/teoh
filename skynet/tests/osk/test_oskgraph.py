@@ -8,7 +8,7 @@ import string
 from skynet.deci.dualshock import Buttons as DS
 from skynet.osk.osk_graph import osk_graph, nav_path
 from skynet.osk.num_osk import NumOsk
-from skynet.osk.latin_osk import LatinOsk
+from skynet.osk.latin_osk import BasicLatinOsk
 
 
 class oskTestCase(unittest.TestCase):
@@ -54,7 +54,7 @@ class oskTestCase(unittest.TestCase):
 
     def test_latinosk_graph(self):
         """ unit test for init of LatinOsk """
-        test_pad = LatinOsk()
+        test_pad = BasicLatinOsk()
 
         chars = ["!", "#", "%", "(", ")", "~", ":", ";", "*", "+", "=", "&", "<", ">", "@", "[", "]", "{", "}", "|", "^", "`", "$"]
         chars.extend(list(string.digits))
@@ -67,7 +67,7 @@ class oskTestCase(unittest.TestCase):
 
     def test_latinoosk_edge(self):
         """ unit test for edges of LatinOsk """
-        test_pad = LatinOsk()
+        test_pad = BasicLatinOsk()
 
         lower = list(string.ascii_lowercase)
         upper = list(string.ascii_uppercase)

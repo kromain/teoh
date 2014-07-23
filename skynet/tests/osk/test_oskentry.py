@@ -23,8 +23,10 @@ class oskTestCase(PSTestCase, unittest.TestCase):
             self.assertRaises(OskEntry.InvalidString, ps.entry_osk, None, "numeric")
             self.assertRaises(OskEntry.InvalidString, ps.entry_osk, None, "latin_basic")
 
-            self.assertRaises(OskEntry.InvalidString, ps.entry_osk, 123, "numeric")
-            self.assertRaises(OskEntry.InvalidString, ps.entry_osk, 123, "latin_basic")
+            text = 123
+
+            self.assertRaises(OskEntry.InvalidString, ps.entry_osk, text, "numeric")
+            self.assertRaises(OskEntry.InvalidString, ps.entry_osk, text, "latin_basic")
 
       def test_invalid_key(self):
             ps = self.target.osk
@@ -45,12 +47,12 @@ class oskTestCase(PSTestCase, unittest.TestCase):
             browser = self.target.psdriver
             browserList = browser.window_handles
             # print(browserList)
-            browser.switch_to.window(browserList[2])
+            browser.switch_to.window(browserList[-1])
             
             NumText = browser.find_element_by_id("2")
             LatinText = browser.find_element_by_id("3")
 
-            numString = ""
+            numString = "111111111123"
             latinString = "Skynet Test!"
 
             NumText.click()
@@ -68,15 +70,14 @@ class oskTestCase(PSTestCase, unittest.TestCase):
             NumText.click()
             ds.press_buttons([DS.CROSS], postdelay=.5)
             for char in list(numString):
-                  ds.press_buttons([DS.SQUARE])
+                  ds.press_buttons([DS.SQUARE], postdelay=.2)
             ds.press_buttons([DS.R2])
 
             LatinText.click()
             ds.press_buttons([DS.CROSS], postdelay=.5)
             for char in list(latinString):
-                  ds.press_buttons([DS.SQUARE])
+                  ds.press_buttons([DS.SQUARE], postdelay=.2)
             ds.press_buttons([DS.R2])
-
 
 
 if __name__ == '__main__':

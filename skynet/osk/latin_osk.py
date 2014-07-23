@@ -6,11 +6,11 @@ import string
 from skynet.deci.dualshock import Buttons as DS
 from skynet.osk.osk_graph import osk_graph
 
-class LatinOsk(osk_graph):
+class BasicLatinOsk(osk_graph):
     """ basic latin osk graph that extends from osk_graph"""
 
     def __init__(self):
-        super(LatinOsk,self).__init__()
+        super(BasicLatinOsk,self).__init__()
 
         chars = [" ", "blank_key"]
         chars.extend(list(string.digits))
