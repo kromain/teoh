@@ -67,35 +67,54 @@ class PSTarget(object):
         """
         Connects to the target at the IP address specified in the constructor.
 
-        Does nothing if the target is already connected.
+        Initializes and connects the following members:
+        * :attr:`dualshock`: always initialized
+        * :attr:`osk`: always initialized
+        * :attr:`psdriver`: only initialized if a webview is currently available on the target
+
+        Does nothing if the target is already connected and all members initialized.
 
         You normally don't need to call this method explicitely, as it is automatically called by the constructor.
+        However, if the :attr:`psdriver` member couldn't be initialized at the time the PSTarget was created,
+        you may call this method again to initialize :attr:`psdriver` once a webview is available on the target.
+
+        :raises :class:`deci.Netmp.InUseException`: if the dualshock connection failed due to the target being in use
         """
-        if self.psdriver is None:
-            self.psdriver = psdriver.server.connect(self.target_ip)
         if self.dualshock is None:
             self.dualshock = deci.DualShock(self.target_ip)
             self.dualshock.start()
         if self.osk is None:
             self.osk = osk.OskEntry(self.dualshock)
+        if self.psdriver is None:
+            try:
+                self.psdriver = psdriver.server.connect(self.target_ip)
+            except psdriver.PSDriverError:
+                # We may not always have a webview available (e.g. at the login screen after bootup),
+                # in this case we leave the psdriver part uninitialized, relying only on the deci part
+                pass
 
     def disconnect(self):
         """
         Disconnects from the target at the IP address specified in the constructor.
+
+        Disconnects then resets the following members to None:
+        * :attr:`dualshock`
+        * :attr:`osk`
+        * :attr:`psdriver`
 
         Does nothing if the target is already disconnected.
 
         This method is automatically called when the PSTarget object is GC'd or at the end of a 'with' block,
         but you may still want to call it explicitely to ensure the target connection is released as soon as possible.
         """
-        if self.psdriver is not None:
-            self.psdriver.quit()
-            self.psdriver = None
         if self.dualshock is not None:
             self.dualshock.stop()
             self.dualshock = None
         if self.osk is not None:
             self.osk = None
+        if self.psdriver is not None:
+            self.psdriver.quit()
+            self.psdriver = None
 
 
 def main():
