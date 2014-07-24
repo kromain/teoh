@@ -16,10 +16,12 @@ class Buttons(IntEnum):
     LEFT = 0x80  #:
     RIGHT = 0x20  #:
     DOWN = 0x40  #:
-    R1 = 0x400  #:
-    L1 = 0x800  #:
+    R1 = 0x800  #:
+    L1 = 0x400  #:
     R2 = 0x200  #:
     L2 = 0x100  #:
+    R3 = 0x00000004 #:
+    L3 = 0x00000002 #:
     CROSS = 0x4000  #:
     CIRCLE = 0x2000  #:
     SQUARE = 0x8000  #:
@@ -138,17 +140,25 @@ class DualShock(NetmpManager):
         """
         self.thread.buttonstate &= ~button
 
-    def buttonpress(self, button, timetopress=0.1, timetorelease=0.1):
+    def buttonpress(self, button, timetopress=0.2, timetorelease=0.2):
+        print(" Deprecated: please use buttonpress " )
+        self.press_button(button, timetopress, timetorelease)
+
+    def press_button(self, button, timetopress=0.2, timetorelease=0.2):
         """
-        Simulate a button press (click) by setting *button* in the 'pressed' state for *timetopress* seconds,
-        then back to the 'released' state.
+        Simulate a button press (click) by setting *button* in the 'pressed' state for
+        *timetopress* seconds, then back to the 'released' state for *timetorelease* seconds.
             
         Buttons already in 'pressed' state when invoked will be switched to 'released' state when done.
         All other buttons are left as-is.
 
+        Note that if there are two calls for the same button without a non-zero *timetorelease*,
+        the console will see only one event
+
         :param button: The button to press (click)
         :type button: :class:`Buttons`
         :param float timetopress: Time to keep the button in 'pressed' state, by default 200ms
+        :param float timetorelease: Time to keep the button in 'released' state, by default 200ms
         """
 
         self.buttondown(button)
@@ -156,7 +166,7 @@ class DualShock(NetmpManager):
         self.buttonup(button)
         time.sleep(timetorelease)
 
-    def press_buttons(self, buttonlist, timetopress=0.2, postdelay=0.5):
+    def press_buttons(self, buttonlist, timetopress=0.2, timetodelay=0, timetorelease=0.2):
         """
         Simulate a series of button presses by iterating through *buttonList*
 
@@ -170,11 +180,24 @@ class DualShock(NetmpManager):
         :param buttonlist: The list of buttons to press (click)
         :type buttonlist: [:class:`Buttons`]
         :param float timetopress: Time to keep the button in 'pressed' state, by default 200ms
-        :param float postdelay: Time to wait between two button presses, by default 500ms
+        :param float timetodelay: Time to wait between two button presses, by default 200ms. 
+        :param float timetorelease: Time to wait between two instances of the same button, by default 200ms.  Also used after all buttons pressed.  Only used if timetodelay is 0.
         """
+        lastbutton = 0
         for x in buttonlist:
-            self.buttonpress(x, timetopress)
-            time.sleep(postdelay)
+
+            if timetodelay == 0.0:
+                if x == lastbutton:
+                    time.sleep(timetorelease)
+                else:
+                    lastbutton = x
+
+            self.press_button(x, timetopress, 0)
+
+            time.sleep(timetodelay)
+
+        if timetodelay == 0.0:
+            time.sleep(timetorelease)
 
         
 if __name__ == "__main__":
@@ -182,16 +205,16 @@ if __name__ == "__main__":
     with DualShock(ip=sys.argv[1]) as controller:
 
         for i in range(10):
-            controller.buttonpress(Buttons.RIGHT)
-            controller.buttonpress(Buttons.RIGHT)
-            controller.buttonpress(Buttons.RIGHT)
-            controller.buttonpress(Buttons.RIGHT)
-            controller.buttonpress(Buttons.UP)
-            controller.buttonpress(Buttons.DOWN)
-            controller.buttonpress(Buttons.LEFT, 1.0)
-            controller.buttonpress(Buttons.RIGHT, 1.0)
-            controller.buttonpress(Buttons.PS, 1.0)
+            controller.press_button(Buttons.RIGHT)
+            controller.press_button(Buttons.RIGHT)
+            controller.press_button(Buttons.RIGHT)
+            controller.press_button(Buttons.RIGHT)
+            controller.press_button(Buttons.UP)
+            controller.press_button(Buttons.DOWN)
+            controller.press_button(Buttons.LEFT, 1.0)
+            controller.press_button(Buttons.RIGHT, 1.0)
+            controller.press_button(Buttons.PS, 1.0)
             time.sleep(1)
-            controller.buttonpress(Buttons.CIRCLE)
-            controller.buttonpress(Buttons.PS, 0.2)
+            controller.press_button(Buttons.CIRCLE)
+            controller.press_button(Buttons.PS, 0.2)
             time.sleep(1)
