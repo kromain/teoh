@@ -6,14 +6,14 @@ import unittest
 
 from skynet.deci.dualshock import Buttons as DS
 from skynet.osk.osk import OskEntry
-from skynet.lib.util.PSTestCase import PSTestCase
+from tests.util.PSTestCase import PSTestCase
 from selenium import webdriver
 
 
 class oskTestCase(PSTestCase, unittest.TestCase):
       
       # FIXME temporary hack, we should instead have the devkit IP(s) stored in a config file
-      target_ip = "YOUR IP HERE"
+      target_ip = "43.138.15.41"
 
       def test_invalid_string(self):
             """ Basic test for entry_osk """
