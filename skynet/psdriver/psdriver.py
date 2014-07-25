@@ -10,14 +10,17 @@ import sys
 
 from selenium import webdriver
 
+
 def _iswindows():
     return sys.platform == 'win32'
+
 
 class PSDriverError(Exception):
     """
     Represents an error during startup of the PSDriver server or when trying to connect to a target
     """
     pass
+
 
 class PSDriverServer(object):
     """
@@ -26,8 +29,11 @@ class PSDriverServer(object):
     def __init__(self):
         self.server_ip = None
         self.server_port = None
+        self.target_ip = None
+        self.target_port = None
 
-    def executable_name(self):
+    @staticmethod
+    def executable_name():
         """
         :return: The platform-specific server executable name (ie. with '.exe' on Windows)
         :rtype: String
@@ -57,9 +63,10 @@ class PSDriverServer(object):
         try:
             if _iswindows():
                 stdout = subprocess.check_output(['tasklist.exe',
-                                                  '/NH', # no table headers
+                                                  '/NH',  # no table headers
                                                   '/FI', 'IMAGENAME eq ' + self.executable_name()],
                                                  universal_newlines=True)
+                # noinspection PyTypeChecker
                 commandname, sep, stdout = stdout.lstrip().partition(' ')
                 # tasklist.exe returns 0 with an info message even when no files are matched,
                 # otherwise the command is first token in the line
@@ -76,6 +83,7 @@ class PSDriverServer(object):
             raise PSDriverError("Couldn't query OS for running processes. What OS is this?!")
         # PID is the 1st token on the line on Unix and the 2nd on Windows
         # (1st token on Windows is the command itself, already removed above)
+        # noinspection PyTypeChecker
         pid, sep, stdout = stdout.lstrip().partition(' ')
         return pid
 
@@ -117,7 +125,6 @@ class PSDriverServer(object):
         self.server_port = server_port
         return True
 
-
     def stop_local_server(self):
         """
         Stop the psdriver server if running, do nothing otherwise.
@@ -133,7 +140,6 @@ class PSDriverServer(object):
             os.kill(pid, signal.SIGTERM)
         return True
 
-
     def restart_local_server(self, server_port=None):
         """
         Restart the psdriver server on *server_port*. If it's not already running, just start it.
@@ -145,7 +151,6 @@ class PSDriverServer(object):
             server_port = self.server_port
         self.stop_local_server()
         self.start_local_server(server_port)
-
 
     def connect(self, target_ip, target_port=860):
         """

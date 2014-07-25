@@ -8,6 +8,7 @@ import skynet.deci as deci
 import skynet.psdriver as psdriver
 import skynet.osk as osk
 
+
 class PSTarget(object):
     """
     Handles the remote connection to a PlayStation target (DevKit/TestKit).
