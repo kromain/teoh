@@ -57,9 +57,7 @@ def test_Dualshock():
 
     controller.start()
                 
-    try:
-        # Browser can't detect Share or PS
-        for button, val in (
+    buttonset = (
                 (Buttons.LEFT, 37),
                 (Buttons.UP, 38),
                 (Buttons.RIGHT, 39),
@@ -75,14 +73,24 @@ def test_Dualshock():
                 (Buttons.R2, 119),
                 (Buttons.L3, 120),
                 (Buttons.R3, 121)
-                ):
-            print(button, val)
+                )
+    try:
+        # Browser can't detect Share or PS
+        for button, val in buttonset:
+
             controller.press_button(button)
-            print( target_el.get_attribute('value') , val)
             assert int(target_el.get_attribute('value')) == val
 
+        browser.execute_script( "document.getElementById('target').value=0;" )
+        browser.execute_script( "document.getElementById('root').onkeydown=function(event) { console.log('DOWN: ' + event.keyCode); document.getElementById('target').value++;};" )
+
+        for button, val in buttonset:
+            browser.execute_script( "document.getElementById('target').value=0;" )
+            controller.press_buttons([button]*5)
+            assert int(target_el.get_attribute('value')) == 5
     except Exception as e:
         print (e)
 
 
     controller.stop()
+
