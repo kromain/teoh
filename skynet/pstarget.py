@@ -9,6 +9,27 @@ import skynet.psdriver as psdriver
 import skynet.osk as osk
 
 
+class PSTargetException(Exception):
+    """
+    Base class for exceptions related to PSTarget
+    """
+    pass
+
+
+class PSTargetUnreachableException(PSTargetException):
+    """
+    Represents a DECI connection failure when trying to connect to a target (PSDriver exceptions are allowed)
+    """
+    pass
+
+
+class PSTargetInUseException(PSTargetException):
+    """
+    Represents a DECI 'target in use' error when trying to connect to a target without force-mode
+    """
+    pass
+
+
 class PSTarget(object):
     """
     Handles the remote connection to a PlayStation target (DevKit/TestKit).
@@ -78,11 +99,19 @@ class PSTarget(object):
         However, if the :attr:`psdriver` member couldn't be initialized at the time the PSTarget was created,
         you may call this method again to initialize :attr:`psdriver` once a webview is available on the target.
 
-        :raises :class:`deci.Netmp.InUseException`: if the dualshock connection failed due to the target being in use
+        :raises :class:`PSTargetInUseException`: if the dualshock connection failed due to the target being in use
+        :raises :class:`PSTargetUnreachableException`: if the dualshock connection failed due to the target being unreachable
         """
         if self.dualshock is None:
-            self.dualshock = deci.DualShock(self.target_ip)
-            self.dualshock.start()
+            ds = deci.DualShock(self.target_ip)
+            try:
+                ds.start()
+            except deci.Netmp.InUseException as e:
+                raise PSTargetInUseException("Target already in use") from e
+            except Exception as e:
+                raise PSTargetUnreachableException("Target unreachable") from e
+            else:
+                self.dualshock = ds
         if self.osk is None:
             self.osk = osk.OskEntry(self.dualshock)
         if self.psdriver is None:

@@ -12,7 +12,6 @@ from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 
 
-
 def _iswindows():
     return sys.platform == 'win32'
 
