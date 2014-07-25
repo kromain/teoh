@@ -50,9 +50,13 @@ class PSTarget(object):
         print("bla")
 
     :param String target_ip: the IP address of the target, e.g. "43.138.12.123"
-    :raises PSDriverError: if the connection to *target_ip* fails
+    :param Bool force_connect: If set to True, will take precedence over existing connections on the target rather than
+                                raising :class:`PSTargetInUseException`. Passed to :meth:`connect`. Default is False.
+
+    :raises PSTargetInUseException: if the target connection failed due to being in use
+    :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
     """
-    def __init__(self, target_ip):
+    def __init__(self, target_ip, force_connect=False):
         self.target_ip = target_ip
         """The remote target IP address
 
@@ -70,7 +74,7 @@ class PSTarget(object):
         """
         self.osk = None
         # self.tty = None
-        self.connect()
+        self.connect(force_connect)
 
     def __del__(self):
         self.disconnect()
@@ -84,7 +88,7 @@ class PSTarget(object):
         # PENDING figure out if exceptions should be suppressed or not
         return False
 
-    def connect(self):
+    def connect(self, force=False):
         """
         Connects to the target at the IP address specified in the constructor.
 
@@ -99,11 +103,14 @@ class PSTarget(object):
         However, if the :attr:`psdriver` member couldn't be initialized at the time the PSTarget was created,
         you may call this method again to initialize :attr:`psdriver` once a webview is available on the target.
 
-        :raises :class:`PSTargetInUseException`: if the dualshock connection failed due to the target being in use
-        :raises :class:`PSTargetUnreachableException`: if the dualshock connection failed due to the target being unreachable
+        :param Bool force: if set to True, will take precedence over existing connections on the target rather than
+                            raising :class:`PSTargetInUseException`. Default is False.
+
+        :raises PSTargetInUseException: if the target connection failed due to being in use
+        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         if self.dualshock is None:
-            ds = deci.DualShock(self.target_ip)
+            ds = deci.DualShock(self.target_ip, force)
             try:
                 ds.start()
             except deci.Netmp.InUseException as e:
