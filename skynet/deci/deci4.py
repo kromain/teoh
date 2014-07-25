@@ -1014,27 +1014,24 @@ class NetmpManager:
     _lock = threading.Lock()
 
     def startnetmp(self, ip):
-        self._lock.acquire()
+        with self._lock:
 
-        if ip not in self._netmp:
-            self._netmp[ip] = Netmp(ip=ip)
-            self._netmp[ip].connect()
-            self._count[ip] = 0
+            if ip not in self._netmp:
+                self._netmp[ip] = Netmp(ip=ip)
+                self._netmp[ip].connect()
+                self._count[ip] = 0
 
-        self._count[ip] += 1
-
-        self._lock.release()
+            self._count[ip] += 1
 
         return self._netmp[ip]
 
     def stopnetmp(self, ip):
-        self._lock.acquire()
+        with self._lock:
 
-        if ip in self._netmp:
-            self._count[ip] -= 1
-            if self._count[ip] == 0:
-                self._netmp[ip].disconnect()
-                del self._netmp[ip]
+            if ip in self._netmp:
+                self._count[ip] -= 1
+                if self._count[ip] == 0:
+                    self._netmp[ip].disconnect()
+                    del self._netmp[ip]
 
-        self._lock.release()
 
