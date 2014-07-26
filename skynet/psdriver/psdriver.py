@@ -9,6 +9,7 @@ import signal
 import sys
 
 from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
 
 
 def _iswindows():
@@ -164,13 +165,15 @@ class PSDriverServer(object):
         """
         if self.server_ip is None or self.server_port is None:
             return None
-        chromeDriverOptions = {'debuggerAddress': "{}:{}".format(target_ip, target_port)}
+        chromedriveroptions = {'debuggerAddress': "{}:{}".format(target_ip, target_port)}
         capabilities = webdriver.DesiredCapabilities.CHROME.copy()
-        capabilities['chromeOptions'] = chromeDriverOptions
+        capabilities['chromeOptions'] = chromedriveroptions
 
-        # may throw a WebDriverException if connection fails
-        driver = webdriver.Remote("http://{}:{}".format(self.server_ip, self.server_port),
-                                  capabilities)
+        try:
+            driver = webdriver.Remote("http://{}:{}".format(self.server_ip, self.server_port), capabilities)
+        except WebDriverException as e:
+            raise PSDriverError("Connection to target failed") from e
+
         # connection was successful, update target_ip and target_port
         self.target_ip = target_ip
         self.target_port = target_port

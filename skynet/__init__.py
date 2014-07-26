@@ -5,5 +5,6 @@
 __version__ = "0.1"
 
 from .pstarget import PSTarget
+from .pstarget import PSTargetException, PSTargetInUseException, PSTargetUnreachableException
 from .deci.dualshock import Buttons as DS
 from .osk.osk import OskEntry
