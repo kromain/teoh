@@ -50,6 +50,7 @@ class PSDriverServer(object):
         """
         return os.path.join(os.path.dirname(os.path.abspath(__file__)),
                             'bin',
+                            sys.platform,
                             self.executable_name())
 
     def pid(self):
