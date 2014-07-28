@@ -218,17 +218,20 @@ class Deci4H:
             {"type":'<L', "length":4, "name":"tid"},
             {"type":'SceDeciTtyStreamData', "name":"message"}
         ],
+        "SceTtypPortState": [
+            {"type":'<L', "length":4, "name":"size"},
+            {"type":'<L', "length":4, "name":"port"},
+            {"type":'<L', "length":4, "name":"mask"},
+            {"type":'<L', "length":4, "name":"state"}
+        ],
         "SceTsmpNameValueDisplay": [
             {"type":'<L', "length":4, "name":"size"},
             {"type":"SceDeciStringUtf8", "name":"name"},
             {"type":"SceDeciVariant", "name":"value"},
             {"type":'<L', "length":4, "name":"format"},
         ],
-        "SceTtypPortState": [
-            {"type":'<L', "length":4, "name":"size"},
-            {"type":'<L', "length":4, "name":"port"},
-            {"type":'<L', "length":4, "name":"mask"},
-            {"type":'<L', "length":4, "name":"state"}
+        "SceTsmpPowerRequest": [
+            {"type":'<L', "length":4, "name":"powerstate"},
         ],
     }
     sequence = 0x1234
@@ -776,9 +779,14 @@ class TsmpProt(Deci4H):
     SCE_TSMP_TYPE_GET_CONF_RES = 0x1
     SCE_TSMP_TYPE_GET_INFO_CMD = 0x2
     SCE_TSMP_TYPE_GET_INFO_RES = 0x3
+    SCE_TSMP_TYPE_POWER_CONTROL_CMD = 0x4
+    SCE_TSMP_TYPE_POWER_CONTROL_RES = 0x5
     SCE_TSMP_TYPE_GET_PSN_STATE_CMD = 0x20
     SCE_TSMP_TYPE_GET_PSN_STATE_RES = 0x21
     PROTOCOL = 0x80004000
+
+    POWER_OFF = 0x100
+    POWER_REBOOT = 0x200
 
     def get_conf_cmd(self):
         return self.make_deci_cmd_header(None, self.SCE_TSMP_TYPE_GET_CONF_CMD, self.PROTOCOL)
@@ -804,12 +812,20 @@ class TsmpProt(Deci4H):
 
         return res
 
+    def power_control_cmd(self, powerstate):
+        buffer = self.build_buffer(Deci4H.recorddefs["SceTsmpPowerRequest"], powerstate=powerstate)
+        return self.make_deci_cmd_header(buffer, self.SCE_TSMP_TYPE_POWER_CONTROL_CMD, self.PROTOCOL)
+        
+    def power_control_msg(self, stream, powerstate):
+        buffer = self.sendrecv(stream, self.power_control_cmd(powerstate))
+        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TSMP_TYPE_POWER_CONTROL_RES)
+
     def parse(self, res, buffer):
         if res["msgtype"] == self.SCE_TSMP_TYPE_GET_CONF_RES:
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypGetConfCmd"], res)
 
-        else:
+        elif res["msgtype"] == self.SCE_TSMP_TYPE_POWER_CONTROL_RES:
             pass
 
         return buffer, res
@@ -1006,6 +1022,8 @@ class Tsmp:
         info = self.prot.get_info_msg(self.stream)
         return {item["name"]:item["value"] for item in info["data"]}
     
+    def reboot(self):
+        return self.prot.power_control_msg(self.stream, TsmpProt.POWER_REBOOT)
 
 class NetmpManager:
     """ Base class that lets subclasses share netmp instances by ip """
