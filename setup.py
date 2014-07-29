@@ -73,7 +73,11 @@ if __name__ == '__main__':
         # subprocess mode
         setup_platform(sys.argv[-1], sys.argv[1:-1])
     else:
-        # initial process ;ode
+        # initial process mode
+        if len(sys.argv) > 1 and sys.argv[-1] != "sdist":
+            do_setup(sys.argv[1:], ["bin/*/*"])
+            sys.exit(0)
+
         if sys.platform == 'win32':
             print("[NOTE] Linux/Mac package creation unsupported on Windows, only Windows package will be created.")
             package_platforms.remove('unix')
