@@ -1,15 +1,14 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
+
+import setuptools
+import shutil
+import subprocess
 import sys
-from setuptools import setup
-
-package_platforms = ['win']
-if sys.platform == 'win32':
-    print("[NOTE] Linux/Mac package creation unsupported on Windows, only win32 package will be created.")
-else:
-    package_platforms.append('unix')
 
 
-def setup_platform(package_platform):
-    cmd_args = sys.argv[1:]
+def setup_platform(package_platform, cmd_args):
     if len(cmd_args) == 0:
         cmd_args.append("sdist")
 
@@ -20,7 +19,15 @@ def setup_platform(package_platform):
         bin_dir = ['bin/linux/*', 'bin/darwin/*']
         cmd_args.append("--formats=gztar")
 
-    setup(
+    do_setup(cmd_args, bin_dir)
+
+    # setuptools doesn't clean up skynet.egg-info which interferes with subsequent calls to setup(), so do it manually
+    shutil.rmtree("skynet.egg-info")
+
+
+def do_setup(cmd_args, bin_dir):
+    setuptools.setup(
+
         name='skynet',
         version='0.1b1',
         description='The PlayStation Remote Control',
@@ -50,5 +57,33 @@ def setup_platform(package_platform):
     )
 
 
-for p in package_platforms:
-    setup_platform(p)
+package_platforms = ['win', 'unix']
+
+"""
+We have to create each package using a new interpreter instance due to setuptools only allowing one setup at a time.
+For that we do a recursive call to our script, passing the desired package platform as an extra cmdline argument.
+If we don't detect the platform as the last argument, we are in the initial process, from which we spawn a new
+subprocess for each package we need to generate.
+If we detect the platform as the last argument, we proceed with the setuptools setup() call to create the package
+using custom settings for that platform.
+"""
+if __name__ == '__main__':
+
+    if sys.argv[-1] in package_platforms:
+        # subprocess mode
+        setup_platform(sys.argv[-1], sys.argv[1:-1])
+    else:
+        # initial process ;ode
+        if sys.platform == 'win32':
+            print("[NOTE] Linux/Mac package creation unsupported on Windows, only Windows package will be created.")
+            package_platforms.remove('unix')
+
+        for p in package_platforms:
+            print("[INFO] Creating {} package...".format(p))
+
+            pargs = [sys.executable]
+            pargs.extend(sys.argv)
+            pargs.append(p)
+            subprocess.call(pargs)
+
+        print("[INFO] Finished! Packages have been created in dist/")
