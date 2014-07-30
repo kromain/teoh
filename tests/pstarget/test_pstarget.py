@@ -5,10 +5,9 @@
 import unittest
 from skynet import PSTarget, PSTargetException, PSTargetInUseException, PSTargetUnreachableException
 from skynet.deci import Netmp
+import conftest
 
-# FIXME get a target IP from the config instead
-test_target_ip = "43.138.14.26"
-
+test_target_ip = conftest.target_ip
 
 class PSTargetTest(unittest.TestCase):
     def test_invalid_target_ip(self):
