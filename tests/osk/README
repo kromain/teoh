@@ -1,4 +1,4 @@
-osk.html is a sample page that allows access to any OSK directly. 
+OSK entry tests needs to be run in regcam window. 
 
-osk.html needs to be on PS4 server in order to run test_oskentry.py.
-
+Specify target IP in osk_setup.py. 
+Navigate to Settings -> PSN -> AccountInfo before running test_oskentry.py.
