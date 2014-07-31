@@ -92,7 +92,7 @@ class DualShock(NetmpManager):
         except Netmp.InUseException:
 
             if self.force:
-                print("Device in use, forcing disconnection");
+                print("[DualShock] Target in use, forcing disconnection.")
                 self.netmp.force_disconnect()
 
                 self.ctrlp = self.netmp.register_ctrlp()
@@ -140,11 +140,11 @@ class DualShock(NetmpManager):
         """
         self.thread.buttonstate &= ~button
 
-    def buttonpress(self, button, timetopress=0.2, timetorelease=0.2):
-        print(" Deprecated: please use buttonpress " )
+    def buttonpress(self, button, timetopress=0.1, timetorelease=0.1):
+        print("[Dualshock] buttonpress is DEPRECATED! Please use press_button instead")
         self.press_button(button, timetopress, timetorelease)
 
-    def press_button(self, button, timetopress=0.2, timetorelease=0.2):
+    def press_button(self, button, timetopress=0.1, timetorelease=0.1):
         """
         Simulate a button press (click) by setting *button* in the 'pressed' state for
         *timetopress* seconds, then back to the 'released' state for *timetorelease* seconds.
@@ -157,8 +157,8 @@ class DualShock(NetmpManager):
 
         :param button: The button to press (click)
         :type button: :class:`Buttons`
-        :param float timetopress: Time to keep the button in 'pressed' state, by default 200ms
-        :param float timetorelease: Time to keep the button in 'released' state, by default 200ms
+        :param float timetopress: Time to keep the button in 'pressed' state, by default 100ms
+        :param float timetorelease: Time to keep the button in 'released' state, by default 100ms
         """
 
         self.buttondown(button)
@@ -166,21 +166,23 @@ class DualShock(NetmpManager):
         self.buttonup(button)
         time.sleep(timetorelease)
 
-    def press_buttons(self, buttonlist, timetopress=0.2, timetorelease=0.2):
+    def press_buttons(self, buttonlist, timetopress=0.1, timetorelease=0.1):
         """
         Simulate a series of button presses by iterating through *buttonList*
 
         Starting with the first button in the list, each button is set in the 'pressed' state for *timetopress* seconds
-        before reverting it back to the 'released' state, then waiting for *post_delay* seconds before
-        processing the next button in the list.
+        before reverting it back to the 'released' state.
+        If the next button in the list is the same as the current one, wait for *timetorelease* seconds before
+        proceeding with the next button to avoid missed events.
+        Finally, wait once more for *timetorelease* seconds after all buttons have been processed.
 
         Buttons already in 'pressed' state when invoked will be switched to 'released' state when done.
         All other buttons are left as-is.
 
         :param buttonlist: The list of buttons to press (click)
         :type buttonlist: [:class:`Buttons`]
-        :param float timetopress: Time to keep the button in 'pressed' state, by default 200ms
-        :param float timetorelease: Time to wait between two instances of the same button, by default 200ms.  Also used after all buttons pressed.  Only used if timetodelay is 0.
+        :param float timetopress: Time to keep the button in 'pressed' state, by default 100ms
+        :param float timetorelease: Time to wait between two instances of the same button, by default 100ms.
         """
         lastbutton = 0
         for x in buttonlist:
