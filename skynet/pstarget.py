@@ -128,6 +128,10 @@ class PSTarget(object):
                 # We may not always have a webview available (e.g. at the login screen after bootup),
                 # in this case we leave the psdriver part uninitialized, relying only on the deci part
                 pass
+            except Exception as e:
+                # we need to disconnect here since __del__() won't be called as the exception is propagated
+                self.disconnect()
+                raise psdriver.PSDriverError("Error during psdriver connection initialization") from e
 
     def disconnect(self):
         """
