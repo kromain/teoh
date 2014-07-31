@@ -105,8 +105,8 @@ class PSDriverServer(object):
                                       '--port={}'.format(server_port)],
                                      stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT)
-                # Wait up to 100ms to detect early process exit due to e.g. unavailable port
-                p.wait(0.1)
+                # Wait up to 10s to detect early process exit due to e.g. unavailable port
+                p.wait(10)
                 # TODO should we retry with the next port maybe?
                 errormsg = "Fatal error during psdriver server startup: " + p.stdout
                 raise PSDriverError(errormsg)
