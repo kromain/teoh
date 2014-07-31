@@ -140,11 +140,11 @@ class DualShock(NetmpManager):
         """
         self.thread.buttonstate &= ~button
 
-    def buttonpress(self, button, timetopress=0.1, timetorelease=0.1):
+    def buttonpress(self, button, timetopress=0.2, timetorelease=0.2):
         print("[Dualshock] buttonpress is DEPRECATED! Please use press_button instead")
         self.press_button(button, timetopress, timetorelease)
 
-    def press_button(self, button, timetopress=0.1, timetorelease=0.1):
+    def press_button(self, button, timetopress=0.2, timetorelease=0.2):
         """
         Simulate a button press (click) by setting *button* in the 'pressed' state for
         *timetopress* seconds, then back to the 'released' state for *timetorelease* seconds.
@@ -157,8 +157,8 @@ class DualShock(NetmpManager):
 
         :param button: The button to press (click)
         :type button: :class:`Buttons`
-        :param float timetopress: Time to keep the button in 'pressed' state, by default 100ms
-        :param float timetorelease: Time to keep the button in 'released' state, by default 100ms
+        :param float timetopress: Time to keep the button in 'pressed' state, by default 200ms
+        :param float timetorelease: Time to keep the button in 'released' state, by default 200ms
         """
 
         self.buttondown(button)
@@ -166,7 +166,7 @@ class DualShock(NetmpManager):
         self.buttonup(button)
         time.sleep(timetorelease)
 
-    def press_buttons(self, buttonlist, timetopress=0.1, timetorelease=0.1):
+    def press_buttons(self, buttonlist, timetopress=0.2, timetorelease=0.2):
         """
         Simulate a series of button presses by iterating through *buttonList*
 
@@ -181,8 +181,8 @@ class DualShock(NetmpManager):
 
         :param buttonlist: The list of buttons to press (click)
         :type buttonlist: [:class:`Buttons`]
-        :param float timetopress: Time to keep the button in 'pressed' state, by default 100ms
-        :param float timetorelease: Time to wait between two instances of the same button, by default 100ms.
+        :param float timetopress: Time to keep the button in 'pressed' state, by default 200ms
+        :param float timetorelease: Time to wait between two instances of the same button, by default 200ms.
         """
         lastbutton = 0
         for x in buttonlist:
