@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import time
 
 import skynet.psdriver as psdriver
@@ -58,7 +59,7 @@ def test_Dualshock():
 
         time.sleep(3)
 
-        set_page(browser, "keyevent.html")
+        set_page(browser, os.path.join(os.path.dirname(__file__), "keyevent.html"))
 
 
         target_el = browser.find_element_by_id('target')
