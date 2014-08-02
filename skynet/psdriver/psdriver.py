@@ -108,7 +108,7 @@ class PSDriverServer(object):
                 # Wait up to 10s to detect early process exit due to e.g. unavailable port
                 p.wait(10)
                 # TODO should we retry with the next port maybe?
-                errormsg = "Fatal error during psdriver server startup: " + p.stdout
+                errormsg = "Fatal error during psdriver server startup: " + p.stdout.read().decode('latin1')
                 raise PSDriverError(errormsg)
             except TimeoutExpired:
                 # All good, this means the server is up and running
