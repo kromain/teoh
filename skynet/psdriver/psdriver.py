@@ -191,7 +191,22 @@ class PSDriverServer(object):
         capabilities['chromeOptions'] = chromedriveroptions
 
         try:
-            driver = webdriver.Remote("http://{}:{}".format(self.server_ip, self.server_port), capabilities)
+            driver = webdriver.Remote("http://{}:{}".format(self.server_ip, self.server_port),
+                                      capabilities,
+                                      keep_alive=True)
+            # WORKAROUND for D3918, due to a bug in PSDriver (ChromeDriver), likely this:
+            # https://code.google.com/p/chromedriver/issues/detail?id=402
+            #
+            # Sometimes PSDriver loses track of responses in the inspector protocol, causing it
+            # to hang waiting for a response it missed. The timeout for such hangs has been set
+            # to 10 minutes (!), causing our tests to hang forever.
+            #
+            # The following hack, combined with enabling 'connected' mode for HTTP with the keep_alive
+            # option above, allows us to set a much smaller timeout on the HTTP connection side
+            # so we'll abort the HTTP request after 30 seconds instead of 10 minutes.
+            # This doesn't solve the ChromeDriver bug and tests may still fail, but at least this will
+            # solve the hangs in our tests, so we'll detect such issues faster and won't hold CI.
+            driver.command_executor._conn.timeout = 30.0
         except WebDriverException as e:
             raise PSDriverError("Connection to target failed") from e
 
