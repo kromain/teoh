@@ -147,14 +147,17 @@ class PSTarget(object):
         This method is automatically called when the PSTarget object is GC'd or at the end of a 'with' block,
         but you may still want to call it explicitely to ensure the target connection is released as soon as possible.
         """
-        if self.dualshock is not None:
-            self.dualshock.stop()
-            self.dualshock = None
-        if self.osk is not None:
-            self.osk = None
-        if self.psdriver is not None:
-            self.psdriver.quit()
-            self.psdriver = None
+        try:
+            if self.dualshock is not None:
+                self.dualshock.stop()
+                self.dualshock = None
+            if self.osk is not None:
+                self.osk = None
+            if self.psdriver is not None:
+                self.psdriver.quit()
+                self.psdriver = None
+        finally:
+            psdriver.server.stop_local_server()
 
 
 def main():
