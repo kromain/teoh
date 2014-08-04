@@ -182,8 +182,10 @@ class PSDriverServer(object):
             or None if the server isn't running
         :raises PSDriverError: if the connection to the target failed
         """
+        server.start_local_server(9515)
         if self.server_ip is None or self.server_port is None:
             return None
+
         chromedriveroptions = {'debuggerAddress': "{}:{}".format(target_ip, target_port)}
         capabilities = webdriver.DesiredCapabilities.CHROME.copy()
         capabilities['chromeOptions'] = chromedriveroptions
@@ -199,7 +201,4 @@ class PSDriverServer(object):
 
         return driver
 
-# PENDING this should eventually be loaded from a config file or online params
 server = PSDriverServer()
-#if config.useLocalPSDriverServer:
-server.start_local_server(9515)
