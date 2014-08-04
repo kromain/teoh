@@ -187,8 +187,10 @@ class PSDriverServer(object):
             return None
 
         chromedriveroptions = {'debuggerAddress': "{}:{}".format(target_ip, target_port)}
+        loggingoptions = {'browser': 'OFF'}
         capabilities = webdriver.DesiredCapabilities.CHROME.copy()
         capabilities['chromeOptions'] = chromedriveroptions
+        capabilities['loggingPrefs'] = loggingoptions
 
         try:
             driver = webdriver.Remote("http://{}:{}".format(self.server_ip, self.server_port),
