@@ -35,10 +35,26 @@ class TestDualshock:
 
         self.controller.start()
 
+        self.controller.press_button(Buttons.PS)
+        time.sleep(1)
+        self.controller.press_button(Buttons.UP)
+        self.controller.buttondown(Buttons.RIGHT)
+        time.sleep(3)
+        self.controller.buttonup(Buttons.RIGHT)
+        self.controller.press_button(Buttons.LEFT)
+        time.sleep(1)
+        self.controller.press_button(Buttons.CROSS)
+        time.sleep(1)
+        self.controller.press_button(Buttons.CROSS)
+        time.sleep(1)
+        self.controller.press_button(Buttons.CROSS)
+        time.sleep(5)
+
         self.browser = psdriver.server.connect(target_ip)
 
+
         exit = False
-        for i in range(5):
+        for i in range(10):
             for hdl in self.browser.window_handles:
                 self.browser.switch_to.window(hdl)
                 if self.browser.title.startswith("https://reg") == True:
@@ -155,9 +171,8 @@ class TestDualshock:
             assert button_el.get_attribute('value') == "0", "%s not seen as up" % name
 
     def test_up_down_multiple(self):
-        # test simultaneous
         # Tests failing 
-        return
+        return 
         bswitch = "switch(event.keyCode) {"
         for button, val, name in self.buttonset:
             bswitch += "case %s: target = '%s'; break;" % (val, name)
@@ -191,7 +206,6 @@ class TestDualshock:
         for button, val, name in self.buttonset[4:]:
             time.sleep(1)
             self.controller.buttonup(button)
-
 
         for button, val, name in self.buttonset[4:]:
             button_el = self.browser.find_element_by_id(name)
