@@ -1,27 +1,4 @@
 <html>
-<script src="./js_ex.js"></script>
-<script>
-curfield = 1;
-maxfield = 13;
-onkeyup = function(evt) {
-    if(evt.keyCode == 37 || evt.keyCode == 39) {
-        if(evt.keyCode == 39 ) {
-            curfield++;
-            if(curfield > maxfield) {
-                curfield = 1;
-            }
-        }
-        else {
-            curfield--;
-            if(curfield < 1) {
-                curfield = maxfield;
-            }
-        }
-
-        document.getElementById(curfield).focus();
-    }
-}
-</script>
 <body>
 type=text <input id="1" type="text"/></br>
 type=text x-ps-osk=number <input id="2" type="text" x-ps-osk="number"/></br>

@@ -26,13 +26,12 @@ class oskTestCase(PSTestCase):
 
             browser = self.target.psdriver
 
-            exit = False
-            while not exit:
+            for x in range(0, 5):
                 for hdl in browser.window_handles:
                     browser.switch_to.window(hdl)
-                    if browser.title[:14] == "https://regcam":
-                        exit = True;
+                    if browser.title.startswith("https://regcam"):
                         break
+                time.sleep(1)
 
             browser.switch_to.window(hdl)
 
