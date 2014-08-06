@@ -29,7 +29,7 @@ def do_setup(cmd_args, bin_dir):
     setuptools.setup(
 
         name='skynet',
-        version='0.1b1',
+        version='0.1',
         description='The PlayStation Remote Control',
         author='Romain Pokrzywka',
         author_email='Romain.Pokrzywka@am.sony.com',
@@ -38,6 +38,7 @@ def do_setup(cmd_args, bin_dir):
 
         packages=[
             'skynet',
+            'skynet.config',
             'skynet.deci',
             'skynet.osk',
             'skynet.psdriver',

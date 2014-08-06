@@ -31,6 +31,18 @@ class Buttons(IntEnum):
     PS = 0x10000  #:
 
 
+def dispatch_buttonstate(*args, **kwargs):
+    """ Sends the current button state to the device once every 10 msecs in a background thread. """
+    for arg in args:
+        dualshock = arg
+        # only extract the first argument in the list
+        break
+
+    while dualshock.running:
+        dualshock.ctrlp.play_data([dualshock.buttonstate] * 8)
+        time.sleep(0.1)
+
+
 class DualShock(NetmpManager):
     """
     The interface to a DualShock controller on the target.
@@ -51,18 +63,6 @@ class DualShock(NetmpManager):
     :param String target_ip: the IP address of the target, e.g. "43.138.12.123"
     """
 
-    class _KeyThread(threading.Thread):
-        """ Thread that sends the current button state to the device once every 10 msecs. """
-
-        def run(self):
-
-            self.buttonstate = 0x0
-            self.stop = False
-
-            while not self.stop:
-                self.ctrlp.play_data([self.buttonstate] * 8)
-                time.sleep(0.1)
-
     def __init__(self, target_ip, force=False):
         self.target_ip = target_ip
         self.force = force
@@ -70,6 +70,15 @@ class DualShock(NetmpManager):
 
         :type: String
         """
+        self.running = False
+        self.buttonstate = 0x0
+
+        self.netmp = None
+        self.ctrlp = None
+
+        self.keythread = threading.Thread(name="DualShock-KeyThread",
+                                          target=dispatch_buttonstate,
+                                          args=(self, 'dummy'))
 
     def __enter__(self):
         self.start()
@@ -85,6 +94,9 @@ class DualShock(NetmpManager):
         :TODO: Add exception handling for connection errors and such
         """
 
+        if self.running:
+            return
+
         self.netmp = super(DualShock, self).startnetmp(self.target_ip)
 
         try:
@@ -92,7 +104,7 @@ class DualShock(NetmpManager):
         except Netmp.InUseException:
 
             if self.force:
-                print("Device in use, forcing disconnection");
+                print("[DualShock] Target in use, forcing disconnection.")
                 self.netmp.force_disconnect()
 
                 self.ctrlp = self.netmp.register_ctrlp()
@@ -101,26 +113,27 @@ class DualShock(NetmpManager):
 
         self.ctrlp.play_start()
 
-        self.thread = self._KeyThread()
-        self.thread.ctrlp = self.ctrlp
-
-        self.thread.ready = False
-        self.thread.start()
-
+        self.running = True
+        self.keythread.start()
         time.sleep(0.1)
 
     def stop(self):
         """
         Disconnect from the remote target
         """
-        self.thread.stop = True
-        self.thread.join()
+
+        if not self.running:
+            return
+
+        self.running = False
+        self.keythread.join()
 
         self.ctrlp.play_stop()
-
         self.netmp.unregister_ctrlp()
+        super(DualShock, self).stopnetmp(self.target_ip)
 
-        self.netmp = super(DualShock, self).stopnetmp(self.target_ip)
+        self.ctrlp = None
+        self.netmp = None
 
     def buttondown(self, button):
         """
@@ -129,7 +142,7 @@ class DualShock(NetmpManager):
         :param button: The button to set in pressed state
         :type button: :class:`Buttons`
         """
-        self.thread.buttonstate |= button
+        self.buttonstate |= button
 
     def buttonup(self, button):
         """
@@ -138,10 +151,10 @@ class DualShock(NetmpManager):
         :param button: The button to set in released state
         :type button: :class:`Buttons`
         """
-        self.thread.buttonstate &= ~button
+        self.buttonstate &= ~button
 
     def buttonpress(self, button, timetopress=0.2, timetorelease=0.2):
-        print(" Deprecated: please use buttonpress " )
+        print("[Dualshock] buttonpress is DEPRECATED! Please use press_button instead")
         self.press_button(button, timetopress, timetorelease)
 
     def press_button(self, button, timetopress=0.2, timetorelease=0.2):
@@ -171,8 +184,10 @@ class DualShock(NetmpManager):
         Simulate a series of button presses by iterating through *buttonList*
 
         Starting with the first button in the list, each button is set in the 'pressed' state for *timetopress* seconds
-        before reverting it back to the 'released' state, then waiting for *post_delay* seconds before
-        processing the next button in the list.
+        before reverting it back to the 'released' state.
+        If the next button in the list is the same as the current one, wait for *timetorelease* seconds before
+        proceeding with the next button to avoid missed events.
+        Finally, wait once more for *timetorelease* seconds after all buttons have been processed.
 
         Buttons already in 'pressed' state when invoked will be switched to 'released' state when done.
         All other buttons are left as-is.
@@ -180,7 +195,7 @@ class DualShock(NetmpManager):
         :param buttonlist: The list of buttons to press (click)
         :type buttonlist: [:class:`Buttons`]
         :param float timetopress: Time to keep the button in 'pressed' state, by default 200ms
-        :param float timetorelease: Time to wait between two instances of the same button, by default 200ms.  Also used after all buttons pressed.  Only used if timetodelay is 0.
+        :param float timetorelease: Time to wait between two instances of the same button, by default 200ms.
         """
         lastbutton = 0
         for x in buttonlist:

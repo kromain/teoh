@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import time
 import pytest
 
@@ -67,6 +68,7 @@ class TestDualshock:
             time.sleep(1)
 
         assert exit
+        set_page(browser, os.path.join(os.path.dirname(__file__), "keyevent.html"))
 
         self.browser.switch_to.window(hdl)
 
