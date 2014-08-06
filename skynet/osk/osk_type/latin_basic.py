@@ -34,17 +34,6 @@ class BasicLatinOsk(osk_graph):
         uppercase = osk.up 
         l2 = osk.l2
 
-        self.add_edge("blank_key", " ", 1, [DS.LEFT])
-        self.add_edge("blank_key", ",", 1, [DS.UP])
-        
-        chars = [" ", "blank_key"]
-        chars.extend(list(string.digits))
-        for x in chars:
-            self.add_node(x)
-
-        end = [".", "?", "!"]
-        self.set_node(end, "end")
-        self.add_node("!", "end", "L2")
 
         self.set_edge(lowercase, "lowercase")
         self.set_edge(uppercase, "uppercase")
@@ -53,7 +42,12 @@ class BasicLatinOsk(osk_graph):
         self.set_edge_overlap(lowercase, uppercase)
         self.set_edge_overlap(lowercase, l2)
 
-if __name__ == "__main__":
-    test = BasicLatinOsk()
-    print(nav_path(test, "&&"))
+        chars = [" "]
+        chars.extend(list(string.digits))
+        for x in chars:
+            self.add_node(x)
+
+        end = [".", "?", "!"]
+        self.set_node(end, "end")
+        self.add_node("!", "end", "L2")
 

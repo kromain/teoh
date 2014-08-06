@@ -16,3 +16,4 @@ class PasswordOsk(BasicLatinOsk):
     	
         super(PasswordOsk,self).__init__(locale)
         self.graph = "password"
+

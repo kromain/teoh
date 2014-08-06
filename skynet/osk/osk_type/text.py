@@ -37,20 +37,6 @@ class TextOsk(osk_graph):
         acc_uppercase = osk.ac
         acc_lowercase = osk.ac_
 
-
-        self.add_edge("blank_key", " ", 1, [DS.LEFT])
-        self.add_edge("blank_key", ",", 1, [DS.UP])
-
-        chars = [" ", "blank_key"]
-        chars.extend(list(string.digits))
-        for x in chars:
-            self.add_node(x)
-
-        end = [".", "?", "!"]
-        self.add_node("!", "end", "L2")
-        for x in end:
-            self.case[x] = "end"
-
         self.add_node("L3key", "none", "none")
         self.add_edge("L3key", "c", 1, [DS.UP])
         self.add_edge("L3key", " ", 1, [DS.RIGHT])
@@ -67,4 +53,14 @@ class TextOsk(osk_graph):
         self.set_edge_overlap(lowercase, l2)
         self.set_edge_overlap(l2, l2_)
         self.set_edge_overlap(acc_uppercase, acc_lowercase)
+
+        chars = [" "]
+        chars.extend(list(string.digits))
+        for x in chars:
+            self.add_node(x)
+
+        end = [".", "?", "!"]
+        self.add_node("!", "end", "L2")
+        for x in end:
+            self.case[x] = "end"
 

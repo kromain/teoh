@@ -75,7 +75,7 @@ class OskEntry():
         
         nav = nav_path(g, stringList)
         
-        self.dualshock.press_buttons(nav, timetorelease=0.13)   
+        self.dualshock.press_buttons(nav, timetorelease=0.12)   
         self.dualshock.press_button(DS.R2)   
 
     def check_valid(self, g, text):

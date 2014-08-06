@@ -30,3 +30,4 @@ class NumOsk(osk_graph):
 if __name__ == "__main__":
     test = NumOsk()
     print(nav_path(test, "123"))
+

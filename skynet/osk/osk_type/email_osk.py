@@ -34,11 +34,14 @@ class EmailOsk(osk_graph):
         uppercase = osk.up
         l2 = osk.l2
     
+        self.set_edge(lowercase, "lowercase")
+        self.set_edge(uppercase, "uppercase")
+        self.set_edge(l2, "none", "L2")
 
-        self.add_edge("blank_key", " ", 1, [DS.LEFT])
-        self.add_edge("blank_key", ",", 1, [DS.UP])
-        
-        chars = [" ", "blank_key"]
+        self.set_edge_overlap(lowercase, uppercase)
+        self.set_edge_overlap(lowercase, l2)
+
+        chars = [" "]
         chars.extend(list(string.digits))
         for x in chars:
             self.add_node(x)
@@ -46,11 +49,4 @@ class EmailOsk(osk_graph):
         end = [".", "?", "!"]
         self.set_node(end, "end")
         self.add_node("!", "end", "L2")
-
-        self.set_edge(lowercase, "lowercase")
-        self.set_edge(uppercase, "uppercase")
-        self.set_edge(l2, "none", "L2")
-
-        self.set_edge_overlap(lowercase, uppercase)
-        self.set_edge_overlap(lowercase, l2)
 
