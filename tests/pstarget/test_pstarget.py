@@ -4,7 +4,7 @@
 
 import unittest
 from skynet import PSTarget, PSTargetException, PSTargetInUseException, PSTargetUnreachableException
-from skynet.deci import Netmp
+from skynet.deci import Netmp, Console
 import conftest
 
 test_target_ip = conftest.target_ip
@@ -24,6 +24,7 @@ class AvailablePSTargetTests(unittest.TestCase):
     def test_target_with_psdriver(self):
         self.assertIsNotNone(self.target.dualshock)
         self.assertIsNotNone(self.target.osk)
+        self.assertIsNotNone(self.target.console)
         self.assertIsNotNone(self.target.psdriver)
 
     @unittest.expectedFailure
@@ -31,6 +32,7 @@ class AvailablePSTargetTests(unittest.TestCase):
         # FIXME figure out a way to turn off the inspector server on the target
         self.assertIsNotNone(self.target.dualshock)
         self.assertIsNotNone(self.target.osk)
+        self.assertIsNotNone(self.target.console)
         self.assertIsNone(self.target.psdriver)
 
     def test_target_disconnect(self):
@@ -38,6 +40,7 @@ class AvailablePSTargetTests(unittest.TestCase):
 
         self.assertIsNone(self.target.dualshock)
         self.assertIsNone(self.target.osk)
+        self.assertIsNone(self.target.console)
         self.assertIsNone(self.target.psdriver)
 
 

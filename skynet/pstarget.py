@@ -72,6 +72,11 @@ class PSTarget(object):
 
         :type: :class:`skynet.deci.dualshock.DualShock`
         """
+        self.console = None
+        """The remote console interface
+
+        :type: :class:`skynet.deci.console.Console`
+        """
         self.osk = None
         # self.tty = None
         self.connect(force_connect)
@@ -95,6 +100,7 @@ class PSTarget(object):
         Initializes and connects the following members:
         * :attr:`dualshock`: always initialized
         * :attr:`osk`: always initialized
+        * :attr:`console`: always initialized
         * :attr:`psdriver`: only initialized if a webview is currently available on the target
 
         Does nothing if the target is already connected and all members initialized.
@@ -119,6 +125,16 @@ class PSTarget(object):
                 raise PSTargetUnreachableException("Target unreachable") from e
             else:
                 self.dualshock = ds
+
+        if self.console is None:
+            cs = deci.Console(self.target_ip)
+            try:
+                cs.start()
+            except Exception as e:
+                raise PSTargetUnreachableException("Target unreachable") from e
+            else:
+                self.console = cs
+
         if self.osk is None:
             self.osk = osk.OskEntry(self.dualshock)
         if self.psdriver is None:
@@ -140,6 +156,7 @@ class PSTarget(object):
         Disconnects then resets the following members to None:
         * :attr:`dualshock`
         * :attr:`osk`
+        * :attr:`console`
         * :attr:`psdriver`
 
         Does nothing if the target is already disconnected.
@@ -153,6 +170,9 @@ class PSTarget(object):
                 self.dualshock = None
             if self.osk is not None:
                 self.osk = None
+            if self.console is not None:
+                self.console.stop()
+                self.console = None
             if self.psdriver is not None:
                 self.psdriver.quit()
                 self.psdriver = None
