@@ -128,6 +128,10 @@ class PSTarget(object):
                 # We may not always have a webview available (e.g. at the login screen after bootup),
                 # in this case we leave the psdriver part uninitialized, relying only on the deci part
                 pass
+            except Exception as e:
+                # we need to disconnect here since __del__() won't be called as the exception is propagated
+                self.disconnect()
+                raise psdriver.PSDriverError("Error during psdriver connection initialization") from e
 
     def disconnect(self):
         """
@@ -143,14 +147,17 @@ class PSTarget(object):
         This method is automatically called when the PSTarget object is GC'd or at the end of a 'with' block,
         but you may still want to call it explicitely to ensure the target connection is released as soon as possible.
         """
-        if self.dualshock is not None:
-            self.dualshock.stop()
-            self.dualshock = None
-        if self.osk is not None:
-            self.osk = None
-        if self.psdriver is not None:
-            self.psdriver.quit()
-            self.psdriver = None
+        try:
+            if self.dualshock is not None:
+                self.dualshock.stop()
+                self.dualshock = None
+            if self.osk is not None:
+                self.osk = None
+            if self.psdriver is not None:
+                self.psdriver.quit()
+                self.psdriver = None
+        finally:
+            psdriver.server.stop_local_server()
 
 
 def main():

@@ -646,7 +646,7 @@ class CtrlpProt(Deci4H):
 
         # if result is 1, we've filled memory.  Could wait and retry
         if res["result"] != 0:
-            print("Unknown error!", hex(res["result"]))
+            raise self.NetmpException(res["result"])
 
         return res
 

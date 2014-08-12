@@ -5,54 +5,47 @@
 import unittest
 from skynet import PSTarget, PSTargetException, PSTargetInUseException, PSTargetUnreachableException
 from skynet.deci import Netmp
+import conftest
 
-# FIXME get a target IP from the config instead
-test_target_ip = "43.138.14.26"
+test_target_ip = conftest.target_ip
 
-
-class PSTargetTest(unittest.TestCase):
-    def test_invalid_target_ip(self):
-        with self.assertRaises(PSTargetUnreachableException):
-            target = PSTarget("0.0.0.0")
-            target.disconnect()
-
-    def test_target_with_psdriver(self):
+class AvailablePSTargetTests(unittest.TestCase):
+    def setUp(self):
+        self.target = None
         try:
-            target = PSTarget(test_target_ip)
+            self.target = PSTarget(test_target_ip)
         except PSTargetException:
             raise unittest.SkipTest("target {} unavailable".format(test_target_ip))
 
-        self.assertIsNotNone(target.dualshock)
-        self.assertIsNotNone(target.osk)
-        self.assertIsNotNone(target.psdriver)
+    def tearDown(self):
+        if self.target:
+            self.target.disconnect()
 
-        target.disconnect()
+    def test_target_with_psdriver(self):
+        self.assertIsNotNone(self.target.dualshock)
+        self.assertIsNotNone(self.target.osk)
+        self.assertIsNotNone(self.target.psdriver)
 
     @unittest.expectedFailure
     def test_target_without_psdriver(self):
         # FIXME figure out a way to turn off the inspector server on the target
-        try:
-            target = PSTarget(test_target_ip)
-        except PSTargetException:
-            raise unittest.SkipTest("target {} unavailable".format(test_target_ip))
-
-        self.assertIsNotNone(target.dualshock)
-        self.assertIsNotNone(target.osk)
-        self.assertIsNone(target.psdriver)
-
-        target.disconnect()
+        self.assertIsNotNone(self.target.dualshock)
+        self.assertIsNotNone(self.target.osk)
+        self.assertIsNone(self.target.psdriver)
 
     def test_target_disconnect(self):
-        try:
-            target = PSTarget(test_target_ip)
-        except PSTargetException:
-            raise unittest.SkipTest("target {} unavailable".format(test_target_ip))
+        self.target.disconnect()
 
-        target.disconnect()
+        self.assertIsNone(self.target.dualshock)
+        self.assertIsNone(self.target.osk)
+        self.assertIsNone(self.target.psdriver)
 
-        self.assertIsNone(target.dualshock)
-        self.assertIsNone(target.osk)
-        self.assertIsNone(target.psdriver)
+
+class UnavailablePSTargetTests(unittest.TestCase):
+    def test_invalid_target_ip(self):
+        with self.assertRaises(PSTargetUnreachableException):
+            target = PSTarget("0.0.0.0")
+            target.disconnect()
 
     def test_target_in_use(self):
         # Create a raw CTRLP connection to the target so the PSTarget below will fail with PSTargetInUseException
