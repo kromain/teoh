@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 import string
 
-from skynet.osk.osk_type.latin_basic import BasicLatinOsk
+from skynet.osk.latin_basic import BasicLatinOsk
 
 class PasswordOsk(BasicLatinOsk):
     """

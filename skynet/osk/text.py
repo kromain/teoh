@@ -4,9 +4,9 @@
 import string
 
 from skynet.deci.dualshock import Buttons as DS
-from skynet.osk.osk_type.osk_graph import osk_graph, nav_path
-from skynet.osk.osk_type.locale.en_ import en_locale_text
-from skynet.osk.osk_type.locale.de_ import de_locale_text
+from skynet.osk.osk_graph import osk_graph, nav_path
+from skynet.osk.en_ import en_locale_text
+from skynet.osk.de_ import de_locale_text
 
 class TextOsk(osk_graph):
     """

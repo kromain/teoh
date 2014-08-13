@@ -4,36 +4,37 @@
 import string
 
 from skynet.deci.dualshock import Buttons as DS
-from skynet.osk.osk_type.osk_graph import osk_graph, nav_path
-from skynet.osk.osk_type.locale.en_ import en_locale_email
-from skynet.osk.osk_type.locale.de_ import de_locale_email
+from skynet.osk.osk_graph import osk_graph, nav_path
+from skynet.osk.en_ import en_locale_basic
+from skynet.osk.de_ import de_locale_basic
 
-class EmailOsk(osk_graph):
+class BasicLatinOsk(osk_graph):
     """
-    Creates email mode SDK 
-    Handles mapping of email keyboard
+    Creates basic-latin mode SDK 
+    Handles mapping of basic-latin keyboard
 
     locale - The expected keyboard locale, default is English. 
     """
     def __init__(self, locale=None):
 
-        super(EmailOsk,self).__init__()
-        self.graph = "email"
+        super(BasicLatinOsk,self).__init__()
+        self.graph = "BasicLatin"
         self.start = "g"
 
         if locale == None:
-            osk = en_locale_email()
+            osk = en_locale_basic()
         
         elif locale.startswith("de_"):
-            osk = de_locale_email()
+            osk = de_locale_basic()
 
         else:
-            osk = en_locale_email()
+            osk = en_locale_basic()
 
         lowercase = osk.lo
-        uppercase = osk.up
+        uppercase = osk.up 
         l2 = osk.l2
-    
+
+
         self.set_edge(lowercase, "lowercase")
         self.set_edge(uppercase, "uppercase")
         self.set_edge(l2, "none", "L2")
