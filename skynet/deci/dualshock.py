@@ -39,8 +39,9 @@ def dispatch_buttonstate(*args, **kwargs):
         break
 
     while dualshock.running:
-        dualshock.ctrlp.play_data([dualshock.buttonstate] * 8)
-        time.sleep(0.1)
+        if dualshock.dispatch_event.wait(timeout=1):
+            dualshock.ctrlp.play_data([dualshock.buttonstate] * 8)
+            dualshock.dispatch_event.clear()
 
 
 class DualShock(NetmpManager):
@@ -72,6 +73,7 @@ class DualShock(NetmpManager):
         """
         self.running = False
         self.buttonstate = 0x0
+        self.dispatch_event = threading.Event() 
 
         self.netmp = None
         self.ctrlp = None
@@ -125,6 +127,7 @@ class DualShock(NetmpManager):
         if not self.running:
             return
 
+        self.dispatch_event.set()
         self.running = False
         self.keythread.join()
 
@@ -143,6 +146,7 @@ class DualShock(NetmpManager):
         :type button: :class:`Buttons`
         """
         self.buttonstate |= button
+        self.dispatch_event.set()
 
     def buttonup(self, button):
         """
@@ -152,6 +156,8 @@ class DualShock(NetmpManager):
         :type button: :class:`Buttons`
         """
         self.buttonstate &= ~button
+        self.dispatch_event.set()
+
 
     def buttonpress(self, button, timetopress=0.2, timetorelease=0.2):
         print("[Dualshock] buttonpress is DEPRECATED! Please use press_button instead")

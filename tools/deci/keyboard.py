@@ -2,6 +2,9 @@ import sys
 from tkinter import *
 
 from skynet.deci.dualshock import DualShock,Buttons
+from skynet.deci import deci4
+
+deci4.enable_logging = False
 
 
 class App:
