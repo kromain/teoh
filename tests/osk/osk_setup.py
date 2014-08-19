@@ -4,20 +4,22 @@ import time
 import skynet.psdriver as psdriver
 from skynet.deci.dualshock import DualShock,Buttons
 import skynet
+import conftest
+
+test_ip = conftest.target_ip
 
 def test_set_up():
 
-    target_ip = "TARGET_IP"
+    target_ip = test_ip
     with DualShock(target_ip=target_ip) as controller:
         assert controller
 
     browser = psdriver.server.connect(target_ip)
 
-    # Check 5 times if browser is on regcam page. 
     for x in range(0, 5):
         for hdl in browser.window_handles:
             browser.switch_to.window(hdl)
-            if browser.title.startswith("https://regcam"):
+            if browser.title.startswith("RegiCAM"):
                 break
         time.sleep(1)
 
