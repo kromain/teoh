@@ -3,7 +3,7 @@
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 import string
 
-from skynet.osk.osk_type.osk_graph import osk_graph
+from skynet.osk.osk_graph import osk_graph
 
 class NumOsk(osk_graph):
     """
@@ -30,3 +30,4 @@ class NumOsk(osk_graph):
 if __name__ == "__main__":
     test = NumOsk()
     print(nav_path(test, "123"))
+

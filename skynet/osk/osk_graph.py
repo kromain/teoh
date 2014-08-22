@@ -263,10 +263,19 @@ def nav_path(g, string):
     nav_list = []
     string_List = []
     string_List = string
+    text_case = True
 
-    if g.graph == "text":
-        nav_list.extend([DS.L2])
     for x in range(len(string_List)-1):
+        if string_List[x+1] == " ":
+            nav_list.extend([DS.TRIANGLE])
+            string_List[x+1] = string_List[x]
+        else:
+            if text_case == True and g.graph == "text":
+                nav_list.extend([DS.L2])
+                text_case = False
+
             nav_list.extend(direct_path(g, string_List[x], string_List[x+1]))
 
     return nav_list
+
+    

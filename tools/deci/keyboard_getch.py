@@ -45,7 +45,7 @@ try:
                    'h': Buttons.SHARE,
                    'p':Buttons.PS} [ ch ]
 
-            controller.press_button(button)
+            controller.press_button(button, timetopress=0.05, timetorelease=0.05)
 
 except IndexError:
     print("USAGE keyboard_getch.py IPADDRESS")

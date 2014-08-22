@@ -5,13 +5,13 @@
 import skynet.deci as deci
 
 from skynet.deci.dualshock import Buttons as DS
-from skynet.osk.osk_type.osk_graph import osk_graph, nav_path
+from skynet.osk.osk_graph import osk_graph, nav_path
 
-from skynet.osk.osk_type.numeric import NumOsk
-from skynet.osk.osk_type.latin_basic import BasicLatinOsk
-from skynet.osk.osk_type.email_osk import EmailOsk
-from skynet.osk.osk_type.text import TextOsk
-from skynet.osk.osk_type.password import PasswordOsk
+from skynet.osk.numeric import NumOsk
+from skynet.osk.latin_basic import BasicLatinOsk
+from skynet.osk.email_osk import EmailOsk
+from skynet.osk.text import TextOsk
+from skynet.osk.password import PasswordOsk
 
 
 class OskEntry():
@@ -75,7 +75,7 @@ class OskEntry():
         
         nav = nav_path(g, stringList)
         
-        self.dualshock.press_buttons(nav, timetorelease=0.13)   
+        self.dualshock.press_buttons(nav, timetorelease=0.12)   
         self.dualshock.press_button(DS.R2)   
 
     def check_valid(self, g, text):
