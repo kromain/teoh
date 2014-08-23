@@ -6,4 +6,5 @@ __version__ = "0.1"
 
 from .dualshock import DualShock, Buttons
 from .console import Console
+from .info import Info
 from .deci4 import Netmp

@@ -233,6 +233,12 @@ class Deci4H:
         "SceTsmpPowerRequest": [
             {"type":'<L', "length":4, "name":"powerstate"},
         ],
+        "SceTsmpGetPsnStateCmd": [
+            {"type":"SceDeciStringUtf8", "name":"username"},  # actually SceDeciStringAscii
+        ],
+        "SceTsmpGetPsnStateRes": [
+            {"type":'<L', "length":4, "name":"psnState"},
+        ],
     }
     sequence = 0x1234
 
@@ -820,11 +826,21 @@ class TsmpProt(Deci4H):
         buffer = self.sendrecv(stream, self.power_control_cmd(powerstate))
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TSMP_TYPE_POWER_CONTROL_RES)
 
+    def get_psn_state_cmd(self, username):
+        buffer = self.build_buffer(Deci4H.recorddefs["SceTsmpGetPsnStateCmd"], username=username)
+        return self.make_deci_cmd_header(buffer, self.SCE_TSMP_TYPE_GET_PSN_STATE_CMD, self.PROTOCOL)
+        
+    def get_psn_state_msg(self, stream, username):
+        buffer = self.sendrecv(stream, self.get_psn_state_cmd(username))
+        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TSMP_TYPE_GET_PSN_STATE_RES)
+
     def parse(self, res, buffer):
         if res["msgtype"] == self.SCE_TSMP_TYPE_GET_CONF_RES:
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypGetConfCmd"], res)
-
+        elif res["msgtype"] == self.SCE_TSMP_TYPE_GET_PSN_STATE_RES:
+            if res["result"] == 0:
+                buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTsmpGetPsnStateRes"], res)
         elif res["msgtype"] == self.SCE_TSMP_TYPE_POWER_CONTROL_RES:
             pass
 
@@ -1024,6 +1040,9 @@ class Tsmp:
     
     def reboot(self):
         return self.prot.power_control_msg(self.stream, TsmpProt.POWER_REBOOT)
+
+    def get_psn_state(self, username):
+        return self.prot.get_psn_state_msg(self.stream, username)
 
 class NetmpManager:
     """ Base class that lets subclasses share netmp instances by ip """
