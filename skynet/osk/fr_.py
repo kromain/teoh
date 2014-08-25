@@ -3,24 +3,26 @@
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 
 """
-Contains mappings of various keyboards for the German language, or locale de_*.
+Contains list mappings of various keyboards for the French language, or locale fr_*.
 
-Difference between en_* and de_*: Z and Y keys are swapped.
+Difference between en_* and fr_*:
+ * a, A is swapped with q, Q
+ * z, Z is swapped with w, W
 
-Note: Keys that begin with X followed by a char are stand-in dummy keys.
+Note: Keys that begin with X followed by a char are dummy keys.
 """
 
-class de_dict_basic:
+class fr_dict_basic:
 
     lo = [["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-          ["q", "w", "e", "r", "t", "z", "u", "i", "o", "p"],
-          ["a", "s", "d", "f", "g", "h", "j", "k", "l", "'"],
-          ["y", "x", "c", "v", "b", "n", "m", ",", ".", "?"]]
+          ["a", "z", "e", "r", "t", "y", "u", "i", "o", "p"],
+          ["q", "s", "d", "f", "g", "h", "j", "k", "l", "'"],
+          ["w", "x", "c", "v", "b", "n", "m", ",", ".", "?"]]
 
     up = [["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-          ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P"],
-          ["A", "S", "D", "F", "G", "H", "J", "K", "L", "\""],
-          ["Y", "X", "C", "V", "B", "N", "M", "-", "_", "/"]]
+          ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"],
+          ["Q", "S", "D", "F", "G", "H", "J", "K", "L", "\""],
+          ["W", "X", "C", "V", "B", "N", "M", "-", "_", "/"]]
 
     l2 = [["!", "X?", "X\"", "X'", "#", "%", "(", ")", "~", "X/"],
           ["X-", "X_", "X,", "X.", ":", ";", "*", "+", "=", "&"],
@@ -28,17 +30,17 @@ class de_dict_basic:
           ["`", "$", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8"]]
 
 
-class de_dict_text():
+class fr_dict_text():
 
     lo = [["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-          ["q", "w", "e", "r", "t", "z", "u", "i", "o", "p"],
-          ["a", "s", "d", "f", "g", "h", "j", "k", "l", "'"],
-          ["y", "x", "c", "v", "b", "n", "m", ",", ".", "?"]]
+          ["a", "z", "e", "r", "t", "y", "u", "i", "o", "p"],
+          ["q", "s", "d", "f", "g", "h", "j", "k", "l", "'"],
+          ["w", "x", "c", "v", "b", "n", "m", ",", ".", "?"]]
 
     up = [["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-          ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P"],
-          ["A", "S", "D", "F", "G", "H", "J", "K", "L", "\""],
-          ["Y", "X", "C", "V", "B", "N", "M", "-", "_", "/"]]
+          ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"],
+          ["Q", "S", "D", "F", "G", "H", "J", "K", "L", "\""],
+          ["W", "X", "C", "V", "B", "N", "M", "-", "_", "/"]]
 
     l2 = [["!",   "X1", "X2", "X3", "#", "%", "(", ")", "()", "X4"],
           ["X5", "X6", "X7", "X8", ":", ";", "*", "+", "=", "&"],
@@ -62,17 +64,18 @@ class de_dict_text():
            ["œ", "ś", "ş", "š", "ß", "ù", "ú", "û", "ü", "ý"],
            ["ÿ", "ź", "ż", "ž", "đ", "þ", "X20", "X21", "X22", "X23"]]
 
-class de_dict_email():
+
+class fr_dict_email():
 
     lo = [["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-          ["q", "w", "e", "r", "t", "z", "u", "i", "o", "p"],
-          ["a", "s", "d", "f", "g", "h", "j", "k", "l", "-"],
-          ["y", "x", "c", "v", "b", "n", "m", "@", ".", "_"]]
+          ["a", "z", "e", "r", "t", "y", "u", "i", "o", "p"],
+          ["q", "s", "d", "f", "g", "h", "j", "k", "l", "-"],
+          ["w", "x", "c", "v", "b", "n", "m", "@", ".", "_"]]
 
     up = [["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-          ["Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P"],
-          ["A", "S", "D", "F", "G", "H", "J", "K", "L", "\""],
-          ["Y", "X", "C", "V", "B", "N", "M", ",", "'", "/"]]
+          ["A", "Z", "E", "R", "T", "Y", "U", "I", "O", "P"],
+          ["Q", "S", "D", "F", "G", "H", "J", "K", "L", "\""],
+          ["W", "X", "C", "V", "B", "N", "M", ",", "'", "/"]]
 
     l2 = [["!", "?", "X\"", "X'", "#", "%", "(", ")", "~", "X/"],
           ["X-", "X_", "X,", "X.", ":", ";", "*", "+", "=", "&"],
