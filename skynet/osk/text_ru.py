@@ -26,10 +26,10 @@ class TextOsk_ru(osk_graph):
 
         lowercase = osk.lo
         uppercase = osk.up
-        l2 = osk.l2
-        l2_ = osk.l2_
-        l3 = osk.l3
-        l3_ = osk.l3_
+        L2_keys = osk.L2
+        L2_keys_ = osk.L2_
+        L3_keys = osk.L3
+        L3_keys_ = osk.L3_
 
         self.add_node("L2key", "none", "none")
         self.add_edge("L2key", "Ч", 1, [DS.UP])
@@ -42,15 +42,21 @@ class TextOsk_ru(osk_graph):
 
         self.set_edge(lowercase, "lowercase", "L1")
         self.set_edge(uppercase, "uppercase", "L1")
-        self.set_edge(l2, "none", "L2")
-        self.set_edge(l2_, "none", "L2_")
-        self.set_edge(l3, "uppercase", "L3")
-        self.set_edge(l3_, "lowercase", "L3")
+        self.set_edge(L2_keys, "none", "L2")
+        self.set_edge(L2_keys_, "none", "L2_")
+        self.set_edge(L3_keys, "uppercase", "L3")
+        self.set_edge(L3_keys_, "lowercase", "L3")
 
         self.set_edge_overlap(lowercase, uppercase)
-        self.set_edge_overlap(lowercase, l2)
-        self.set_edge_overlap(l2, l2_)
-        self.set_edge_overlap(l3, l3_)
+        self.set_edge_overlap(lowercase, L2_keys)
+        self.set_edge_overlap(L2_keys, L2_keys_)
+        self.set_edge_overlap(L3_keys, L3_keys_)
+
+
+        for i in self.nodes.copy():
+            if i == "dummy_key":
+                self.nodes.remove(i)
+
 
         end = [".", "?", "!"]
         for x in end:
