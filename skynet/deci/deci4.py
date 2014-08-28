@@ -12,7 +12,7 @@ import time
 if sys.version_info[0] < 3:
     raise Exception("Python 3 required")
 
-enable_logging = False
+enable_logging = True
 
 def log(*args):
     if enable_logging:
@@ -239,6 +239,9 @@ class Deci4H:
         "SceTsmpGetPsnStateRes": [
             {"type":'<L', "length":4, "name":"psnState"},
         ],
+        "SceTsmpPowerState": [ #Retrieve power state
+            {"type":'<L', "length":4, "name":"powerState"},
+        ]
     }
     sequence = 0x1234
 
@@ -787,6 +790,8 @@ class TsmpProt(Deci4H):
     SCE_TSMP_TYPE_GET_INFO_RES = 0x3
     SCE_TSMP_TYPE_POWER_CONTROL_CMD = 0x4
     SCE_TSMP_TYPE_POWER_CONTROL_RES = 0x5
+    SCE_TSMP_TYPE_GET_POWER_STATUS_CMD = 0x6
+    SCE_TSMP_TYPE_GET_POWER_STATUS_RES = 0x7
     SCE_TSMP_TYPE_GET_PSN_STATE_CMD = 0x20
     SCE_TSMP_TYPE_GET_PSN_STATE_RES = 0x21
     PROTOCOL = 0x80004000
@@ -826,6 +831,13 @@ class TsmpProt(Deci4H):
         buffer = self.sendrecv(stream, self.power_control_cmd(powerstate))
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TSMP_TYPE_POWER_CONTROL_RES)
 
+    def power_status_cmd(self):
+        return self.make_deci_cmd_header(None, self.SCE_TSMP_TYPE_GET_POWER_STATUS_CMD, self.PROTOCOL)
+
+    def power_status_msg(self, stream):
+        buffer = self.sendrecv(stream, self.power_status_cmd())
+        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TSMP_TYPE_GET_POWER_STATUS_RES)        
+
     def get_psn_state_cmd(self, username):
         buffer = self.build_buffer(Deci4H.recorddefs["SceTsmpGetPsnStateCmd"], username=username)
         return self.make_deci_cmd_header(buffer, self.SCE_TSMP_TYPE_GET_PSN_STATE_CMD, self.PROTOCOL)
@@ -844,6 +856,9 @@ class TsmpProt(Deci4H):
         elif res["msgtype"] == self.SCE_TSMP_TYPE_POWER_CONTROL_RES:
             pass
 
+        elif res["msgtype"] == self.SCE_TSMP_TYPE_GET_POWER_STATUS_RES:
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTsmpPowerState"], res)
+            
         return buffer, res
 
 class Netmp:
@@ -1074,6 +1089,9 @@ class Tsmp:
 
     def get_psn_state(self, username):
         return self.prot.get_psn_state_msg(self.stream, username)
+
+    def get_power_status(self):
+        return self.prot.power_status_msg(self.stream) 
 
 class NetmpManager:
     """ Base class that lets subclasses share netmp instances by ip """
