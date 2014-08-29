@@ -83,9 +83,38 @@ class OskEntry():
 
         nav = nav_path(g, stringList)
 
-        self.dualshock.press_buttons(nav, timetorelease=0.1)
+        self.osk_press_buttons(nav)
+
         self.dualshock.press_button(DS.R2)
         self.dualshock.press_button(DS.R2)
+
+    def osk_press_buttons(self, buttonlist):
+        """
+        Revised press_buttons method with delays between button presses
+        Simulates button-presses for keyboard navigation to enter text.
+
+        :param buttonlist: list of buttons to be pressed
+        """
+
+        button_delay = [DS.L2, DS.L3, DS.L2 | DS.TRIANGLE]
+
+        lastbutton = 0
+
+        for x in buttonlist:
+            if x == lastbutton:
+                time.sleep(0.1)
+
+            else:
+                lastbutton = x
+
+            if x == "DELAY":
+                time.sleep(.2)
+
+            elif x in button_delay:
+                self.dualshock.press_button(x, 0.09, 0.4)
+
+            else:
+                self.dualshock.press_button(x, 0.09, 0.06)
 
 
     def check_valid(self, g, text):

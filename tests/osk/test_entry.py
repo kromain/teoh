@@ -20,8 +20,21 @@ class oskTestCase(PSTestCase):
             """ Basic test for entry_osk """
             ps = self.target.osk
             ds = self.target.dualshock
-
             browser = self.target.psdriver
+
+            ds.press_button(DS.PS)
+            time.sleep(1)
+            ds.press_button(DS.UP)
+            ds.buttondown(DS.RIGHT)
+            time.sleep(1)
+            ds.buttonup(DS.RIGHT)
+            ds.press_button(DS.LEFT)
+            time.sleep(1)
+            ds.press_button(DS.CROSS)
+            time.sleep(1)
+            ds.press_button(DS.CROSS)
+            time.sleep(1)
+            ds.press_button(DS.CROSS)
 
             for x in range(0, 5):
                   for hdl in browser.window_handles:
@@ -32,10 +45,13 @@ class oskTestCase(PSTestCase):
 
             browser.switch_to.window(hdl)
 
+            test_set_up()
+
             en_basic = browser.find_element_by_id("1")
             en_text = browser.find_element_by_id("2")
             en_email = browser.find_element_by_id("11")
             en_password = browser.find_element_by_id("12")
+            en_numeric = browser.find_element_by_id("13")
             de_basic = browser.find_element_by_id("3")
             de_text = browser.find_element_by_id("4")
             ru_basic = browser.find_element_by_id("5")
@@ -49,6 +65,7 @@ class oskTestCase(PSTestCase):
             text2 = "Default TEXT test"
             text11 = "name@email.com"
             text12 = "password123"
+            text13 = "5105553854"
             text3 = "Wie geht's dir/ Ihnen?"
             text4 = "Wie geht's dir/ Ihnen?"
             text5 = "Kak pazhivayesh?"
@@ -81,6 +98,12 @@ class oskTestCase(PSTestCase):
             time.sleep(1) 
             ps.entry_osk(text12, "password", "en_")
             assert en_password.get_attribute('value') == text12
+
+            en_numeric.click()
+            ds.press_button(DS.CROSS)
+            time.sleep(1) 
+            ps.entry_osk(text13, "numeric")
+            assert en_numeric.get_attribute('value') == text13
 
             de_basic.click()
             ds.press_button(DS.CROSS)

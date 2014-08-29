@@ -26,10 +26,10 @@ class TextOsk_ja(osk_graph):
 
         lowercase = osk.lo
         uppercase = osk.up
-        L2_key = osk.l2
-        L2_key_ = osk.l2_
-        L2_ja_key = osk.l2_j
-        L3_key = osk.l3
+        L2_keys = osk.L2
+        L2_keys_ = osk.L2_
+        L2_ja_keys = osk.L2_j
+        L3_keys = osk.L3
         hiragana = osk.hiragana
         hiragana_ = osk.hiragana_
         diagraph = osk.diagraph
@@ -52,17 +52,21 @@ class TextOsk_ja(osk_graph):
 
         self.set_edge(lowercase, "lowercase", "L1")
         self.set_edge(uppercase, "uppercase", "L1")
-        self.set_edge(L2_key, "none", "L2")
-        self.set_edge(L2_key_, "none", "L2_")
-        self.set_edge(L3_key, "none", "L3")
-        self.set_edge(L2_ja_key, "none", "L2_j")
+        self.set_edge(L2_keys, "none", "L2")
+        self.set_edge(L2_keys_, "none", "L2_")
+        self.set_edge(L3_keys, "none", "L3")
+        self.set_edge(L2_ja_keys, "none", "L2_j")
 
         self.set_edge_overlap(lowercase, uppercase)
-        self.set_edge_overlap(lowercase, L2_key)
-        self.set_edge_overlap(L2_key, L2_key_)
-        self.set_edge_overlap(L3_key, L2_ja_key)
+        self.set_edge_overlap(lowercase, L2_keys)
+        self.set_edge_overlap(L2_keys, L2_keys_)
+        self.set_edge_overlap(L3_keys, L2_ja_keys)
         self.set_edge_overlap(hiragana, hiragana_)
         self.set_edge_overlap(diagraph, diagraph_)
+
+        for i in self.nodes.copy():
+            if i == "dummy_key":
+                self.nodes.remove(i)
 
         chars = list(string.digits)
         for x in chars:

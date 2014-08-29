@@ -11,8 +11,6 @@ test_ip = conftest.target_ip
 def test_set_up():
 
     target_ip = test_ip
-    with DualShock(target_ip=target_ip) as controller:
-        assert controller
 
     browser = psdriver.server.connect(target_ip)
 

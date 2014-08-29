@@ -183,13 +183,15 @@ def direct_path_text(g, start, end):
         else:
             direct_list.extend([DS.L2 | DS.TRIANGLE])
 
-
     if (g.type[start] == "L2" or g.type[start] == "L2_") and (g.type[end] != "L2" and g.type[end] != "L2_"):
         direct_list.extend([DS.L2 | DS.TRIANGLE])
 
     if g.case[start] == "end" and g.case[end] != "end":
         direct_list.extend([DS.L2])
-    
+
+    if start == "L3key" or start == "page" or start == "L2key":
+        direct_list.extend(["DELAY"])
+
     direct_path_(g, direct_list, start, end)
 
     return direct_list
@@ -211,58 +213,50 @@ def direct_path_text_japanese(g, start, end):
 
     direct_list = []
 
-    L1_flag = False
+
+    if g.type[start] == "L3":
+        if g.type[end] == "L1":
+            direct_list.extend(direct_path_text_japanese(g, start, "L3key"))
+            start = "L3key"
+
+        elif g.type[end] == "L2_j":
+            direct_list.extend([DS.L2 | DS.TRIANGLE])
+
+        elif g.type[end] == "L2":
+            direct_list.extend(direct_path_text_japanese(g, start, "L2key"))
+            direct_list.extend([DS.L2 | DS.TRIANGLE])
+            direct_list.extend([DS.CROSS])
+            start = "L2key"  
 
     if g.type[start] == "L1":
-        L1_flag = True
-    if g.type[start] == "L3":
-        L1_flag = False
+        if g.type[end] == "L3":
+            direct_list.extend(direct_path_text_japanese(g, start, "L3key"))
+            start = "L3key"            
+        elif g.type[end] == "L2":
+            direct_list.extend([DS.L2 | DS.TRIANGLE])
 
+        elif g.type[end] == "L2_j":
+            direct_list.extend(direct_path_text_japanese(g, start, "L2key"))
+            direct_list.extend([DS.L2 | DS.TRIANGLE])
+            direct_list.extend([DS.CROSS])
+            start = "L2key"  
+    
+    if g.type[start] == "L2":
+        if g.type[end] == "L1":
+            direct_list.extend([DS.L2 | DS.TRIANGLE])
+        if g.type[end] == "L3":
+            direct_list.extend(direct_path_text_japanese(g, start, "L2key"))
+            start = "L2key"
+            direct_list.extend([DS.L2 | DS.TRIANGLE])
+    
+    if g.type[start] == "L2_j":
+        if g.type[end] == "L3":
+            direct_list.extend([DS.L2 | DS.TRIANGLE])
+        if g.type[end] == "L1": 
+            direct_list.extend(direct_path_text_japanese(g, start, "L2key"))
+            start = "L2key"
+            direct_list.extend([DS.L2 | DS.TRIANGLE])
 
-    if g.type[start] == "L3" and g.type[end] == "L1":
-        direct_list.extend(direct_path_text_japanese(g, start, "L3key"))
-        start = "L3key"
-
-    if g.type[start] == "L1" and g.type[end] == "L3":
-        direct_list.extend(direct_path_text_japanese(g, start, "L3key"))
-        start = "L3key"
-
-    if g.type[start] == "L1" and g.type[end] == "L2":
-        direct_list.extend([DS.L2 | DS.TRIANGLE])
-
-    if g.type[start] == "L3" and g.type[end] == "L2_j":
-        direct_list.extend([DS.L2 | DS.TRIANGLE])
-
-    if g.type[start] == "L2" and g.type[end] == "L1":
-        direct_list.extend([DS.L2 | DS.TRIANGLE])
-        if L1_flag == False:
-            direct_list.extend([DS.L3])
-
-    if g.type[start] == "L2_j" and g.type[end] == "L3":
-        direct_list.extend([DS.L2 | DS.TRIANGLE])
-        
-
-    if g.type[start] == "L1" and g.type[end] == "L2_j":
-        direct_list.extend(direct_path_text_japanese(g, start, "L2key"))
-        direct_list.extend([DS.L2 | DS.TRIANGLE])
-        direct_list.extend([DS.CROSS])
-        start = "L2key"
-
-    if g.type[start] == "L3" and g.type[end] == "L2":
-        direct_list.extend(direct_path_text_japanese(g, start, "L2key"))
-        direct_list.extend([DS.L2 | DS.TRIANGLE])
-        direct_list.extend([DS.CROSS])
-        start = "L2key"
-
-    if g.type[start] == "L2_j" and g.type[end] == "L1":
-        direct_list.extend(direct_path_text_japanese(g, start, "L3key"))
-        start = "L3key"
-        direct_list.extend([DS.L2 | DS.TRIANGLE])
-
-    if g.type[start] == "L2" and g.type[end] == "L3":
-        direct_list.extend(direct_path_text_japanese(g, start, "L3key"))
-        start = "L3key"
-        direct_list.extend([DS.L2 | DS.TRIANGLE])
 
 
     hiragana = ["が", "ざ", "だ", "ば", "ぱ",
@@ -299,19 +293,23 @@ def direct_path_text_japanese(g, start, end):
         diagraph_flag = True
 
     if start in hiragana:
-        start = "small"
+        start = "small_key"
     if start in diagraph:
-        start = "small"
+        start = "small_key"
+
+    if start == "L3key" or start == "page":
+        direct_list.extend(["DELAY"])
+
 
     direct_path_(g, direct_list, start, end)
 
     if hiragana_flag == True:
-        direct_list.extend(direct_path_text_japanese(g, end, "small"))
+        direct_list.extend(direct_path_text_japanese(g, end, "small_key"))
         if flag_ == True:
             direct_list.extend([DS.CROSS])
 
     if diagraph_flag == True:
-        direct_list.extend(direct_path_text_japanese(g, end, "small"))
+        direct_list.extend(direct_path_text_japanese(g, end, "small_key"))
 
     return direct_list
 
