@@ -9,13 +9,11 @@ import time
 from selenium import webdriver
 from skynet.deci.dualshock import Buttons as DS
 from skynet.osk.osk import OskEntry
-
 from tests.util.PSTestCase import PSTestCase
 from tests.util.navigation import Navigation
 from tests.osk.osk_setup import test_set_up
 
 class oskTestCase(PSTestCase):
-
 
       def test_osk_input(self):
 
@@ -25,16 +23,7 @@ class oskTestCase(PSTestCase):
             browser = self.target.psdriver
             navigate = Navigation(self.target)
 
-            for x in range(0, 5):
-                  for hdl in browser.window_handles:
-                        browser.switch_to.window(hdl)
-                        if browser.title.startswith("RegiCAM"):
-                              break
-                  time.sleep(1)
-
-            browser.switch_to.window(hdl)
-
-            navigate.goToRegicam()
+            navigate.go_to_account_mgmt()
             test_set_up()
 
             en_basic = browser.find_element_by_id("1")
@@ -129,6 +118,4 @@ class oskTestCase(PSTestCase):
             ds.press_button(DS.CROSS, timetorelease=1)
             ps.entry_osk(text10 , "text", "es_")
             assert es_text.get_attribute('value') == text10
-
-
 

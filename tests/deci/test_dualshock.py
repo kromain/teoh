@@ -8,6 +8,9 @@ from skynet.deci.dualshock import DualShock,Buttons
 import skynet
 import conftest
 
+from skynet import PSTarget
+from tests.util.navigation import Navigation
+
 test_target_ip = conftest.target_ip
 
 def test_Buttons():
@@ -34,25 +37,13 @@ class TestDualshock:
         if not hasattr(self, "controller"):
             self.controller = DualShock(target_ip=target_ip)
 
+        self.target = PSTarget(target_ip)
         self.controller.start()
 
-        self.controller.press_button(Buttons.PS)
-        time.sleep(1)
-        self.controller.press_button(Buttons.UP)
-        self.controller.buttondown(Buttons.RIGHT)
-        time.sleep(3)
-        self.controller.buttonup(Buttons.RIGHT)
-        self.controller.press_button(Buttons.LEFT)
-        time.sleep(1)
-        self.controller.press_button(Buttons.CROSS)
-        time.sleep(1)
-        self.controller.press_button(Buttons.CROSS)
-        time.sleep(1)
-        self.controller.press_button(Buttons.CROSS)
-        time.sleep(5)
+        navigate = Navigation(self.target)
+        navigate.go_to_account_mgmt()
 
         self.browser = psdriver.server.connect(target_ip)
-
 
         exit = False
         for i in range(10):
