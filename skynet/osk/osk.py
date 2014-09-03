@@ -22,7 +22,7 @@ class OskEntry():
     def __init__(self, ds):
         self.dualshock = ds
 
-    def entry_osk(self, text, osk_type, lang=None):
+    def entry_osk(self, text, osk_type, lang="en_"):
         """
         Simulate an on-screen keyboard entry by specifying *text*, *osk_type*, and *lang*.
 
