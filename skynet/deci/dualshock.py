@@ -38,10 +38,13 @@ def dispatch_buttonstate(*args, **kwargs):
         # only extract the first argument in the list
         break
 
+    dualshock.dispatch_cond.acquire()
     while dualshock.running:
-        if dualshock.dispatch_event.wait(timeout=1):
-            dualshock.ctrlp.play_data([dualshock.buttonstate] * 8)
-            dualshock.dispatch_event.clear()
+        if dualshock.dispatch_cond.wait(timeout=1):
+            if dualshock.running:
+                dualshock.ctrlp.play_data([dualshock.buttonstate] * 8)
+
+    dualshock.dispatch_cond.release()
 
 
 class DualShock(NetmpManager):
@@ -73,7 +76,7 @@ class DualShock(NetmpManager):
         """
         self.running = False
         self.buttonstate = 0x0
-        self.dispatch_event = threading.Event() 
+        self.dispatch_cond = threading.Condition() 
 
         self.netmp = None
         self.ctrlp = None
@@ -127,8 +130,12 @@ class DualShock(NetmpManager):
         if not self.running:
             return
 
-        self.dispatch_event.set()
         self.running = False
+
+        self.dispatch_cond.acquire()
+        self.dispatch_cond.notify()
+        self.dispatch_cond.release()
+
         self.keythread.join()
 
         self.ctrlp.play_stop()
@@ -145,8 +152,10 @@ class DualShock(NetmpManager):
         :param button: The button to set in pressed state
         :type button: :class:`Buttons`
         """
+        self.dispatch_cond.acquire()
         self.buttonstate |= button
-        self.dispatch_event.set()
+        self.dispatch_cond.notify()
+        self.dispatch_cond.release()
 
     def buttonup(self, button):
         """
@@ -155,8 +164,10 @@ class DualShock(NetmpManager):
         :param button: The button to set in released state
         :type button: :class:`Buttons`
         """
+        self.dispatch_cond.acquire()
         self.buttonstate &= ~button
-        self.dispatch_event.set()
+        self.dispatch_cond.notify()
+        self.dispatch_cond.release()
 
 
     def buttonpress(self, button, timetopress=0.2, timetorelease=0.2):
