@@ -866,6 +866,24 @@ class Netmp:
         self.port = port
         self.stream1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.stream1.connect((self.ip, self.port))
+        self._counts = {}
+
+    def _refcnt_inc(self, counter):
+        if counter not in self._counts:
+            self._counts[counter] = 0
+
+        self._counts[counter] += 1
+
+        return self._counts[counter] == 1
+
+    def _refcnt_dec(self, counter):
+        if self._counts[counter] > 0:
+            self._counts[counter] -= 1
+
+            if self._counts[counter] == 0:
+                return True
+
+        return False
 
     def connect(self):
         try:
@@ -882,60 +900,70 @@ class Netmp:
         return self.prot.get_conf_msg(self.stream1)
 
     def register_ttyp(self):
-        self.stream_ttyp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.stream_ttyp.connect((self.ip, self.port))
+        if self._refcnt_inc("ttyp"):
+            self.stream_ttyp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.stream_ttyp.connect((self.ip, self.port))
 
-        res = self.prot.register_msg(self.stream_ttyp, netmp_key=self.netmp_key, reg_protocol=TtypProt.PROTOCOL)
+            res = self.prot.register_msg(self.stream_ttyp, netmp_key=self.netmp_key, reg_protocol=TtypProt.PROTOCOL)
 
-        #checkexception
+            #checkexception
+
         return Ttyp(self.stream_ttyp)
 
     def unregister_ttyp(self):
-        res = self.prot.unregister_msg(self.stream1, reg_protocol=TtypProt.PROTOCOL)
+        if self._refcnt_dec("ttyp"):
+            res = self.prot.unregister_msg(self.stream1, reg_protocol=TtypProt.PROTOCOL)
 
-        #checkexception
+            #checkexception
 
-        self.stream_ttyp.shutdown(socket.SHUT_RDWR)
-        self.stream_ttyp.close()
+            self.stream_ttyp.shutdown(socket.SHUT_RDWR)
+            self.stream_ttyp.close()
 
     def register_ctrlp(self):
-        self.stream_ctrlp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.stream_ctrlp.connect((self.ip, self.port))
+        if self._refcnt_inc("ctrlp"):
+            self.stream_ctrlp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.stream_ctrlp.connect((self.ip, self.port))
 
-        res = self.prot.register_msg(self.stream_ctrlp, netmp_key=self.netmp_key, reg_protocol=CtrlpProt.PROTOCOL)
+            res = self.prot.register_msg(self.stream_ctrlp, netmp_key=self.netmp_key, reg_protocol=CtrlpProt.PROTOCOL)
 
-        if res["result"] == NetmpProt.SCE_DECI_NETMP_ERROR_INUSE:
-            raise self.InUseException()
-        elif res["result"]:
-            raise self.NetmpException(res["result"])
+            if res["result"] == NetmpProt.SCE_DECI_NETMP_ERROR_INUSE:
+                raise self.InUseException()
+            elif res["result"]:
+                raise self.NetmpException(res["result"])
 
-        #checkexception
+            #checkexception
+
         return Ctrlp(self.stream_ctrlp)
 
     def unregister_ctrlp(self):
-        res = self.prot.unregister_msg(self.stream1, reg_protocol=CtrlpProt.PROTOCOL)
+        if self._refcnt_dec("ctrlp"):
+            res = self.prot.unregister_msg(self.stream1, reg_protocol=CtrlpProt.PROTOCOL)
 
-        #checkexception
+            #checkexception
 
-        self.stream_ctrlp.shutdown(socket.SHUT_RDWR)
-        self.stream_ctrlp.close()
+            self.stream_ctrlp.shutdown(socket.SHUT_RDWR)
+            self.stream_ctrlp.close()
 
     def register_tsmp(self):
-        self.stream_tsmp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.stream_tsmp.connect((self.ip, self.port))
+        if self._refcnt_inc("tsmp"):
+            self.stream_tsmp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.stream_tsmp.connect((self.ip, self.port))
 
-        res = self.prot.register_msg(self.stream_tsmp, netmp_key=self.netmp_key, reg_protocol=TsmpProt.PROTOCOL)
+            res = self.prot.register_msg(self.stream_tsmp, netmp_key=self.netmp_key, reg_protocol=TsmpProt.PROTOCOL)
+            self.count_tsmp = 0
 
-        #checkexception
+            #checkexception
+
         return Tsmp(self.stream_tsmp)
 
     def unregister_tsmp(self):
-        res = self.prot.unregister_msg(self.stream1, reg_protocol=TsmpProt.PROTOCOL)
+        if self._refcnt_dec("tsmp"):
+            res = self.prot.unregister_msg(self.stream1, reg_protocol=TsmpProt.PROTOCOL)
 
-        #checkexception
+            #checkexception
 
-        self.stream_tsmp.shutdown(socket.SHUT_RDWR)
-        self.stream_tsmp.close()
+            self.stream_tsmp.shutdown(socket.SHUT_RDWR)
+            self.stream_tsmp.close()
 
     def force_disconnect(self):
         res = self.prot.force_disconnect_msg(self.stream1)
@@ -1040,6 +1068,9 @@ class Tsmp:
     
     def reboot(self):
         return self.prot.power_control_msg(self.stream, TsmpProt.POWER_REBOOT)
+
+    def power_off(self):
+        return self.prot.power_control_msg(self.stream, TsmpProt.POWER_OFF)
 
     def get_psn_state(self, username):
         return self.prot.get_psn_state_msg(self.stream, username)

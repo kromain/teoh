@@ -40,6 +40,7 @@ if __name__ == "__main__":
                 print("Yes")
             else:
                 print("No")
+
     except IndexError:
         print("USAGE info.py IPADDRESS")
 
