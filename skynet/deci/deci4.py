@@ -1069,6 +1069,9 @@ class Tsmp:
     def reboot(self):
         return self.prot.power_control_msg(self.stream, TsmpProt.POWER_REBOOT)
 
+    def power_off(self):
+        return self.prot.power_control_msg(self.stream, TsmpProt.POWER_OFF)
+
     def get_psn_state(self, username):
         return self.prot.get_psn_state_msg(self.stream, username)
 
