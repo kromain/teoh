@@ -1,3 +1,4 @@
+from enum import Enum
 from .deci4 import NetmpManager, Netmp
 
 class Power(NetmpManager):
@@ -28,5 +29,18 @@ class Power(NetmpManager):
     def power_off(self):
         return self.tsmp.power_off()
 
+    def power_status(self):
+        state = self.tsmp.get_power_status()
+        print(Status(state["powerState"])) 
 
-        
+
+class Status(Enum):
+    DECI_Ready = 1
+    VSH_Ready = 2
+    Shutdown_Started = 3
+    Games_Shutdown = 4
+    ULP_Manager_Exiting = 5
+    Reboot_Started = 6
+    Games_Shutdown_reboot = 7
+    ULP_Manager_Exiting_reboot = 8
+
