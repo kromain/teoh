@@ -17,7 +17,6 @@ class Power(NetmpManager):
 
         self.tsmp = self.netmp.register_tsmp()
 
-
     def stop(self):
         self.netmp.unregister_tsmp()
 
@@ -31,16 +30,16 @@ class Power(NetmpManager):
 
     def power_status(self):
         state = self.tsmp.get_power_status()
-        print(Status(state["powerState"])) 
+        return Status(state["powerState"])
 
 
 class Status(Enum):
-    DECI_Ready = 1
-    VSH_Ready = 2
-    Shutdown_Started = 3
-    Games_Shutdown = 4
-    ULP_Manager_Exiting = 5
-    Reboot_Started = 6
-    Games_Shutdown_reboot = 7
-    ULP_Manager_Exiting_reboot = 8
+    DECI_READY = 1
+    VSH_READY = 2
+    SHUTDOWN_STARTED = 3
+    GAMES_SHUTDOWN = 4
+    ULP_MANAGER_EXITING = 5
+    REBOOT_STARTED = 6
+    GAMES_SHUTDOWN_REBOOT = 7
+    ULP_MANAGER_EXITING_REBOOT = 8
 

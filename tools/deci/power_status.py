@@ -2,29 +2,22 @@ import sys
 import struct
 
 from skynet.deci.deci4 import Netmp
+from skynet.deci.power import Power
 
-while(True):
-
+if __name__ == "__main__":
 	try:
-		netmp = Netmp(ip=sys.argv[1])
-		netmp.connect()
-		tsmp = netmp.register_tsmp()
-		print("\n***************************************************************\n")
-		res = tsmp.get_power_status()
-		print("powerState:")
-		print(res["powerState"])
-		print("\n***************************************************************\n")
-		netmp.unregister_tsmp()
-		netmp.disconnect()
+		with Power(ip=sys.argv[1]) as power:
+			print(power.power_status())
+
+	except IndexError:
+		print("USAGE power_status.py IPADDRESS")
 
 	except ConnectionRefusedError:
-		print("1")
 		pass
 
 	except ConnectionResetError:
-		print("2")
 		pass
 
 	except struct.error:
-		print("3")
 		pass
+

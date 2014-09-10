@@ -239,7 +239,7 @@ class Deci4H:
         "SceTsmpGetPsnStateRes": [
             {"type":'<L', "length":4, "name":"psnState"},
         ],
-        "SceTsmpPowerState": [ #Retrieve power state
+        "SceTsmpPowerState": [
             {"type":'<L', "length":4, "name":"powerState"},
         ]
     }
