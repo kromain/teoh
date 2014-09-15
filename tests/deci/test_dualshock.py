@@ -58,7 +58,7 @@ class TestDualshock:
         for i in range(10):
             for hdl in self.browser.window_handles:
                 self.browser.switch_to.window(hdl)
-                if self.browser.title.startswith("https://reg") == True:
+                if self.browser.title.startswith("RegiCAM") == True:
                     exit = True;
                     break
 
@@ -68,7 +68,6 @@ class TestDualshock:
             time.sleep(1)
 
         assert exit
-        set_page(browser, os.path.join(os.path.dirname(__file__), "keyevent.html"))
 
         self.browser.switch_to.window(hdl)
 

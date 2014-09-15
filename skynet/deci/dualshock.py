@@ -31,22 +31,6 @@ class Buttons(IntEnum):
     PS = 0x10000  #:
 
 
-def dispatch_buttonstate(*args, **kwargs):
-    """ Sends the current button state to the device once every 10 msecs in a background thread. """
-    for arg in args:
-        dualshock = arg
-        # only extract the first argument in the list
-        break
-
-    dualshock.dispatch_cond.acquire()
-    while dualshock.running:
-        if dualshock.dispatch_cond.wait(timeout=1):
-            if dualshock.running:
-                dualshock.ctrlp.play_data([dualshock.buttonstate] * 8)
-
-    dualshock.dispatch_cond.release()
-
-
 class DualShock(NetmpManager):
     """
     The interface to a DualShock controller on the target.
@@ -76,14 +60,9 @@ class DualShock(NetmpManager):
         """
         self.running = False
         self.buttonstate = 0x0
-        self.dispatch_cond = threading.Condition() 
 
         self.netmp = None
         self.ctrlp = None
-
-        self.keythread = threading.Thread(name="DualShock-KeyThread",
-                                          target=dispatch_buttonstate,
-                                          args=(self, 'dummy'))
 
     def __enter__(self):
         self.start()
@@ -119,7 +98,6 @@ class DualShock(NetmpManager):
         self.ctrlp.play_start()
 
         self.running = True
-        self.keythread.start()
         time.sleep(0.1)
 
     def stop(self):
@@ -131,12 +109,6 @@ class DualShock(NetmpManager):
             return
 
         self.running = False
-
-        self.dispatch_cond.acquire()
-        self.dispatch_cond.notify()
-        self.dispatch_cond.release()
-
-        self.keythread.join()
 
         self.ctrlp.play_stop()
         self.netmp.unregister_ctrlp()
@@ -152,10 +124,8 @@ class DualShock(NetmpManager):
         :param button: The button to set in pressed state
         :type button: :class:`Buttons`
         """
-        self.dispatch_cond.acquire()
         self.buttonstate |= button
-        self.dispatch_cond.notify()
-        self.dispatch_cond.release()
+        self.ctrlp.play_data([self.buttonstate] * 8)
 
     def buttonup(self, button):
         """
@@ -164,10 +134,8 @@ class DualShock(NetmpManager):
         :param button: The button to set in released state
         :type button: :class:`Buttons`
         """
-        self.dispatch_cond.acquire()
         self.buttonstate &= ~button
-        self.dispatch_cond.notify()
-        self.dispatch_cond.release()
+        self.ctrlp.play_data([self.buttonstate] * 8)
 
 
     def buttonpress(self, button, timetopress=0.2, timetorelease=0.2):
