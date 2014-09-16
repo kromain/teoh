@@ -2,6 +2,7 @@ import sys, time
 
 from skynet.deci.dualshock import DualShock, Buttons
 
+#run on dashboard on video icon (or any with at least 4 to the left)
 press = 0.04
 release = 0.04
 with DualShock(target_ip=sys.argv[1], force=True) as controller:
