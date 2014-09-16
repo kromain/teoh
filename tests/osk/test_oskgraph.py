@@ -29,8 +29,6 @@ class oskTestCase(unittest.TestCase):
         self.assertEqual(test_pad.case["1"], "none")
         self.assertEqual(test_pad.case["2"], "lower")
 
-        #self.assertEqual(nav_path(test_pad, "14"), [DS.DOWN, DS.RIGHT, DS.CROSS])
-
     def test_numosk_graph(self):
         """ unit test for init and edges of NumOsk """
         test_pad = NumOsk()
