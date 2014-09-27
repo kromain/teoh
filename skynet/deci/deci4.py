@@ -23,7 +23,6 @@ def log(*args):
             print( log_string )
     return
 
-    
 def make_dump(bytes):
     """ print a byte array as a memory dump, 16 bytes per line, both as hex and ASCII """
 
@@ -241,6 +240,9 @@ class Deci4H:
         ],
         "SceTsmpPowerState": [
             {"type":'<L', "length":4, "name":"powerState"},
+        ],
+        "SceTsmpGetPict": [
+            {"type":'<L', "length":4, "name":"mode"},
         ]
     }
     sequence = 0x1234
@@ -400,8 +402,23 @@ class Deci4H:
 
         return buffer, res
 
-    def recv_core(self, stream, timeout=0):
-        """ Turn the input stream into messages. 
+    def recv_wait(self, stream, bytes, timeout=0):
+        """ read from the input stream until all bytes received.
+
+            stream - socket to read on.
+            bytes - number of bytes to read
+        """
+
+        buffer = bytearray()
+        while len(buffer) < bytes:
+            rd,wr,ex = select.select([stream], [], [], timeout)
+            if stream in rd:
+                buffer += stream.recv(bytes-len(buffer))
+
+        return buffer
+
+    def recv_message(self, stream, timeout=0):
+        """ read a message from the input stream.
 
             stream - socket to read on.
             timeout - time to wait for full message before returning.
@@ -409,24 +426,45 @@ class Deci4H:
             Returns buffer or None if nothing could be read before the timeout
         """
 
-        rd,wr,ex = select.select([stream], [], [], timeout)
+        buffer = self.recv_wait(stream, 8, timeout)
+        length = struct.unpack_from("<L", buffer, 4)[0]
+        buffer += self.recv_wait(stream, length-8, timeout)
 
-        if stream in rd:
-            buffer = stream.recv(8)
-            length = struct.unpack_from("<L", buffer, 4)[0]
-            buffer += stream.recv(length-8)
+        return buffer
 
-            return buffer
+    def recv_messages(self, stream, timeout=0):
+        """ read a potentially multiblock message from the input stream.
+            stream - socket to read on.
+            timeout - time to wait for full message before returning.
 
-        return None
+            yields buffer,res where
+                buffer - message without the header
+                res - parsed header
+        """
 
+        lastfrag = -1
+        fragcontinue = True
+        fragearly = False
+        while fragcontinue and not fragearly:
+            buffer = self.recv_message(stream,timeout)
+            buffer, res = self.parse_header(buffer)
+
+            fragcontinue = (res['fraginfo'] & 0x8000 != 0)
+            fragearly = (res['fraginfo'] & 0x4000 != 0)
+            fragval = res['fraginfo'] & 0x3FFF
+
+            if fragval != lastfrag + 1:
+                raise Exception("Fragments out of order")
+            lastfrag = fragval
+
+            yield buffer, res
         
     def sendrecv(self, stream, buffer):
         """ send a message and immediately read the response. """
 
         log( "Send (%s):\n%s" % (stream, make_dump(buffer)) )
         stream.send(buffer)
-        buffer = self.recv_core(stream,30)
+        buffer = self.recv_message(stream,30)
         log( "Recv (%s):\n%s" % (stream, make_dump(buffer)) )
         return buffer
 
@@ -701,7 +739,7 @@ class CtrlpProt(Deci4H):
         return buffer, res
 
     def read_data(self, stream):
-        buffer = self.recv_core(stream,30)
+        buffer = self.recv_message(stream,30)
 
         log( "Recv (%s):\n%s" % (stream, make_dump(buffer)) )
         buffer, res = self.parse_header(buffer)
@@ -717,7 +755,7 @@ class CtrlpProt(Deci4H):
         return res
 
     def read_raw_data(self, stream):
-        buffer = self.recv_core(stream,30)
+        buffer = self.recv_message(stream,30)
         log( "Recv (%s):\n%s" % (stream, make_dump(buffer)) )
         return self.parse_header(buffer)[0]
 
@@ -777,7 +815,7 @@ class TtypProt(Deci4H):
         return buffer, res
 
     def recv(self, stream):
-        buffer = self.recv_core(stream)
+        buffer = self.recv_message(stream)
         if not buffer:
             return None
 
@@ -792,6 +830,8 @@ class TsmpProt(Deci4H):
     SCE_TSMP_TYPE_POWER_CONTROL_RES = 0x5
     SCE_TSMP_TYPE_GET_POWER_STATUS_CMD = 0x6
     SCE_TSMP_TYPE_GET_POWER_STATUS_RES = 0x7
+    SCE_TSMP_TYPE_GET_GET_PICT_CMD = 0x18
+    SCE_TSMP_TYPE_GET_GET_PICT_RES = 0x19
     SCE_TSMP_TYPE_GET_PSN_STATE_CMD = 0x20
     SCE_TSMP_TYPE_GET_PSN_STATE_RES = 0x21
     PROTOCOL = 0x80004000
@@ -837,6 +877,21 @@ class TsmpProt(Deci4H):
     def power_status_msg(self, stream):
         buffer = self.sendrecv(stream, self.power_status_cmd())
         return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TSMP_TYPE_GET_POWER_STATUS_RES)        
+
+    def get_pict_cmd(self, mode):
+        buffer = self.build_buffer(Deci4H.recorddefs["SceTsmpGetPict"], mode=mode)
+        return self.make_deci_cmd_header(buffer, self.SCE_TSMP_TYPE_GET_GET_PICT_CMD, self.PROTOCOL)
+
+    def get_pict_msg(self, stream, mode):
+        stream.send(self.get_pict_cmd(mode))
+
+        # Read blocks, ignoring the deci array length blocks
+        # message returned as a deci array if 64k blocks.
+        # length is the size of the block.  An index in the deci array may not be
+        # full so this is really the max size not the actual size.
+        for buffer, res in self.recv_messages(stream):
+            if len(buffer) > 8:
+                yield buffer
 
     def get_psn_state_cmd(self, username):
         buffer = self.build_buffer(Deci4H.recorddefs["SceTsmpGetPsnStateCmd"], username=username)
@@ -1070,6 +1125,10 @@ class Ttyp:
         
 
 class Tsmp:
+    MODE_GAME = 0
+    MODE_SYSTEM = 1
+    MODE_AUTO = 2
+
     def __init__(self, stream):
         self.prot = TsmpProt()
         self.stream = stream
@@ -1080,6 +1139,16 @@ class Tsmp:
     def get_info(self):
         info = self.prot.get_info_msg(self.stream)
         return {item["name"]:item["value"] for item in info["data"]}
+
+    def get_pict(self, mode):
+        """ generator of image blocks in tga format.
+        
+            mode - AUTO - Whatever is showing
+                   GAME - The current game process or VSH if no game running
+                   SYSTEM - VSH
+        """ 
+        for buffer in self.prot.get_pict_msg(self.stream, mode):
+            yield buffer
     
     def reboot(self):
         return self.prot.power_control_msg(self.stream, TsmpProt.POWER_REBOOT)
