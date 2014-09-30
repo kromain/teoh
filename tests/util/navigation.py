@@ -2,65 +2,70 @@
 #
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 
+import conftest
+import pytest
 import time
+
 
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.support.ui import WebDriverWait
-from skynet.deci.dualshock import Buttons as DS
+from skynet import PSTarget, DS
 
 
-class Navigation:
+@pytest.fixture(scope="session")
+def pstarget(request):
+    target = PSTarget(conftest.target_ip)
+    def disconnect_pstarget():
+        target.disconnect()
+    request.addfinalizer(disconnect_pstarget)
+
+    return target
+
+@pytest.fixture(scope="module")
+def regicam_webview(pstarget, request):
     """
-    Represents the Navigation class
+    Navigate to Settings -> PSN -> Account Information (regicam webview)
     """
+    pstarget.dualshock.press_button(DS.PS, timetorelease=1)
+    pstarget.dualshock.press_button(DS.UP, timetorelease=1)
 
-    def __init__(self, dualshock, psdriver):
-        self.ds = dualshock
-        self.browser = psdriver
+    pstarget.dualshock.press_button(DS.RIGHT, timetopress=1)
 
-    def go_to_account_mgmt(self):
-        """
-        Navigate to RegiCam page
-        """
-        self.ds.press_button(DS.PS, timetorelease=1)
-        self.ds.press_button(DS.UP, timetorelease=1)
+    pstarget.dualshock.press_button(DS.LEFT, timetorelease=1)
+    pstarget.dualshock.press_button(DS.CROSS, timetorelease=1)
+    pstarget.dualshock.press_button(DS.CROSS, timetorelease=1)
+    pstarget.dualshock.press_button(DS.CROSS, timetorelease=1)
 
-        self.ds.press_button(DS.RIGHT, timetopress=1)
-
-        self.ds.press_button(DS.LEFT, timetorelease=1)
-        self.ds.press_button(DS.CROSS, timetorelease=1)
-        self.ds.press_button(DS.CROSS, timetorelease=1)
-        self.ds.press_button(DS.CROSS, timetorelease=1)
-
-        # Wait up to 10s for the RegiCAM page to load
-        foundregicam = False
-        for i in range(10):
-            for hdl in self.browser.window_handles:
-                self.browser.switch_to.window(hdl)
-                if self.browser.title.startswith("RegiCAM"):
-                    foundregicam = True
-                    break
-            if foundregicam:
+    # Wait up to 10s for the RegiCAM page to load
+    foundregicam = False
+    for i in range(10):
+        for hdl in pstarget.psdriver.window_handles:
+            pstarget.psdriver.switch_to.window(hdl)
+            if pstarget.psdriver.title.startswith("RegiCAM"):
+                foundregicam = True
                 break
-            time.sleep(1)
+        if foundregicam:
+            break
+        time.sleep(1)
 
-        if not foundregicam:
-            return False
+    if not foundregicam:
+        return None
 
-        # FIXME waiting on some page elements isn't enough, as they are available before regicam starts showing.
-        #       Find the right condition that reflects that regicam has really finished loading.
-        #       In the meantime just use an explicit 10s sleep to give it enough time to load
-        #
-        # try:
-        #     def regicam_loaded(driver):
-        #         elem = self.browser.find_element_by_id('services')
-        #     WebDriverWait(self.browser, 10).until(regicam_loaded)
-        # except WebDriverException:
-        #     return False
-        time.sleep(10)
+    # FIXME waiting on some page elements isn't enough, as they are available before regicam starts showing.
+    #       Find the right condition that reflects that regicam has really finished loading.
+    #       In the meantime just use an explicit 10s sleep to give it enough time to load
+    #
+    # try:
+    #     def regicam_loaded(driver):
+    #         elem = pstarget.psdriver.find_element_by_id('services')
+    #     WebDriverWait(pstarget.psdriver, 10).until(regicam_loaded)
+    # except WebDriverException:
+    #     return False
+    time.sleep(10)
 
-        return True
+    def return_to_whats_new():
+        pstarget.dualshock.press_button(DS.PS, timetorelease=1)
+        pstarget.dualshock.press_button(DS.LEFT)
+    request.addfinalizer(return_to_whats_new)
 
-    def return_to_whats_new(self):
-        self.ds.press_button(DS.PS, timetorelease=1)
-        self.ds.press_button(DS.LEFT)
+    return pstarget

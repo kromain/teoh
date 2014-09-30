@@ -1,5 +1,11 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
+
 import pytest
 import re
+
+from tests.util.navigation import pstarget, regicam_webview
 
 # global var: target Target IP
 target_ip=""
@@ -13,7 +19,6 @@ class PytestOptionException(Exception):
 def pytest_addoption(parser):
     parser.addoption("--ip", action="store" )
     
-@pytest.fixture(scope="module")
 def pytest_cmdline_preparse(args):
     '''
     The function aa=request.config.getoption("--ip") does not work properly
@@ -40,4 +45,3 @@ def pytest_cmdline_preparse(args):
         raise  PytestOptionException( "Target IP Address is invalid!")
     target_ip = ip_matched.groups()[0]
     return target_ip
-
