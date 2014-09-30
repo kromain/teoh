@@ -13,7 +13,7 @@ from skynet.osk.latin_basic import BasicLatinOsk
 from skynet.osk.text import TextOsk
 
 
-class oskTestCase(unittest.TestCase):
+class OskGraphTestCase(unittest.TestCase):
 
     def test_osk_graph(self):
         """ unit test for osk_graph """
@@ -104,4 +104,3 @@ class oskTestCase(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
 
-    

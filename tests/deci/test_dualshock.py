@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
+#
+# Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
+
 import os
 import time
-import pytest
+import unittest
 
 import skynet.psdriver as psdriver
-from skynet.deci.dualshock import DualShock,Buttons
-import skynet
-import conftest
-
-from skynet import PSTarget
+from skynet.deci.dualshock import DualShock, Buttons
 from tests.util.navigation import Navigation
 
+import conftest
 test_target_ip = conftest.target_ip
 
-def test_Buttons():
+
+def test_buttons_enum():
     """ Ensure all the expected defines exist, all refer to a single bit, and there are no duplicates """
 
-    expected = ["UP", "LEFT", "RIGHT", "DOWN", "R1", "L1", "R2", "L2", "R3", "L3", "CROSS", "CIRCLE", "SQUARE", "TRIANGLE", "OPTION", "SHARE", "PS"]
+    expected = ["UP", "LEFT", "RIGHT", "DOWN", "R1", "L1", "R2", "L2", "R3", "L3",
+                "CROSS", "CIRCLE", "SQUARE", "TRIANGLE", "OPTION", "SHARE", "PS"]
     
     keymap = {}
-    allbits = 0
     for b in expected:
         assert Buttons[b]
         assert Buttons[b].value not in keymap, "Multiple flags with same bit"
@@ -30,130 +31,102 @@ def test_Buttons():
         if b[0] != "_":
             assert b in expected
 
-class TestDualshock:
 
-    def setup(self):
-        target_ip = test_target_ip
-        if not hasattr(self, "controller"):
-            self.controller = DualShock(target_ip=target_ip)
+class TestDualshock(unittest.TestCase):
 
-        self.target = PSTarget(target_ip)
-        self.controller.start()
+    @classmethod
+    def setUpClass(cls):
+        cls.controller = DualShock(test_target_ip)
+        cls.controller.start()
 
-        navigate = Navigation(self.target)
-        navigate.go_to_account_mgmt()
+        cls.browser = psdriver.server.connect(test_target_ip)
 
-        self.browser = psdriver.server.connect(target_ip)
+        assert Navigation(cls.controller, cls.browser).go_to_account_mgmt()
 
-        exit = False
-        for i in range(10):
-            for hdl in self.browser.window_handles:
-                self.browser.switch_to.window(hdl)
-                if self.browser.title.startswith("RegiCAM") == True:
-                    exit = True;
-                    break
+        testfile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "keyevent.html")
+        html = ''.join([x[:-1] for x in open(testfile).readlines()])
 
-            if exit:
-                break
+        cls.browser.execute_script("document.getElementsByTagName('html')[0].innerHTML = \'%s\';" % html)
 
-            time.sleep(1)
-
-        assert exit
-
-        self.browser.switch_to.window(hdl)
-
-        self.browser.execute_script( "document.getElementsByTagName('html')[0].innerHTML = \'%s\';" % 
-                                     ''.join([x[:-1] for x in open("keyevent.html").readlines()]))
-
-        self.buttonset = (
-                    (Buttons.LEFT, 37, "left"),
-                    (Buttons.UP, 38, "up"),
-                    (Buttons.RIGHT, 39, "right"),
-                    (Buttons.DOWN, 40, "down"),
-                    (Buttons.CROSS, 13, "cross"),
-                    (Buttons.CIRCLE, 27, "circle"),
-                    (Buttons.TRIANGLE, 112, "triangle"),
-                    (Buttons.SQUARE, 113, "square"),
-                    (Buttons.OPTION, 114, "option"),
-                    (Buttons.L1, 116, "L1"),
-                    (Buttons.R1, 117, "R1"),
-                    (Buttons.L2, 118, "L2"),
-                    (Buttons.R2, 119, "R2"),
-                    (Buttons.L3, 120, "L3"),
-                    (Buttons.R3, 121, "R3")
-                    )
+        cls.buttonset = ((Buttons.LEFT, 37, "left"),
+                         (Buttons.UP, 38, "up"),
+                         (Buttons.RIGHT, 39, "right"),
+                         (Buttons.DOWN, 40, "down"),
+                         (Buttons.CROSS, 13, "cross"),
+                         (Buttons.CIRCLE, 27, "circle"),
+                         (Buttons.TRIANGLE, 112, "triangle"),
+                         (Buttons.SQUARE, 113, "square"),
+                         (Buttons.OPTION, 114, "option"),
+                         (Buttons.L1, 116, "L1"),
+                         (Buttons.R1, 117, "R1"),
+                         (Buttons.L2, 118, "L2"),
+                         (Buttons.R2, 119, "R2"),
+                         (Buttons.L3, 120, "L3"),
+                         (Buttons.R3, 121, "R3"))
 
         bhtml = ""
-        for button, val, name in self.buttonset:
+        for button, val, name in cls.buttonset:
             bhtml += '<input id="%s" type="text"/><br>' % name
 
-        self.browser.execute_script( "document.getElementById('buttons').innerHTML = \'%s\';" % bhtml)
+        cls.browser.execute_script("document.getElementById('buttons').innerHTML = \'%s\';" % bhtml)
 
+    @classmethod
+    def tearDownClass(cls):
+        Navigation(cls.controller, cls.browser).return_to_whats_new()
 
-    def teardown(self):
-        self.controller.stop()
+        cls.browser.quit()
+        cls.controller.stop()
 
-    def set_event(self, elem, event, handler):
-        script =  "document.getElementById('%s').%s=%s" % (elem, event, handler)
+    def _set_event(self, elem, event, handler):
+        script = "document.getElementById('%s').%s=%s" % (elem, event, handler)
         self.browser.execute_script(script)
-        "function(event) { console.log('DOWN: ' + event.keyCode); document.getElementById('target').value=event.keyCode;};" 
 
     def test_press_button(self):
-
-        target_el = self.browser.find_element_by_id('target')
-
-                    
-        self.set_event('root', 'onkeydown', 
-                 """function(event) { 
-                     document.getElementById('target').value=event.keyCode;
-                 };""");
-
-        # test press_button
+        self._set_event('root', 'onkeydown',
+                        """function(event) { document.getElementById('target').value=event.keyCode; };""")
 
         # Browser can't detect Share or PS
+        target_el = self.browser.find_element_by_id('target')
         for button, val, name in self.buttonset:
-
             self.controller.press_button(button)
             assert target_el.get_attribute('value') == str(val)
 
     def test_press_buttons(self):
-        self.set_event('root', 'onkeydown', 
-                 """function(event) {
-                    document.getElementById('target').value++;
-                 };""" )
+        self._set_event('root', 'onkeydown',
+                        """function(event) { document.getElementById('target').value++; };""")
 
         target_el = self.browser.find_element_by_id('target')
-
         for button, val, name in self.buttonset:
-            self.browser.execute_script( "document.getElementById('target').value=0;" )
+            self.browser.execute_script("document.getElementById('target').value=0;")
             self.controller.press_buttons([button]*5)
             assert target_el.get_attribute('value') == "5"
 
-        self.browser.execute_script( "document.getElementById('target').value=0;" )
+        self.browser.execute_script("document.getElementById('target').value=0;")
         self.controller.press_buttons([b[0] for b in self.buttonset])
         assert target_el.get_attribute('value') == str(len(self.buttonset))
 
+    @unittest.skip
     def test_up_down_single(self):
-        # test buttondown/buttonup
+        # We need to rework this test using a different approach, since the webview doesn't send onkeyup events
+        # test buttondown/buttonup for a single button at a time
         bswitch = "switch(event.keyCode) {"
         for button, val, name in self.buttonset:
             bswitch += "case %s: target = '%s'; break;" % (val, name)
         bswitch += "}"
-        self.set_event('root', 'onkeydown', 
-                 """function(event) { 
-                     var target=null;
-                     %s
-                     document.getElementById(target).value=1;
-                 };""" % bswitch);
-        self.set_event('root', 'onkeyup', 
-                 """function(event) { 
-                     var target=null;
-                     %s
-                     document.getElementById(target).value=0;
-                 };""" % bswitch);
-
-
-        # test one by one
+        self._set_event('root', 'onkeydown',
+                        """function(event) {
+                            var target=null;
+                            %s
+                            document.getElementById(target).value=1;
+                            console.log("single-onkeydown " + event.keyCode)
+                        };""" % bswitch)
+        self._set_event('root', 'onkeyup',
+                        """function(event) {
+                            var target=null;
+                            %s
+                            document.getElementById(target).value=0;
+                            console.log("single-onkeyup " + event.keyCode)
+                        };""" % bswitch)
 
         for button, val, name in self.buttonset:
             button_el = self.browser.find_element_by_id(name)
@@ -162,28 +135,29 @@ class TestDualshock:
             self.controller.buttonup(button)
             assert button_el.get_attribute('value') == "0", "%s not seen as up" % name
 
+    @unittest.skip
     def test_up_down_multiple(self):
-        # Tests failing 
-        return 
+        # We need to rework this test using a different approach, since the webview doesn't send onkeyup events
+        # test multiple buttondown/buttonup at the same time
         bswitch = "switch(event.keyCode) {"
         for button, val, name in self.buttonset:
             bswitch += "case %s: target = '%s'; break;" % (val, name)
         bswitch += "}"
-        self.set_event('root', 'onkeydown', 
-                 """function(event) { 
-                     var target=null;
-                     %s
-                     document.getElementById(target).value=1;
-                 };""" % bswitch);
-        self.set_event('root', 'onkeyup', 
-                 """function(event) { 
-                     var target=null;
-                     %s
-                     document.getElementById(target).value=0;
-                 };""" % bswitch);
+        self._set_event('root', 'onkeydown',
+                        """function(event) {
+                            var target=null;
+                            %s
+                            document.getElementById(target).value=1;
+                        };""" % bswitch)
+        self._set_event('root', 'onkeyup',
+                        """function(event) {
+                            var target=null;
+                            %s
+                            document.getElementById(target).value=0;
+                        };""" % bswitch)
 
         for button, val, name in self.buttonset[4:]:
-            self.browser.execute_script( "document.getElementById('%s').value='';" % name )
+            self.browser.execute_script("document.getElementById('%s').value='';" % name)
 
         for button, val, name in self.buttonset[4:]:
             self.controller.buttondown(button)
@@ -202,7 +176,3 @@ class TestDualshock:
         for button, val, name in self.buttonset[4:]:
             button_el = self.browser.find_element_by_id(name)
             assert button_el.get_attribute('value') == "0", "%s not seen as up" % name
-
-
-
-

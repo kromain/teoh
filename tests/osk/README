@@ -1,4 +1,0 @@
-OSK entry tests needs to be run in regcam window. 
-
-Specify target IP in osk_setup.py. 
-Navigate to Settings -> PSN -> AccountInfo before running test_entry.py.
