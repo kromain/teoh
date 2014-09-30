@@ -105,7 +105,6 @@ class TestDualshock(unittest.TestCase):
         self.controller.press_buttons([b[0] for b in self.buttonset])
         assert target_el.get_attribute('value') == str(len(self.buttonset))
 
-    @unittest.skip
     def test_up_down_single(self):
         bswitch = "switch(event.keyCode) {"
         for button, val, name in self.buttonset:
@@ -122,18 +121,17 @@ class TestDualshock(unittest.TestCase):
             self.browser.execute_script("document.getElementById('%s').value=0;" % name)
             button_el = self.browser.find_element_by_id(name)
             self.controller.buttondown(button)
-            assert int(button_el.get_attribute('value')) == 1, "%s not seen as down" % name
             time.sleep(1) # wait for auto-repeat to kick in
-            assert int(button_el.get_attribute('value')) > 1, "%s not triggering auto-repeat" % name
+            assert int(button_el.get_attribute('value')) > 1, "%s not seen as down" % name
             self.controller.buttonup(button)
-            lastvalue = int(button_el.get_attribute('value'))
             time.sleep(0.1) # make sure auto-repeat is off
+            lastvalue = int(button_el.get_attribute('value'))
+            time.sleep(1)
             assert int(button_el.get_attribute('value')) == lastvalue, "%s not seen as up" % name
 
-    @unittest.skip
     def test_up_down_multiple(self):
         # We need to rework this test using a different approach, since the webview doesn't send onkeyup events
-        # test multiple buttondown/buttonup at the same time
+        # test buttondown/buttonup for CROSS/CIRCLE/TRIANGLE/SQUARE at the same time
         bswitch = "switch(event.keyCode) {"
         for button, val, name in self.buttonset:
             bswitch += "case %s: target = '%s'; break;" % (val, name)
@@ -145,30 +143,23 @@ class TestDualshock(unittest.TestCase):
                             document.getElementById(target).value++;
                         };""" % bswitch)
 
-        for button, val, name in self.buttonset[4:]:
+        for button, val, name in self.buttonset[4:8]:
             self.browser.execute_script("document.getElementById('%s').value=0;" % name)
             self.controller.buttondown(button)
 
         buttonvalues = {}
 
-        for button, val, name in self.buttonset[4:]:
+        for button, val, name in self.buttonset[4:8]:
             button_el = self.browser.find_element_by_id(name)
             value = int(button_el.get_attribute('value'))
-            assert value >=1, "%s not seen as down" % name
-            buttonvalues[name] = value
+            assert value > 1, "%s not seen as down" % name
+            self.controller.buttonup(button)
+            time.sleep(0.2) # make sure auto-repeat is off
+            buttonvalues[name] = int(button_el.get_attribute('value'))
 
         time.sleep(1)
 
-        for button, val, name in self.buttonset[4:]:
+        for button, val, name in self.buttonset[4:8]:
             button_el = self.browser.find_element_by_id(name)
             value = int(button_el.get_attribute('value'))
-            assert value > buttonvalues[name], "%s not triggering auto-repeat" % name
-            buttonvalues[name] = value
-            self.controller.buttonup(button)
-
-        time.sleep(0.1)
-
-        for button, val, name in self.buttonset[4:]:
-            button_el = self.browser.find_element_by_id(name)
-            value = int(button_el.get_attribute('value'))
-            assert value == buttonvalues[name], "%s not seen as up" % name
+            assert value == buttonvalues[name]
