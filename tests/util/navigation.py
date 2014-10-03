@@ -15,9 +15,7 @@ from skynet import PSTarget, DS
 @pytest.fixture(scope="session")
 def pstarget(request):
     target = PSTarget(conftest.target_ip)
-    def disconnect_pstarget():
-        target.disconnect()
-    request.addfinalizer(disconnect_pstarget)
+    request.addfinalizer(target.disconnect)
 
     return target
 
