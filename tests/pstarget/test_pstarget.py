@@ -2,109 +2,102 @@
 #
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 
-import unittest
-from skynet import PSTarget, PSTargetException, PSTargetInUseException, PSTargetUnreachableException
-from skynet.deci import Netmp, Console
+import pytest
+
+from skynet import PSTarget, PSTargetInUseException, PSTargetUnreachableException
+from skynet.deci import Netmp
 import conftest
 
-test_target_ip = conftest.target_ip
+@pytest.fixture(scope="function")
+def local_pstarget(request):
+    target = PSTarget(conftest.target_ip)
+    request.addfinalizer(target.disconnect)
 
-class AvailablePSTargetTests(unittest.TestCase):
-    def setUp(self):
-        self.target = None
-        try:
-            self.target = PSTarget(test_target_ip)
-        except PSTargetException:
-            raise unittest.SkipTest("target {} unavailable".format(test_target_ip))
-
-    def tearDown(self):
-        if self.target:
-            self.target.disconnect()
-
-    def test_target_with_psdriver(self):
-        self.assertIsNotNone(self.target.dualshock)
-        self.assertIsNotNone(self.target.osk)
-        self.assertIsNotNone(self.target.console)
-        self.assertIsNotNone(self.target.psdriver)
-
-    @unittest.expectedFailure
-    def test_target_without_psdriver(self):
-        # FIXME figure out a way to turn off the inspector server on the target
-        self.assertIsNotNone(self.target.dualshock)
-        self.assertIsNotNone(self.target.osk)
-        self.assertIsNotNone(self.target.console)
-        self.assertIsNone(self.target.psdriver)
-
-    def test_target_disconnect(self):
-        self.target.disconnect()
-
-        self.assertIsNone(self.target.dualshock)
-        self.assertIsNone(self.target.osk)
-        self.assertIsNone(self.target.console)
-        self.assertIsNone(self.target.psdriver)
+    return target
 
 
-class UnavailablePSTargetTests(unittest.TestCase):
-    def test_invalid_target_ip(self):
-        with self.assertRaises(PSTargetUnreachableException):
-            target = PSTarget("0.0.0.0")
-            target.disconnect()
+def test_target_with_psdriver(local_pstarget):
+    assert local_pstarget.dualshock is not None
+    assert local_pstarget.osk is not None
+    assert local_pstarget.console is not None
+    assert local_pstarget.psdriver is not None
 
-    def test_target_in_use(self):
-        # Create a raw CTRLP connection to the target so the PSTarget below will fail with PSTargetInUseException
-        try:
-            netmp = Netmp(test_target_ip)
-        except Exception:
-            raise unittest.SkipTest("target {} unavailable".format(test_target_ip))
 
-        ctrlp_registered = False
-        try:
-            netmp.connect()
-            netmp.register_ctrlp()
-        except Netmp.InUseException:
-            # fine we're already in the in-use state, nothing else to do
-            pass
-        else:
-            ctrlp_registered = True
+@pytest.mark.xfail
+def test_target_without_psdriver(local_pstarget):
+    # FIXME figure out a way to turn off the inspector server on the target
+    assert local_pstarget.dualshock is not None
+    assert local_pstarget.osk is not None
+    assert local_pstarget.console is not None
+    assert local_pstarget.psdriver is None
 
-        with self.assertRaises(PSTargetInUseException):
-            target = PSTarget(test_target_ip)
-            target.disconnect()
 
-        # Netmp cleanup
-        if ctrlp_registered:
-            netmp.unregister_ctrlp()
-        netmp.disconnect()
+def test_target_disconnect(local_pstarget):
+    local_pstarget.disconnect()
 
-    def test_target_force_connect(self):
-        # Create a raw CTRLP connection to the target to simulate an existing connection
-        try:
-            netmp = Netmp(test_target_ip)
-        except Exception:
-            raise unittest.SkipTest("target {} unavailable".format(test_target_ip))
+    assert local_pstarget.dualshock is None
+    assert local_pstarget.osk is None
+    assert local_pstarget.console is None
+    assert local_pstarget.psdriver is None
 
-        ctrlp_registered = False
-        try:
-            netmp.connect()
-            netmp.register_ctrlp()
-        except Netmp.InUseException:
-            # fine we're already in the in-use state, nothing else to do
-            pass
-        else:
-            ctrlp_registered = True
 
-        target = PSTarget(test_target_ip, True)
-
-        self.assertIsNotNone(target.dualshock)
-
+def test_invalid_target_ip():
+    with pytest.raises(PSTargetUnreachableException):
+        target = PSTarget("0.0.0.0")
         target.disconnect()
 
-        # Netmp cleanup
-        with self.assertRaises(Exception):
-            if ctrlp_registered:
-                netmp.unregister_ctrlp()
-            netmp.disconnect()
+
+def test_target_in_use():
+    # Create a raw CTRLP connection to the target so the PSTarget below will fail with PSTargetInUseException
+    try:
+        netmp = Netmp(conftest.target_ip)
+    except Exception:
+        raise pytest.skip("target {} unavailable".format(conftest.target_ip))
+
+    ctrlp_registered = False
+    try:
+        netmp.connect()
+        netmp.register_ctrlp()
+    except Netmp.InUseException:
+        # fine we're already in the in-use state, nothing else to do
+        pass
+    else:
+        ctrlp_registered = True
+
+    with pytest.raises(PSTargetInUseException):
+        target = PSTarget(conftest.target_ip)
+        target.disconnect()
+
+    # Netmp cleanup
+    if ctrlp_registered:
+        netmp.unregister_ctrlp()
+    netmp.disconnect()
 
 
-if __name__ == '__main__':
-    unittest.main()
+def test_target_force_connect():
+    # Create a raw CTRLP connection to the target to simulate an existing connection
+    try:
+        netmp = Netmp(conftest.target_ip)
+    except Exception:
+        raise pytest.skip("target {} unavailable".format(conftest.target_ip))
+
+    ctrlp_registered = False
+    try:
+        netmp.connect()
+        netmp.register_ctrlp()
+    except Netmp.InUseException:
+        # fine we're already in the in-use state, nothing else to do
+        pass
+    else:
+        ctrlp_registered = True
+
+    target = PSTarget(conftest.target_ip, True)
+
+    assert target.dualshock is not None
+
+    target.disconnect()
+
+    # Netmp cleanup
+    if ctrlp_registered:
+        netmp.unregister_ctrlp()
+    netmp.disconnect()
