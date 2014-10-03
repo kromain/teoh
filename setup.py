@@ -50,8 +50,10 @@ def do_setup(cmd_args, bin_dir):
         },
 
         install_requires=[
-            "selenium >= 2.42.1",
-            "pytest >= 2.5.2",
+            "selenium >= 2.43.0",
+            "pytest >= 2.6.3",
+            "pytest-xdist >= 1.11",
+            "Pillow >= 2.6.0",
         ],
 
         script_args=cmd_args
