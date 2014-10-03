@@ -55,6 +55,7 @@ class Info(NetmpManager):
 
         for buffer in self.tsmp.get_pict(mode):
             fp.write(buffer)
+        fp.close()
 
         if in_name != name:
             try:
