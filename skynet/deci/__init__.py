@@ -7,5 +7,5 @@ __version__ = "0.1"
 from .dualshock import DualShock, Buttons
 from .console import Console
 from .info import Info
-from .power import Power
+from .power import Power, PowerState
 from .deci4 import Netmp

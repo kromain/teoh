@@ -7,5 +7,6 @@ __version__ = "0.1"
 from .pstarget import PSTarget
 from .pstarget import PSTargetException, PSTargetInUseException, PSTargetUnreachableException
 from .deci.dualshock import Buttons as DS
+from .deci.power import PowerState
 from .osk.osk import OskEntry
 from .config.config import Config

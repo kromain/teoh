@@ -28,12 +28,12 @@ class Power(NetmpManager):
     def power_off(self):
         return self.tsmp.power_off()
 
-    def power_status(self):
+    def power_state(self):
         state = self.tsmp.get_power_status()
-        return Status(state["powerState"])
+        return PowerState(state["powerState"])
 
 
-class Status(Enum):
+class PowerState(Enum):
     DECI_READY = 1
     VSH_READY = 2
     SHUTDOWN_STARTED = 3

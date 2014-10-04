@@ -4,9 +4,9 @@
 
 import sys
 
-import skynet.deci as deci
 import skynet.psdriver as psdriver
 import skynet.osk as osk
+from skynet.deci import DualShock, Console, Info, Power, Netmp
 
 
 class PSTargetException(Exception):
@@ -73,12 +73,18 @@ class PSTarget(object):
         :type: :class:`skynet.deci.dualshock.DualShock`
         """
         self.console = None
-        """The remote console interface
+        """The TTY console interface
 
         :type: :class:`skynet.deci.console.Console`
         """
         self.osk = None
-        # self.tty = None
+        """The ShellUI On-Screen Keyboard interface
+
+        :type: :class:`skynet.osk.OskEntry`
+        """
+
+        self._deci_wrappers = {}
+
         self.connect(force_connect)
 
     def __del__(self):
@@ -116,10 +122,10 @@ class PSTarget(object):
         :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         if self.dualshock is None:
-            ds = deci.DualShock(self.target_ip, force)
+            ds = DualShock(self.target_ip, force)
             try:
                 ds.start()
-            except deci.Netmp.InUseException as e:
+            except Netmp.InUseException as e:
                 raise PSTargetInUseException("Target already in use") from e
             except Exception as e:
                 raise PSTargetUnreachableException("Target unreachable") from e
@@ -127,7 +133,7 @@ class PSTarget(object):
                 self.dualshock = ds
 
         if self.console is None:
-            cs = deci.Console(self.target_ip)
+            cs = Console(self.target_ip)
             try:
                 cs.start()
             except Exception as e:
@@ -164,20 +170,90 @@ class PSTarget(object):
         This method is automatically called when the PSTarget object is GC'd or at the end of a 'with' block,
         but you may still want to call it explicitely to ensure the target connection is released as soon as possible.
         """
-        try:
-            if self.dualshock is not None:
-                self.dualshock.stop()
-                self.dualshock = None
-            if self.osk is not None:
-                self.osk = None
-            if self.console is not None:
-                self.console.stop()
-                self.console = None
-            if self.psdriver is not None:
-                self.psdriver.quit()
-                self.psdriver = None
-        finally:
-            psdriver.server.stop_local_server()
+        if self.dualshock is not None:
+            self.dualshock.stop()
+            self.dualshock = None
+        if self.osk is not None:
+            self.osk = None
+        if self.console is not None:
+            self.console.stop()
+            self.console = None
+        if self.psdriver is not None:
+            self.psdriver.quit()
+            self.psdriver = None
+
+    def is_user_signed_in(self, username):
+        """
+        Returns PSN sign-in status for the specified *username* on the target.
+
+        This method can be called regardless of the connection state.
+
+        :param string username: the PSN username to check for signed-in status
+        :returns: True if the username is signed in to PSN on the target, False otherwise
+        """
+        return self._info.is_user_signed_in(username)
+
+    def power_state(self):
+        """
+        Returns the power state for the target, as a :class:`skynet.deci.power.PowerState` enum value
+
+        This method can be called regardless of the connection state.
+
+        :returns: The current power status for the target
+        :rtype: :class:`skynet.deci.power.PowerState`
+        """
+        return self._power.power_state()
+
+    def save_screenshot(self, filepath):
+        """
+        Takes a screenshot on the target and saves it locally as the file specified by *filepath*.
+
+        *filepath* can include an absolute or relative path with the file name. If only a file name is specified,
+        it is saved in the current working dir.
+
+        The format of the saved image is automatically determined based on the file extension, for example specifying
+        'image.png' will save the screenshot as a PNG image. Supported extensions are:
+        * '.jpg': encoded as a JPEG image (high compression, lossy)
+        * '.png': encoded as a PNG image (medium compression, non-lossy)
+        * '.tga': encdoded as a TARGA image (non-compressed, non-lossy)
+
+        If no extension is specified, images are saved as *.tga by default.
+
+        This method can be called regardless of the connection state.
+
+        :param string filepath: the saved image file path
+        """
+        self._info.get_pict(filepath)
+
+    def reboot(self):
+        """
+        Triggers a reboot of the target.
+
+        This method can be called regardless of the connection state.
+        """
+        self._power.reboot()
+
+    def power_off(self):
+        """
+        Triggers a target shutdown.
+
+        This method can be called regardless of the connection state.
+        """
+        self._power.power_off()
+
+    @property
+    def _info(self):
+        if Info not in self._deci_wrappers:
+            self._deci_wrappers[Info] = Info(self.target_ip)
+            self._deci_wrappers[Info].start()
+        return self._deci_wrappers[Info]
+
+    @property
+    def _power(self):
+        if Power not in self._deci_wrappers:
+            self._deci_wrappers[Power] = Power(self.target_ip)
+            self._deci_wrappers[Power].start()
+        return self._deci_wrappers[Power]
 
 
 def main():
