@@ -175,10 +175,10 @@ class Deci4H:
             {"type":'<L', "length":4, "name":"timestamp"},
             {"type":"SceDeciStringUtf8", "name":"owner"}
         ],
-        "SceCtrlpGetConfCmd":[
+        "SceGetConfCmd":[
             {"type":'<l', "length":4, "name":"in_buf_size"}
         ],
-        "SceTtypGetConfCmd":[
+        "SceGetConfCmd":[
             {"type":'<l', "length":4, "name":"in_buf_size"}
         ],
         "SceCtrlpDevices":[
@@ -458,7 +458,6 @@ class Deci4H:
             lastfrag = fragval
 
             yield buffer, res
-        
     def sendrecv(self, stream, buffer):
         """ send a message and immediately read the response. """
 
@@ -479,6 +478,162 @@ class Deci4H:
             raise self.ParseException(res["protocol"], res["msgtype"], protocol, message)
 
         return self.parse(res, buffer)[1]
+
+
+#todo merge/refactor with Deci4
+class Queue:
+    def __init__(self, stream):
+        self._stream = stream
+        self._responses = {}
+        self._conditions = {}
+
+        self._tosend = []
+        self._run = True
+        self._sendlock = threading.Lock()
+        self._recvlock = threading.Lock()
+
+        self._rwthread = threading.Thread(name="ReadWriteQueue",
+                                          target=self._readwrite,
+                                          args=(self, 'dummy'))
+
+        self._rwthread.start()
+        self._workbuff = None
+        self._worklength = None
+        self._notifications = []
+
+    def _readwrite(self, *args, **kwargs):
+
+        while self._run:
+
+            tonotify = []
+
+            rd,wr,ex = select.select([self._stream], [self._stream], [], 0)
+
+            if self._stream in rd:
+                if self._recvlock.acquire(blocking=False):
+                    if not self._workbuff or not self._worklength:
+                        if not self._workbuff:
+                            self._workbuff = self._stream.recv(8)
+                        elif not self._worklength:
+                            self._workbuff += self._stream.recv(8-len(self._workbuff))
+                            
+                        if len(self._workbuff) >= 8:
+                            self._worklength = struct.unpack_from("<L", self._workbuff, 4)[0]
+                    else:
+                        self._workbuff += self._stream.recv(self._worklength-len(self._workbuff))
+                        if len(self._workbuff) == self._worklength:
+
+                            sequence = struct.unpack_from("<H", self._workbuff, 12)[0]
+
+                            if sequence not in self._responses:
+                                self._responses[sequence] = []
+                                self._notifications.append(sequence)
+
+                            log( "RECV (%s):\n%s" % (self._stream, make_dump(self._workbuff)) )
+                            self._responses[sequence].append(self._workbuff)
+                            self._workbuff = None
+                            self._worklength = None
+
+                            tonotify.append(sequence)
+
+
+                    self._recvlock.release()
+
+            # must happen here to avoid race condition with _recvlock
+            for sequence in tonotify:
+                if sequence in self._conditions:
+                    condition = self._conditions[sequence]
+                    condition.acquire()
+                    condition.notify()
+                    condition.release()
+
+            if self._stream in wr:
+                if self._sendlock.acquire(blocking=False):
+                    if len(self._tosend) > 0:
+                        log( "SEND (%s):\n%s" % (self._stream, make_dump(self._tosend[0])) )
+                        self._stream.send(self._tosend[0])
+                        #if success:
+                        self._tosend.pop(0)
+
+                    self._sendlock.release()
+
+
+    def stop(self):
+        self._run = False
+        self._rwthread.join()
+
+    def send(self, buffer, condition=None):
+        with self._sendlock:
+            sequence = struct.unpack_from("<H", buffer, 12)[0]
+            
+            self._tosend.append(buffer)
+
+        if condition:
+            self._conditions[sequence] = condition
+
+        return sequence 
+
+    def recv(self,sequence):
+        with self._recvlock:
+            if sequence in self._responses:
+                # todo not sure why this needed, Y YU HAV NO DATA!?
+                if len(self._responses[sequence]) > 0:
+                    buffer = self._responses[sequence].pop(0)
+
+                    fraginfo = struct.unpack_from("<H", buffer, 14)[0]
+                    fragcontinue = (fraginfo & 0x8000 != 0)
+
+                    if not fragcontinue:
+                        del self._responses[sequence]
+
+                    return buffer
+
+            return None
+
+    def sendrecvmult(self, buffer):
+        condition = threading.Condition()
+        sequence = self.send(buffer, condition)
+        if sequence in self._responses:
+            print ("Collision!")
+        self._responses[sequence] = []
+
+        lastfrag = -1
+        fragcontinue = True
+        fragearly = False
+        while fragcontinue and not fragearly:
+            condition.acquire()
+            condition.wait()
+            condition.release()
+
+            while True:
+                buffer = self.recv(sequence)
+                if not buffer:
+                    break
+
+                fraginfo = struct.unpack_from("<H", buffer, 14)[0]
+                fragcontinue = (fraginfo & 0x8000 != 0)
+                fragearly = (fraginfo & 0x4000 != 0)
+                fragval = fraginfo & 0x3FFF
+
+                yield buffer
+
+        with self._recvlock:
+            if sequence in self._conditions:
+                del self._conditions[sequence]
+
+    def sendrecv(self, buffer):
+        #todo: rework.  Should we paste allmultipart messages together?
+        l = [b for b in self.sendrecvmult(buffer)]
+        if len(l) != 1:
+            raise "Multipart message not expected"
+            
+        return l[0]
+
+    def get_notification(self):
+        with self._recvlock:
+            if len(self._notifications) > 0:
+                return self._notifications.pop(0)
+            return None
 
 # Basic organization
 # 
@@ -727,7 +882,7 @@ class CtrlpProt(Deci4H):
     def parse(self, res, buffer):
         if res["msgtype"] == self.SCE_CTRLP_TYPE_GET_CONF_RES:
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
-            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceCtrlpGetConfCmd"], res)
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceGetConfCmd"], res)
         elif res["msgtype"] == self.SCE_CTRLP_TYPE_PLAY_DATA_RES:
             buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceCtrlpPlayDataRes"], res)
         elif (res["msgtype"] == self.SCE_CTRLP_TYPE_REC_START_RES or 
@@ -781,23 +936,20 @@ class TtypProt(Deci4H):
     def get_conf_cmd(self):
         return self.make_deci_cmd_header(None, self.SCE_TTYP_TYPE_GET_CONF_CMD, self.PROTOCOL)
 
-    def get_conf_msg(self, stream):
-        buffer = self.sendrecv(stream, self.get_conf_cmd())
-        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TTYP_TYPE_GET_CONF_RES)
+    def get_conf_parse(self, buffer):
+        buffer, res = self.parse_header(buffer)
+        if res['msgtype'] == self.SCE_TTYP_TYPE_GET_CONF_CMD:
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceGetConfCmd"], res)
+        return buffer, res
+
 
     def get_port_states_cmd(self):
         return self.make_deci_cmd_header(None, self.SCE_TTYP_TYPE_GET_PORT_STATES_CMD, self.PROTOCOL)
 
-    def get_port_states_msg(self, stream):
-        buffer = self.sendrecv(stream, self.get_port_states_cmd())
-        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TTYP_TYPE_GET_PORT_STATES_RES)
-
-    def parse(self, res, buffer):
-        if res["msgtype"] == self.SCE_TTYP_TYPE_GET_CONF_RES:
-            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
-            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypGetConfCmd"], res)
-
-        elif res["msgtype"] == self.SCE_TTYP_TYPE_GET_PORT_STATES_RES:
+    def get_port_states_parse(self, buffer):
+        buffer, res = self.parse_header(buffer)
+        if res['msgtype'] == self.SCE_TTYP_TYPE_GET_PORT_STATES_RES:
             res["data"] = []
             elements = struct.unpack_from("<l", buffer, 0)[0]
             buffer = buffer[8:] # skip num elements and elment size
@@ -807,19 +959,16 @@ class TtypProt(Deci4H):
                 buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypPortState"], resdata)
                 res["data"].append(resdata)
 
-        elif res["msgtype"] == self.SCE_TTYP_TYPE_TTY_OUT_NOTIFICATION:
-            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypOut"], res)
-        else:
-            pass
-
         return buffer, res
 
-    def recv(self, stream):
-        buffer = self.recv_message(stream)
-        if not buffer:
-            return None
 
-        return buffer
+    def notification_parse(self, buffer):
+        buffer, res = self.parse_header(buffer)
+        if res['msgtype'] == TtypProt.SCE_TTYP_TYPE_TTY_OUT_NOTIFICATION:
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypOut"], res)
+
+
+        return buffer, res
 
 class TsmpProt(Deci4H):
     SCE_TSMP_TYPE_GET_CONF_CMD = 0x0
@@ -842,17 +991,18 @@ class TsmpProt(Deci4H):
     def get_conf_cmd(self):
         return self.make_deci_cmd_header(None, self.SCE_TSMP_TYPE_GET_CONF_CMD, self.PROTOCOL)
 
-    def get_conf_msg(self, stream):
-        buffer = self.sendrecv(stream, self.get_conf_cmd())
-        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TSMP_TYPE_GET_CONF_RES)
+    def get_conf_parse(self, buffer):
+        buffer, res = self.parse_header(buffer)
+        if res['msgtype'] == self.SCE_TSMP_TYPE_GET_CONF_CMD:
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
+            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceGetConfCmd"], res)
+        return buffer, res
 
     def get_info_cmd(self):
         return self.make_deci_cmd_header(None, self.SCE_TSMP_TYPE_GET_INFO_CMD, self.PROTOCOL)
 
-    def get_info_msg(self, stream):
-        buffer = self.sendrecv(stream, self.get_info_cmd())
+    def get_info_parse(self, buffer):
         buffer, res = self.parse_header(buffer)
-
         res["data"] = []
         terminator = struct.unpack_from("<l", buffer, 0)[0]
         while(terminator > 0):
@@ -861,59 +1011,37 @@ class TsmpProt(Deci4H):
             res["data"].append(resdata)
             terminator = struct.unpack_from("<l", buffer, 0)[0]
 
-        return res
+        return buffer, res
 
     def power_control_cmd(self, powerstate):
         buffer = self.build_buffer(Deci4H.recorddefs["SceTsmpPowerRequest"], powerstate=powerstate)
         return self.make_deci_cmd_header(buffer, self.SCE_TSMP_TYPE_POWER_CONTROL_CMD, self.PROTOCOL)
-        
-    def power_control_msg(self, stream, powerstate):
-        buffer = self.sendrecv(stream, self.power_control_cmd(powerstate))
-        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TSMP_TYPE_POWER_CONTROL_RES)
+
+    def power_control_parse(self, buffer):
+        return self.parse_header(buffer)
 
     def power_status_cmd(self):
         return self.make_deci_cmd_header(None, self.SCE_TSMP_TYPE_GET_POWER_STATUS_CMD, self.PROTOCOL)
 
-    def power_status_msg(self, stream):
-        buffer = self.sendrecv(stream, self.power_status_cmd())
-        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TSMP_TYPE_GET_POWER_STATUS_RES)        
+    def power_status_parse(self, buffer):
+        buffer, res = self.parse_header(buffer)
+        buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTsmpPowerState"], res)
+        return buffer, res
 
     def get_pict_cmd(self, mode):
         buffer = self.build_buffer(Deci4H.recorddefs["SceTsmpGetPict"], mode=mode)
         return self.make_deci_cmd_header(buffer, self.SCE_TSMP_TYPE_GET_GET_PICT_CMD, self.PROTOCOL)
 
-    def get_pict_msg(self, stream, mode):
-        stream.send(self.get_pict_cmd(mode))
-
-        # Read blocks, ignoring the deci array length blocks
-        # message returned as a deci array if 64k blocks.
-        # length is the size of the block.  An index in the deci array may not be
-        # full so this is really the max size not the actual size.
-        for buffer, res in self.recv_messages(stream):
-            if len(buffer) > 8:
-                yield buffer
+    def get_pict_parse(self, buffer):
+        return self.parse_header(buffer)
 
     def get_psn_state_cmd(self, username):
         buffer = self.build_buffer(Deci4H.recorddefs["SceTsmpGetPsnStateCmd"], username=username)
         return self.make_deci_cmd_header(buffer, self.SCE_TSMP_TYPE_GET_PSN_STATE_CMD, self.PROTOCOL)
-        
-    def get_psn_state_msg(self, stream, username):
-        buffer = self.sendrecv(stream, self.get_psn_state_cmd(username))
-        return self.parse_assert(buffer, self.PROTOCOL, self.SCE_TSMP_TYPE_GET_PSN_STATE_RES)
 
-    def parse(self, res, buffer):
-        if res["msgtype"] == self.SCE_TSMP_TYPE_GET_CONF_RES:
-            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceDeciCommonConfig"], res)
-            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTtypGetConfCmd"], res)
-        elif res["msgtype"] == self.SCE_TSMP_TYPE_GET_PSN_STATE_RES:
-            if res["result"] == 0:
-                buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTsmpGetPsnStateRes"], res)
-        elif res["msgtype"] == self.SCE_TSMP_TYPE_POWER_CONTROL_RES:
-            pass
-
-        elif res["msgtype"] == self.SCE_TSMP_TYPE_GET_POWER_STATUS_RES:
-            buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTsmpPowerState"], res)
-            
+    def get_psn_state_parse(self, buffer):
+        buffer, res = self.parse_header(buffer)
+        buffer = self.parse_buffer(buffer, Deci4H.recorddefs["SceTsmpGetPsnStateRes"], res)
         return buffer, res
 
 class Netmp:
@@ -978,13 +1106,16 @@ class Netmp:
 
             #checkexception
 
-        return Ttyp(self.stream_ttyp)
+            self.ttyp = Ttyp(self.stream_ttyp)
+
+        return self.ttyp
 
     def unregister_ttyp(self):
         if self._refcnt_dec("ttyp"):
             res = self.prot.unregister_msg(self.stream1, reg_protocol=TtypProt.PROTOCOL)
 
             #checkexception
+            self.ttyp.stop()
 
             self.stream_ttyp.shutdown(socket.SHUT_RDWR)
             self.stream_ttyp.close()
@@ -1024,13 +1155,16 @@ class Netmp:
 
             #checkexception
 
-        return Tsmp(self.stream_tsmp)
+            self.tsmp = Tsmp(self.stream_tsmp)
+
+        return self.tsmp
 
     def unregister_tsmp(self):
         if self._refcnt_dec("tsmp"):
             res = self.prot.unregister_msg(self.stream1, reg_protocol=TsmpProt.PROTOCOL)
-
             #checkexception
+
+            self.tsmp.stop()
 
             self.stream_tsmp.shutdown(socket.SHUT_RDWR)
             self.stream_tsmp.close()
@@ -1100,30 +1234,48 @@ class Ttyp:
     def __init__(self, stream):
         self.prot = TtypProt()
         self.stream = stream
+        self.queue = Queue(self.stream)
+
+    def stop(self):
+        self.queue.stop()
 
     def get_conf(self):
-        return self.prot.get_conf_msg(self.stream)
+        buffer = self.prot.get_conf_cmd()
+        buffer = self.queue.sendrecv(buffer)
+        buffer, res = self.prot.get_conf_parse(buffer)
+
+        return res
 
     def get_port_states(self):
-        return self.prot.get_port_states_msg(self.stream)
+        buffer = self.prot.get_port_states_cmd()
+        buffer = self.queue.sendrecv(buffer)
+        buffer, res = self.prot.get_port_states_parse(buffer)
+
+        return res
 
     def read(self):
         """ Reads a tty message without blocking.  If no messages pending, returns None """
-        buffer = self.prot.recv(self.stream)
 
-        if not buffer:
-            return None
+        sequence = self.queue.get_notification()
+        if sequence:
+            buffer = self.queue.recv(sequence)
+            buffer, res = self.prot.notification_parse(buffer)
 
-        buffer, res = self.prot.parse_header(buffer)
-        buffer, res = self.prot.parse(res,buffer)
+            # need to handle different types
+            return res
 
-        return res
+        return None
                 
+    # todo Event?
     def readsync(self):
-        rd,wr,ex = select.select([self.stream], [], [], 30)
-        return self.read()
-        
+        res = None
 
+        while not res:
+            res = self.read()
+            
+        return res
+
+         
 class Tsmp:
     MODE_GAME = 0
     MODE_SYSTEM = 1
@@ -1132,13 +1284,24 @@ class Tsmp:
     def __init__(self, stream):
         self.prot = TsmpProt()
         self.stream = stream
+        self.queue = Queue(self.stream)
+
+    def stop(self):
+        self.queue.stop()
 
     def get_conf(self):
-        return self.prot.get_conf_msg(self.stream)
+        buffer = self.prot.get_conf_cmd()
+        buffer = self.queue.sendrecv(buffer)
+        buffer, res = self.prot.get_conf_parse(buffer)
+
+        return res
 
     def get_info(self):
-        info = self.prot.get_info_msg(self.stream)
-        return {item["name"]:item["value"] for item in info["data"]}
+        buffer = self.prot.get_info_cmd()
+        buffer = self.queue.sendrecv(buffer)
+        buffer, res = self.prot.get_info_parse(buffer)
+
+        return {item["name"]:item["value"] for item in res["data"]}
 
     def get_pict(self, mode):
         """ generator of image blocks in tga format.
@@ -1147,20 +1310,38 @@ class Tsmp:
                    GAME - The current game process or VSH if no game running
                    SYSTEM - VSH
         """ 
-        for buffer in self.prot.get_pict_msg(self.stream, mode):
-            yield buffer
+        buffer = self.prot.get_pict_cmd(mode)
+
+        for buffer in self.queue.sendrecvmult(buffer):
+            buffer, res = self.prot.get_pict_parse(buffer)
+            if len(buffer) > 8:
+                yield buffer
     
     def reboot(self):
-        return self.prot.power_control_msg(self.stream, TsmpProt.POWER_REBOOT)
+        buffer = self.prot.power_control_cmd(TsmpProt.POWER_REBOOT)
+        buffer = self.queue.sendrecv(buffer)
+        buffer, res = self.prot.power_control_parse(buffer)
+        return res
 
     def power_off(self):
-        return self.prot.power_control_msg(self.stream, TsmpProt.POWER_OFF)
+        buffer = self.prot.power_control_cmd(TsmpProt.POWER_OFF)
+        buffer = self.queue.sendrecv(buffer)
+        buffer, res = self.prot.power_control_parse(buffer)
+        return res
 
     def get_psn_state(self, username):
-        return self.prot.get_psn_state_msg(self.stream, username)
+        buffer = self.prot.get_psn_state_cmd(username)
+        buffer = self.queue.sendrecv(buffer)
+        buffer, res = self.prot.get_psn_state_parse(buffer)
+
+        return res
 
     def get_power_status(self):
-        return self.prot.power_status_msg(self.stream) 
+        buffer = self.prot.power_status_cmd()
+        buffer = self.queue.sendrecv(buffer)
+        buffer, res = self.prot.power_status_parse(buffer)
+
+        return res
 
 class NetmpManager:
     """ Base class that lets subclasses share netmp instances by ip """

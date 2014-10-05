@@ -25,10 +25,15 @@ class Console(NetmpManager):
 
         self.netmp = super(Console, self).stopnetmp(self.ip)
 
+    def get_port_states(self):
+        return self.ttyp.get_port_states()
+
     def read(self):
         res = self.ttyp.read()
         if res:
+            # It would be better to check the message type somehow
             if "message" in res:
+                # Console likes to send "\n" between every line
                 if len(res["message"]) > 1:
                     return ("{port}:{category}:{tid:x}:{pid:x}:{message}".format(**res))
 

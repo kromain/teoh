@@ -1,5 +1,6 @@
 from .deci4 import NetmpManager, Netmp, Tsmp
 import os
+import threading
 
 try:
     from PIL import Image
@@ -23,7 +24,6 @@ class Info(NetmpManager):
 
         self.tsmp = self.netmp.register_tsmp()
 
-
     def stop(self):
         self.netmp.unregister_tsmp()
 
@@ -34,12 +34,18 @@ class Info(NetmpManager):
 
         return state['result'] == 0 and state['psnState'] == 2
 
+    #TESTING: move to somewhere else
+    def get_conf(self):
+        return self.tsmp.get_conf()
+
+    def get_info(self):
+        return self.tsmp.get_info()
+
     def get_pict_blocks(self, mode=Tsmp.MODE_AUTO):
         for buffer in self.tsmp.get_pict(mode):
             yield buffer
 
-    def get_pict(self, name, mode=Tsmp.MODE_AUTO):
-
+    def _get_pict_thread(self, name, mode):
         if '.' not in name:
             name = name + ".tga"
 
@@ -53,9 +59,12 @@ class Info(NetmpManager):
 
         fp = open(in_name, "wb")
 
+        cnt = 0
         for buffer in self.tsmp.get_pict(mode):
+            cnt += 1
             fp.write(buffer)
         fp.close()
+
 
         if in_name != name:
             try:
@@ -63,5 +72,18 @@ class Info(NetmpManager):
                 os.remove(in_name)
             except KeyError:
                 raise Exception(name[name.rfind('.'):] + " is not a valid file type")
+
+    def get_pict(self, name, mode=Tsmp.MODE_AUTO, async = False):
+
+        if not async:
+            self._get_pict_thread(name, mode)
+
+        else:
+            thread = threading.Thread(name="GetPictThread",
+                                      target=self._get_pict_thread,
+                                      args=(name, mode))
+            thread.start()
+
+            return thread
 
         

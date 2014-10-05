@@ -8,6 +8,7 @@ if __name__ == "__main__":
 
     try:
         with Console(ip=sys.argv[1]) as console:
+            print("States", console.get_port_states())
 
             try:
                 while True:

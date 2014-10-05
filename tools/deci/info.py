@@ -29,17 +29,25 @@ import sys
 #netmp.disconnect()
 
 from skynet.deci.info import Info
+from skynet.deci.power import Power
 
 
 if __name__ == "__main__":
 
     try:
-        with Info(ip=sys.argv[1]) as info:
+        with Info(ip=sys.argv[1]) as info, Power(ip=sys.argv[1]) as power:
 
+            print("CONF:", info.get_conf())
             if info.is_user_signed_in("steve-e1"):
                 print("Yes")
             else:
                 print("No")
+
+            print(power.power_status())
+
+            infolist = info.get_info()
+            for item in infolist:
+                print (item,infolist[item])
 
     except IndexError:
         print("USAGE info.py IPADDRESS")

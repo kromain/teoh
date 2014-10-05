@@ -12,12 +12,12 @@ if __name__ == "__main__":
 	except IndexError:
 		print("USAGE power_status.py IPADDRESS")
 
-	except ConnectionRefusedError:
-		pass
+	#except ConnectionRefusedError:
+#		pass
 
-	except ConnectionResetError:
-		pass
-
-	except struct.error:
-		pass
+#	except ConnectionResetError:
+#		pass
+#
+#	except struct.error:
+#		pass
 
