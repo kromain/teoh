@@ -72,11 +72,6 @@ class PSTarget(object):
 
         :type: :class:`skynet.deci.dualshock.DualShock`
         """
-        self.console = None
-        """The TTY console interface
-
-        :type: :class:`skynet.deci.console.Console`
-        """
         self.osk = None
         """The ShellUI On-Screen Keyboard interface
 
@@ -106,7 +101,6 @@ class PSTarget(object):
         Initializes and connects the following members:
         * :attr:`dualshock`: always initialized
         * :attr:`osk`: always initialized
-        * :attr:`console`: always initialized
         * :attr:`psdriver`: only initialized if a webview is currently available on the target
 
         Does nothing if the target is already connected and all members initialized.
@@ -132,17 +126,9 @@ class PSTarget(object):
             else:
                 self.dualshock = ds
 
-        if self.console is None:
-            cs = Console(self.target_ip)
-            try:
-                cs.start()
-            except Exception as e:
-                raise PSTargetUnreachableException("Target unreachable") from e
-            else:
-                self.console = cs
-
         if self.osk is None:
             self.osk = osk.OskEntry(self.dualshock)
+
         if self.psdriver is None:
             try:
                 self.psdriver = psdriver.server.connect(self.target_ip)
@@ -159,10 +145,9 @@ class PSTarget(object):
         """
         Disconnects from the target at the IP address specified in the constructor.
 
-        Disconnects then resets the following members to None:
+        Closes all the active DECI connections (DualShock, TTY, Power...) then resets the following members to None:
         * :attr:`dualshock`
         * :attr:`osk`
-        * :attr:`console`
         * :attr:`psdriver`
 
         Does nothing if the target is already disconnected.
@@ -170,17 +155,28 @@ class PSTarget(object):
         This method is automatically called when the PSTarget object is GC'd or at the end of a 'with' block,
         but you may still want to call it explicitely to ensure the target connection is released as soon as possible.
         """
+        for wrapper in self._deci_wrappers.values():
+            wrapper.stop()
+        self._deci_wrappers.clear()
+
         if self.dualshock is not None:
             self.dualshock.stop()
             self.dualshock = None
         if self.osk is not None:
             self.osk = None
-        if self.console is not None:
-            self.console.stop()
-            self.console = None
         if self.psdriver is not None:
             self.psdriver.quit()
             self.psdriver = None
+
+    @property
+    def tty(self):
+        """The TTY console interface
+
+        This object can be accessed regardless of the connection state.
+
+        :type: :class:`skynet.deci.console.Console`
+        """
+        return self._deci_wrapper(Console)
 
     def is_user_signed_in(self, username):
         """
@@ -241,19 +237,24 @@ class PSTarget(object):
         """
         self._power.power_off()
 
+    def _deci_wrapper(self, wrapper_class):
+        if wrapper_class not in self._deci_wrappers:
+            wrapper = wrapper_class(self.target_ip)
+            try:
+                wrapper.start()
+            except Exception as e:
+                raise PSTargetUnreachableException("Target unreachable") from e
+            else:
+                self._deci_wrappers[wrapper_class] = wrapper
+        return self._deci_wrappers[wrapper_class]
+
     @property
     def _info(self):
-        if Info not in self._deci_wrappers:
-            self._deci_wrappers[Info] = Info(self.target_ip)
-            self._deci_wrappers[Info].start()
-        return self._deci_wrappers[Info]
+        return self._deci_wrapper(Info)
 
     @property
     def _power(self):
-        if Power not in self._deci_wrappers:
-            self._deci_wrappers[Power] = Power(self.target_ip)
-            self._deci_wrappers[Power].start()
-        return self._deci_wrappers[Power]
+        return self._deci_wrapper(Power)
 
 
 def main():
