@@ -18,7 +18,7 @@ class PSTargetException(Exception):
 
 class PSTargetUnreachableException(PSTargetException):
     """
-    Represents a DECI connection failure when trying to connect to a target (PSDriver exceptions are allowed)
+    Represents a DECI connection failure when trying to connect to a target
     """
     pass
 
@@ -26,6 +26,12 @@ class PSTargetUnreachableException(PSTargetException):
 class PSTargetInUseException(PSTargetException):
     """
     Represents a DECI 'target in use' error when trying to connect to a target without force-mode
+    """
+    pass
+
+class PSTargetWebViewUnavailableException(PSTargetException):
+    """
+    Represents a PSDriver connection failure when trying to connect to a webview on the target
     """
     pass
 
@@ -62,11 +68,6 @@ class PSTarget(object):
 
         :type: String
         """
-        self.psdriver = None
-        """The Webview introspection interface
-
-        :type: :class:`selenium.webdriver.Remote`
-        """
         self.dualshock = None
         """The Dualshock emulator interface
 
@@ -78,6 +79,7 @@ class PSTarget(object):
         :type: :class:`skynet.osk.OskEntry`
         """
 
+        self._psdriver = None
         self._deci_wrappers = {}
 
         self.connect(force_connect)
@@ -129,18 +131,6 @@ class PSTarget(object):
         if self.osk is None:
             self.osk = osk.OskEntry(self.dualshock)
 
-        if self.psdriver is None:
-            try:
-                self.psdriver = psdriver.server.connect(self.target_ip)
-            except psdriver.PSDriverError:
-                # We may not always have a webview available (e.g. at the login screen after bootup),
-                # in this case we leave the psdriver part uninitialized, relying only on the deci part
-                pass
-            except Exception as e:
-                # we need to disconnect here since __del__() won't be called as the exception is propagated
-                self.disconnect()
-                raise psdriver.PSDriverError("Error during psdriver connection initialization") from e
-
     def disconnect(self):
         """
         Disconnects from the target at the IP address specified in the constructor.
@@ -164,9 +154,26 @@ class PSTarget(object):
             self.dualshock = None
         if self.osk is not None:
             self.osk = None
-        if self.psdriver is not None:
-            self.psdriver.quit()
-            self.psdriver = None
+        if self._psdriver is not None:
+            self._psdriver.quit()
+            self._psdriver = None
+
+    @property
+    def psdriver(self):
+        """The Webview introspection interface
+
+        :type: :class:`selenium.webdriver.Remote`
+        """
+        if self._psdriver is None:
+            try:
+                self._psdriver = psdriver.server.connect(self.target_ip)
+            except psdriver.PSDriverError:
+                # Report psdriver server startup errors
+                raise
+            except psdriver.PSDriverConnectionError as e:
+                # We may not always have a webview available (e.g. at the login screen after bootup)
+                raise PSTargetWebViewUnavailableException from e
+        return self._psdriver
 
     @property
     def tty(self):

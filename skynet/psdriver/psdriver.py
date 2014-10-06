@@ -18,10 +18,15 @@ def _iswindows():
 
 class PSDriverError(Exception):
     """
-    Represents an error during startup of the PSDriver server or when trying to connect to a target
+    Represents an error during startup of the PSDriver server
     """
     pass
 
+class PSDriverConnectionError(Exception):
+    """
+    Represents an error when trying to connect to a target
+    """
+    pass
 
 class PSDriverServer(object):
     """
@@ -180,7 +185,7 @@ class PSDriverServer(object):
         :param int target_port: the target's inspector server listening port, by default 860
         :return: a :class:`selenium.webdriver.Remote` instance if the connection if successful,
             or None if the server isn't running
-        :raises PSDriverError: if the connection to the target failed
+        :raises PSDriverConnectionError: if the connection to the target failed
         """
         server.start_local_server(9515)
         if self.server_ip is None or self.server_port is None:
@@ -205,12 +210,12 @@ class PSDriverServer(object):
             #
             # The following hack, combined with enabling 'connected' mode for HTTP with the keep_alive
             # option above, allows us to set a much smaller timeout on the HTTP connection side
-            # so we'll abort the HTTP request after 30 seconds instead of 10 minutes.
+            # so we'll abort the HTTP request after 10 seconds instead of 10 minutes.
             # This doesn't solve the ChromeDriver bug and tests may still fail, but at least this will
             # solve the hangs in our tests, so we'll detect such issues faster and won't hold CI.
-            driver.command_executor._conn.timeout = 30.0
+            driver.command_executor._conn.timeout = 10.0
         except WebDriverException as e:
-            raise PSDriverError("Connection to target failed") from e
+            raise PSDriverConnectionError("Connection to target failed") from e
 
         # connection was successful, update target_ip and target_port
         self.target_ip = target_ip

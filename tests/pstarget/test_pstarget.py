@@ -6,7 +6,8 @@ import os
 import pytest
 import time
 
-from skynet import PSTarget, DS, PowerState, PSTargetInUseException, PSTargetUnreachableException
+from skynet import PSTarget, DS, PowerState
+from skynet import PSTargetInUseException, PSTargetUnreachableException, PSTargetWebViewUnavailableException
 from skynet.deci import Netmp, Console, DualShock
 import conftest
 
@@ -32,7 +33,9 @@ def test_target_without_psdriver(local_pstarget):
     assert local_pstarget.dualshock is not None
     assert local_pstarget.osk is not None
     assert local_pstarget.tty is not None
-    assert local_pstarget.psdriver is None
+
+    with pytest.raises(PSTargetWebViewUnavailableException):
+        assert local_pstarget.psdriver is not None
 
 
 def test_target_disconnect(local_pstarget):
@@ -40,7 +43,18 @@ def test_target_disconnect(local_pstarget):
 
     assert local_pstarget.dualshock is None
     assert local_pstarget.osk is None
-    assert local_pstarget.psdriver is None
+
+
+def test_target_psdriver(local_pstarget):
+    # System (Secure) webview is called Swordfish
+    assert "Swordfish" in local_pstarget.psdriver.title
+
+    # check for proper cleanup
+    local_pstarget.disconnect()
+    assert local_pstarget._psdriver is None
+
+    # psdriver should also be available in disconnected mode
+    assert "Swordfish" in local_pstarget.psdriver.title
 
 
 def test_target_tty(local_pstarget):
