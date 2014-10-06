@@ -6,9 +6,10 @@ import os
 import pytest
 import time
 
-from skynet import PSTarget, PowerState, PSTargetInUseException, PSTargetUnreachableException
-from skynet.deci import Netmp
+from skynet import PSTarget, DS, PowerState, PSTargetInUseException, PSTargetUnreachableException
+from skynet.deci import Netmp, Console, DualShock
 import conftest
+
 
 @pytest.fixture(scope="function")
 def local_pstarget(request):
@@ -21,7 +22,7 @@ def local_pstarget(request):
 def test_target_with_psdriver(local_pstarget):
     assert local_pstarget.dualshock is not None
     assert local_pstarget.osk is not None
-    assert local_pstarget.console is not None
+    assert local_pstarget.tty is not None
     assert local_pstarget.psdriver is not None
 
 
@@ -30,7 +31,7 @@ def test_target_without_psdriver(local_pstarget):
     # FIXME figure out a way to turn off the inspector server on the target
     assert local_pstarget.dualshock is not None
     assert local_pstarget.osk is not None
-    assert local_pstarget.console is not None
+    assert local_pstarget.tty is not None
     assert local_pstarget.psdriver is None
 
 
@@ -39,8 +40,37 @@ def test_target_disconnect(local_pstarget):
 
     assert local_pstarget.dualshock is None
     assert local_pstarget.osk is None
-    assert local_pstarget.console is None
     assert local_pstarget.psdriver is None
+
+
+def test_target_tty(local_pstarget):
+    # make sure the TTY object is initialized
+    assert local_pstarget.tty is not None
+    assert Console in local_pstarget._deci_wrappers
+
+    # going in and out of What's New reliably generates TTY output
+    local_pstarget.dualshock.press_buttons([DS.DOWN, DS.UP])
+    msg = local_pstarget.tty.read()
+    if msg is not None:
+        print("Received TTY output: " + msg)
+
+    local_pstarget.disconnect()
+    # check that the TTY object has been cleaned up
+    assert Console not in local_pstarget._deci_wrappers
+
+    # however we should still be able to use it in disconnected mode
+    assert local_pstarget.tty is not None
+
+    # create another DualShock to trigger the What's New in/out sequence
+    tmp_dualshock = DualShock(conftest.target_ip)
+    tmp_dualshock.start()
+    tmp_dualshock.press_buttons([DS.DOWN, DS.UP])
+    tmp_dualshock.stop()
+
+    msg = local_pstarget.tty.read()
+    if msg is not None:
+        print("Received TTY output: " + msg)
+
 
 
 def test_info_functions(local_pstarget):
