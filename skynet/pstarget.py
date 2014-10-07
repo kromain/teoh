@@ -29,6 +29,7 @@ class PSTargetInUseException(PSTargetException):
     """
     pass
 
+
 class PSTargetWebViewUnavailableException(PSTargetException):
     """
     Represents a PSDriver connection failure when trying to connect to a webview on the target
@@ -45,36 +46,59 @@ class PSTarget(object):
     * :attr:`dualshock`: allows emulating DualShock keys on the target
     * :attr:`psdriver` allows introspecting webviews and executing JavaScript code on the target
 
-    The remote connection to *target_ip* is handled automatically:
-    :meth:`connect` is called from the constructor, and :meth:`disconnect` from the destructor.
+    In addition, the class provides access to many utility interfaces and methods, such as :attr:`osk` to control
+    OSK typing, :attr:`tty` to read the target's TTY console output, or :meth:`save_screenshot` to save a screenshot
+    of the target as a PNG/JPEG image file on the host machine.
 
-    You can also use the :class:`PSTarget` class with the 'with' operator, for example::
+    The remote connection to *target_ip* is handled automatically in most cases, with the exception of the
+    :attr:`dualshock` and :attr:`osk` interfaces, which require an explicit and exclusive connection to the target
+    before being initialized. :meth:`connect` creates the connection, and :meth:`disconnect` ends it. Other interfaces
+    and methods can be called regardless of the target connection state.
+
+    PSTarget objects manage many network connections to the target internally, and you're responsible for releasing
+    these connections by calling the :meth:`release` method at the end of your target session.
+
+    A typical PSTarget session looks like:
+
+        target = PSTarget("123.123.123.123")
+        print(target.tty.read())
+        assert target.psdriver.title == "Some Title"
+        # explicit connection required for target.dualshock
+        assert target.dualshock is None
+        target.connect()
+        target.dualshock.press_button(DS.CROSS)
+        target.psdriver.execute_script("window.origin.href")
+        # calls target.disconnect() implicitly
+        target.release()
+        assert target.dualshock is None
+
+    You can also use the :class:`PSTarget` class with the 'with' operator to automatically handle the connection
+    to the target, for example:
 
         with PSTarget("123.123.123.123") as target:
+            target.dualshock.press_button(DS.CROSS)
             print("Target WebView URL: " + target.psdriver.current_url)
-        # target is automatically disconnected then destroyed at the end of the 'with' block above
+        # target is automatically released then destroyed at the end of the 'with' block above
         print("bla")
 
     :param String target_ip: the IP address of the target, e.g. "43.138.12.123"
-    :param Bool force_connect: If set to True, will take precedence over existing connections on the target rather than
-                                raising :class:`PSTargetInUseException`. Passed to :meth:`connect`. Default is False.
 
     :raises PSTargetInUseException: if the target connection failed due to being in use
     :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
     """
-    def __init__(self, target_ip, force_connect=False):
+    def __init__(self, target_ip):
         self.target_ip = target_ip
         """The remote target IP address
 
         :type: String
         """
         self.dualshock = None
-        """The Dualshock emulator interface
+        """The Dualshock emulator interface. Only valid when the target is in connected state.
 
         :type: :class:`skynet.deci.dualshock.DualShock`
         """
         self.osk = None
-        """The ShellUI On-Screen Keyboard interface
+        """The ShellUI On-Screen Keyboard interface. Only valid when the target is in connected state.
 
         :type: :class:`skynet.osk.OskEntry`
         """
@@ -82,34 +106,51 @@ class PSTarget(object):
         self._psdriver = None
         self._deci_wrappers = {}
 
-        self.connect(force_connect)
-
     def __del__(self):
-        self.disconnect()
+        self.release()
 
     def __enter__(self):
-        # self.connect() is called in __init__() instead
+        self.connect()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.disconnect()
-        # PENDING figure out if exceptions should be suppressed or not
+        self.release()
         return False
+
+    def release(self):
+        """
+        Closes all PSDriver and DECI connections to the target at the IP address specified in the constructor.
+
+        This method implicitly calls :method:`disconnect` first, if the target is in connected state.
+
+        You should call this method at the end of your PSTarget session to ensure all resources and connections
+        are properly closed and cleaned up.
+        """
+        self.disconnect()
+
+        for wrapper in self._deci_wrappers.values():
+            wrapper.stop()
+        self._deci_wrappers.clear()
+
+        if self._psdriver is not None:
+            self._psdriver.quit()
+            self._psdriver = None
+
+    def is_connected(self):
+        """
+        Returns whether this PSTarget instance is connected to the target at :attr:`target_ip`
+        :return: True if the target is in connected state, False otherwise
+        """
+        return self.dualshock is not None
 
     def connect(self, force=False):
         """
         Connects to the target at the IP address specified in the constructor.
 
-        Initializes and connects the following members:
-        * :attr:`dualshock`: always initialized
-        * :attr:`osk`: always initialized
-        * :attr:`psdriver`: only initialized if a webview is currently available on the target
+        Using the DualShock and/or OSK interfaces requires an exclusive DECI connection to the target.
+        This method tries to set up the connection, and if successful initializes :attr:`dualshock` and :attr:`osk`.
 
-        Does nothing if the target is already connected and all members initialized.
-
-        You normally don't need to call this method explicitely, as it is automatically called by the constructor.
-        However, if the :attr:`psdriver` member couldn't be initialized at the time the PSTarget was created,
-        you may call this method again to initialize :attr:`psdriver` once a webview is available on the target.
+        Does nothing if the target is already in connected state, with :attr:`dualshock` and :attr:`osk` initialized.
 
         :param Bool force: if set to True, will take precedence over existing connections on the target rather than
                             raising :class:`PSTargetInUseException`. Default is False.
@@ -135,28 +176,16 @@ class PSTarget(object):
         """
         Disconnects from the target at the IP address specified in the constructor.
 
-        Closes all the active DECI connections (DualShock, TTY, Power...) then resets the following members to None:
-        * :attr:`dualshock`
-        * :attr:`osk`
-        * :attr:`psdriver`
+        Closes the exclusive connection required by the DualShock and OSK interfaces,
+        then resets :attr:`dualshock` and :attr:`osk` to None.
 
-        Does nothing if the target is already disconnected.
-
-        This method is automatically called when the PSTarget object is GC'd or at the end of a 'with' block,
-        but you may still want to call it explicitely to ensure the target connection is released as soon as possible.
+        Does nothing if the target is already in disconnected state.
         """
-        for wrapper in self._deci_wrappers.values():
-            wrapper.stop()
-        self._deci_wrappers.clear()
-
         if self.dualshock is not None:
             self.dualshock.stop()
             self.dualshock = None
         if self.osk is not None:
             self.osk = None
-        if self._psdriver is not None:
-            self._psdriver.quit()
-            self._psdriver = None
 
     @property
     def psdriver(self):
