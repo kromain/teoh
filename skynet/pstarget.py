@@ -82,9 +82,6 @@ class PSTarget(object):
         print("bla")
 
     :param String target_ip: the IP address of the target, e.g. "43.138.12.123"
-
-    :raises PSTargetInUseException: if the target connection failed due to being in use
-    :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
     """
     def __init__(self, target_ip):
         self.target_ip = target_ip
@@ -192,6 +189,9 @@ class PSTarget(object):
         """The Webview introspection interface
 
         :type: :class:`selenium.webdriver.Remote`
+
+        :raises PSTargetWebViewUnavailableException: if there's no active WebView on the target
+        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         if self._psdriver is None:
             try:
@@ -218,6 +218,8 @@ class PSTarget(object):
         This object can be accessed regardless of the connection state.
 
         :type: :class:`skynet.deci.console.Console`
+
+        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         return self._deci_wrapper(Console)
 
@@ -229,6 +231,8 @@ class PSTarget(object):
 
         :param string username: the PSN username to check for signed-in status
         :returns: True if the username is signed in to PSN on the target, False otherwise
+
+        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         return self._info.is_user_signed_in(username)
 
@@ -240,6 +244,8 @@ class PSTarget(object):
 
         :returns: The current power status for the target
         :rtype: :class:`skynet.deci.power.PowerState`
+
+        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         return self._power.power_state()
 
@@ -261,6 +267,8 @@ class PSTarget(object):
         This method can be called regardless of the connection state.
 
         :param string filepath: the saved image file path
+
+        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         self._info.get_pict(filepath)
 
@@ -269,6 +277,8 @@ class PSTarget(object):
         Triggers a reboot of the target.
 
         This method can be called regardless of the connection state.
+
+        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         self._power.reboot()
 
@@ -277,6 +287,8 @@ class PSTarget(object):
         Triggers a target shutdown.
 
         This method can be called regardless of the connection state.
+
+        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         self._power.power_off()
 
