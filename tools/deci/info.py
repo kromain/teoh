@@ -1,53 +1,35 @@
 import sys
 
-#from skynet.deci.deci4 import Netmp
-
-#netmp = Netmp(ip=sys.argv[1])
-
-#netmp.connect()
-
-#for l in netmp.get_registered_list()["data"]:
-    #print ("%x: %s" % (l["protocol"], l["owner"]))
-
-#owner = netmp.get_owner()
-#if owner:
-    #print ("Owned by %s" % owner)
-
-#tsmp = netmp.register_tsmp()
-
-#print (tsmp.get_conf())
-
-#info = tsmp.get_info()
-#print (info)
-
-#print ("steve-e1", tsmp.get_psn_state("steve-e1"))
-#print ("steve-e2", tsmp.get_psn_state("steve-e2"))
-#print ("steve082214hkb", tsmp.get_psn_state("steve082214hkb"))
-
-#netmp.unregister_tsmp()
-#
-#netmp.disconnect()
-
 from skynet.deci.info import Info
-from skynet.deci.power import Power
 
+def dotted(val):
+    return "%s.%s.%s.%s" % ( val & 0xFF, (val >> 8) & 0xFF, (val >> 16) & 0xFF, (val >> 24) & 0xff)
 
 if __name__ == "__main__":
 
     try:
-        with Info(ip=sys.argv[1]) as info, Power(ip=sys.argv[1]) as power:
+        with Info(ip=sys.argv[1]) as info:
 
-            print("CONF:", info.get_conf())
             if info.is_user_signed_in("steve-e1"):
                 print("Yes")
             else:
                 print("No")
 
-            print(power.power_status())
-
             infolist = info.get_info()
             for item in infolist:
-                print (item,infolist[item])
+                if type(infolist[item]) == int:
+                    if item in["GameLanIpAddress",
+                                "GameLanSubnetMask",
+                                "SdkVersion",
+                                "SubnetMask"]:
+                        print (item,dotted(infolist[item]))
+                    else:
+                        print (item,infolist[item])
+                elif type(infolist[item]) == bytes:
+                    print(item, ''.join([hex(b)[2:] for b in infolist[item]]))
+                elif type(infolist[item]) == str:
+                    print (item,infolist[item])
+
 
     except IndexError:
         print("USAGE info.py IPADDRESS")

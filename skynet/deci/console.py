@@ -1,7 +1,7 @@
 import sys
 import time
 
-from .deci4 import NetmpManager
+from .deci4 import NetmpManager,Ttyp
 
 class Console(NetmpManager):
     def __init__(self, ip):
@@ -17,11 +17,11 @@ class Console(NetmpManager):
     def start(self):
         self.netmp = super(Console,self).startnetmp(self.ip)
 
-        self.ttyp = self.netmp.register_ttyp()
+        self.ttyp = self.netmp.register(Ttyp)
 
 
     def stop(self):
-        self.netmp.unregister_ttyp()
+        self.netmp.unregister(Ttyp)
 
         self.netmp = super(Console, self).stopnetmp(self.ip)
 

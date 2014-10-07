@@ -1,5 +1,5 @@
 from enum import Enum
-from .deci4 import NetmpManager, Netmp
+from .deci4 import NetmpManager, Netmp, Tsmp
 
 class Power(NetmpManager):
     def __init__(self, ip):
@@ -15,10 +15,10 @@ class Power(NetmpManager):
     def start(self):
         self.netmp = super(Power,self).startnetmp(self.ip)
 
-        self.tsmp = self.netmp.register_tsmp()
+        self.tsmp = self.netmp.register(Tsmp)
 
     def stop(self):
-        self.netmp.unregister_tsmp()
+        self.netmp.unregister(Tsmp)
 
         self.netmp = super(Power, self).stopnetmp(self.ip)
     
