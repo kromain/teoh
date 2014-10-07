@@ -200,7 +200,14 @@ class PSTarget(object):
                 # Report psdriver server startup errors
                 raise
             except psdriver.PSDriverConnectionError as e:
-                # We may not always have a webview available (e.g. at the login screen after bootup)
+                # Distinguish between the target IP being unreachable and the target just not having a webview by
+                # checking the deci.Info wrapper. If that fails it's the target, otherwise it's the webview
+                tmp_wrapper = Info(self.target_ip)
+                try:
+                    tmp_wrapper.start()
+                except Exception:
+                    raise PSTargetUnreachableException("Target unreachable") from e
+                tmp_wrapper.stop()
                 raise PSTargetWebViewUnavailableException from e
         return self._psdriver
 

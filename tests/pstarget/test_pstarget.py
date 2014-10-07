@@ -40,10 +40,10 @@ def test_connected_target(connected_pstarget):
     assert connected_pstarget.psdriver is not None
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(reason="needs ShellUI logout/login routines to test on login screen then log back in")
 def test_target_without_psdriver(local_pstarget):
-    # FIXME figure out a way to turn off the inspector server on the target
     assert local_pstarget.tty is not None
+
 
     with pytest.raises(PSTargetWebViewUnavailableException):
         assert local_pstarget.psdriver is not None
