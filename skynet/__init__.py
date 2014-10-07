@@ -4,8 +4,8 @@
 
 __version__ = "0.1"
 
-from .pstarget import PSTarget
-from .pstarget import PSTargetException, PSTargetInUseException, PSTargetUnreachableException
+from .pstarget import PSTarget, PSTargetException
+from .pstarget import PSTargetInUseException, PSTargetUnreachableException, PSTargetWebViewUnavailableException
 from .deci.dualshock import Buttons as DS
 from .deci.power import PowerState
 from .osk.osk import OskEntry

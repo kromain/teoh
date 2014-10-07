@@ -6,41 +6,64 @@ import os
 import pytest
 import time
 
-from skynet import PSTarget, DS, PowerState, PSTargetInUseException, PSTargetUnreachableException
-from skynet.deci import Netmp, Console, DualShock
+from skynet import PSTarget, DS, PowerState
+from skynet import PSTargetInUseException, PSTargetUnreachableException, PSTargetWebViewUnavailableException
+from skynet.deci import Netmp, Console, Info, Power
 import conftest
 
 
 @pytest.fixture(scope="function")
 def local_pstarget(request):
     target = PSTarget(conftest.target_ip)
-    request.addfinalizer(target.disconnect)
+    request.addfinalizer(target.release)
 
     return target
 
 
-def test_target_with_psdriver(local_pstarget):
-    assert local_pstarget.dualshock is not None
-    assert local_pstarget.osk is not None
+@pytest.fixture(scope="function")
+def connected_pstarget(local_pstarget):
+    local_pstarget.connect()
+    return local_pstarget
+
+
+def test_disconnected_target(local_pstarget):
+    assert local_pstarget.dualshock is None
+    assert local_pstarget.osk is None
     assert local_pstarget.tty is not None
     assert local_pstarget.psdriver is not None
 
 
-@pytest.mark.xfail
+def test_connected_target(connected_pstarget):
+    assert connected_pstarget.dualshock is not None
+    assert connected_pstarget.osk is not None
+    assert connected_pstarget.tty is not None
+    assert connected_pstarget.psdriver is not None
+
+
+@pytest.mark.xfail(reason="needs ShellUI logout/login routines to test on login screen then log back in")
 def test_target_without_psdriver(local_pstarget):
-    # FIXME figure out a way to turn off the inspector server on the target
-    assert local_pstarget.dualshock is not None
-    assert local_pstarget.osk is not None
     assert local_pstarget.tty is not None
-    assert local_pstarget.psdriver is None
 
 
-def test_target_disconnect(local_pstarget):
-    local_pstarget.disconnect()
+    with pytest.raises(PSTargetWebViewUnavailableException):
+        assert local_pstarget.psdriver is not None
 
-    assert local_pstarget.dualshock is None
-    assert local_pstarget.osk is None
-    assert local_pstarget.psdriver is None
+
+def test_target_disconnect(connected_pstarget):
+    connected_pstarget.disconnect()
+
+    assert connected_pstarget.dualshock is None
+    assert connected_pstarget.osk is None
+
+
+def test_target_psdriver(local_pstarget):
+    assert local_pstarget.psdriver is not None
+    # System (Secure) webview is called Swordfish
+    assert "Swordfish" in local_pstarget.psdriver.title
+
+    # check that the psdriver object has been cleaned up
+    local_pstarget.release()
+    assert local_pstarget._psdriver is None
 
 
 def test_target_tty(local_pstarget):
@@ -49,28 +72,15 @@ def test_target_tty(local_pstarget):
     assert Console in local_pstarget._deci_wrappers
 
     # going in and out of What's New reliably generates TTY output
+    local_pstarget.connect()
     local_pstarget.dualshock.press_buttons([DS.DOWN, DS.UP])
     msg = local_pstarget.tty.read()
     if msg is not None:
         print("Received TTY output: " + msg)
 
-    local_pstarget.disconnect()
     # check that the TTY object has been cleaned up
+    local_pstarget.release()
     assert Console not in local_pstarget._deci_wrappers
-
-    # however we should still be able to use it in disconnected mode
-    assert local_pstarget.tty is not None
-
-    # create another DualShock to trigger the What's New in/out sequence
-    tmp_dualshock = DualShock(conftest.target_ip)
-    tmp_dualshock.start()
-    tmp_dualshock.press_buttons([DS.DOWN, DS.UP])
-    tmp_dualshock.stop()
-
-    msg = local_pstarget.tty.read()
-    if msg is not None:
-        print("Received TTY output: " + msg)
-
 
 
 def test_info_functions(local_pstarget):
@@ -84,23 +94,12 @@ def test_info_functions(local_pstarget):
     assert os.stat(imgfile)
     os.remove(imgfile)
 
-    # is_user_signed_in and save_screenshot should still work in disconnected state
-    local_pstarget.disconnect()
-
-    assert not local_pstarget.is_user_signed_in("unknown_username")
-
-    imgfile = "test_screenshot.jpg"
-    local_pstarget.save_screenshot(imgfile)
-    assert os.stat(imgfile)
-    os.remove(imgfile)
+    # check that the underlying Info object has been cleaned up
+    local_pstarget.release()
+    assert Info not in local_pstarget._deci_wrappers
 
 
 def test_power_functions(local_pstarget):
-    assert local_pstarget.power_state() == PowerState.VSH_READY
-
-    # power functions should still work in disconnected state
-    local_pstarget.disconnect()
-
     assert local_pstarget.power_state() == PowerState.VSH_READY
 
     # TEMP until DECI support is improved
@@ -116,11 +115,33 @@ def test_power_functions(local_pstarget):
         print(local_pstarget.power_state())
         time.sleep(3)
 
+    # check that the underlying Power object has been cleaned up
+    local_pstarget.release()
+    assert Power not in local_pstarget._deci_wrappers
 
 def test_invalid_target_ip():
+    target = PSTarget("0.0.0.0")
+
     with pytest.raises(PSTargetUnreachableException):
-        target = PSTarget("0.0.0.0")
-        target.disconnect()
+        target.connect()
+    assert target.dualshock is None
+    assert target.osk is None
+
+    with pytest.raises(PSTargetUnreachableException):
+        target.tty.read()
+    assert Console not in target._deci_wrappers
+
+    with pytest.raises(PSTargetUnreachableException):
+        assert target.is_user_signed_in("foo")
+    assert Info not in target._deci_wrappers
+
+    with pytest.raises(PSTargetUnreachableException):
+        target.reboot()
+    assert Power not in target._deci_wrappers
+
+    with pytest.raises(PSTargetUnreachableException):
+        target.psdriver.refresh()
+    assert target._psdriver is None
 
 
 def test_target_in_use():
@@ -128,7 +149,7 @@ def test_target_in_use():
     try:
         netmp = Netmp(conftest.target_ip)
     except Exception:
-        raise pytest.skip("target {} unavailable".format(conftest.target_ip))
+        pytest.skip("target {} unavailable".format(conftest.target_ip))
 
     ctrlp_registered = False
     try:
@@ -140,8 +161,9 @@ def test_target_in_use():
     else:
         ctrlp_registered = True
 
+    target = PSTarget(conftest.target_ip)
     with pytest.raises(PSTargetInUseException):
-        target = PSTarget(conftest.target_ip)
+        target.connect()
         target.disconnect()
 
     # Netmp cleanup
@@ -155,7 +177,7 @@ def test_target_force_connect():
     try:
         netmp = Netmp(conftest.target_ip)
     except Exception:
-        raise pytest.skip("target {} unavailable".format(conftest.target_ip))
+        pytest.skip("target {} unavailable".format(conftest.target_ip))
 
     ctrlp_registered = False
     try:
@@ -167,10 +189,9 @@ def test_target_force_connect():
     else:
         ctrlp_registered = True
 
-    target = PSTarget(conftest.target_ip, True)
-
+    target = PSTarget(conftest.target_ip)
+    target.connect(force=True)
     assert target.dualshock is not None
-
     target.disconnect()
 
     # Netmp cleanup

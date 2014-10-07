@@ -13,4 +13,4 @@ except ImportError:
     print("Required module 'selenium' not found! Aborting.")
     sys.exit(-1)
 
-from .psdriver import server, PSDriverError
+from .psdriver import server, PSDriverError, PSDriverConnectionError
