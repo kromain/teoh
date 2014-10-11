@@ -9,7 +9,6 @@ def main():
     args = sys.argv[1:]
 
     args.extend(["-p", "mantisplugin"])
-    args.extend(["--ip=1.2.3.4"])
 
     pluginmanager = _pytest.config.get_plugin_manager()
     try:
