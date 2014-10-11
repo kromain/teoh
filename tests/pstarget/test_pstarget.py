@@ -89,7 +89,7 @@ def test_info_functions(local_pstarget):
     # FIXME figure out a way to retrieve the current username
     assert not local_pstarget.is_user_signed_in("unknown_username")
 
-    imgfile = "test_screenshot.jpg"
+    imgfile = "test_screenshot.tga"
     local_pstarget.save_screenshot(imgfile)
     assert os.stat(imgfile)
     os.remove(imgfile)
