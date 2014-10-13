@@ -347,7 +347,7 @@ class Deci4HProt:
                     res[f["name"]] = struct.unpack_from("<L", buffer, offset+8)[0]
                 elif type == 1:
                     res[f["name"]] = struct.unpack_from("<l", buffer, offset+8)[0]
-                if type == 2:
+                elif type == 2:
                     res[f["name"]] = struct.unpack_from("<Q", buffer, offset+8)[0]
                 elif type == 3:
                     res[f["name"]] = struct.unpack_from("<q", buffer, offset+8)[0]
@@ -478,7 +478,7 @@ class DeciQueue:
 
                             sequence = struct.unpack_from("<H", self._workbuff, 12)[0]
 
-                            #hack!
+                            #HACK: really should be pulling apart the messages based on the protocol definitions
                             protocol = struct.unpack_from("<L", self._workbuff, 8)[0]
                             msgtype = struct.unpack_from("<L", self._workbuff, 16)[0]
                             if msgtype >= 0x80 or (msgtype == 0x7 and protocol == CtrlpProt.PROTOCOL):
