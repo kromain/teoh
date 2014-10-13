@@ -606,15 +606,14 @@ class DeciQueue:
 # Each protocol has two classes:
 #
 # FooProt - Derived from Deci4HProt, responsible for generating messages and parsing responses.
-# Foo - Ties a stream to a protocol and presents method interface to caller
+# Foo - Derived from DeciQueue; ties a stream to a protocol and presents method interface to caller
 #
 # FooProt organization:
 # Set of constants in form SCE_*_TYPE_* representing message ids
 # Constant for protocol id
 # methods for each message type:
 # *_cmd method - returns a buffer formated as a message, takes values to apply as arguments
-# *_msg method - formats a message, sends it, then waits for the expected response, parsing and returning it
-# parse - Parses all responses that are expected
+# *_parse method - Takes a buffer and parses the values into a key/value set
 
 class NetmpProt(Deci4HProt):
     SCE_NETMP_TYPE_GET_CONF_CMD = 0x0
