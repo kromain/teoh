@@ -21,8 +21,6 @@ class Info(NetmpManager):
 
     def start(self):
         self.netmp = super(Info,self).startnetmp(self.ip)
-        print("CONF", self.netmp.get_conf())
-
         self.tsmp = self.netmp.register(Tsmp)
 
     def stop(self):

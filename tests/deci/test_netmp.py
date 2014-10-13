@@ -9,7 +9,7 @@ import conftest
 
 test_target_ip = conftest.target_ip
 
-class TestScreenshot:
+class TestNetmp:
 
     def setup(self):
         pass

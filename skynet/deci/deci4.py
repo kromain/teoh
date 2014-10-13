@@ -1114,11 +1114,13 @@ class Ctrlp(DeciQueue):
         buffer = self.prot.rec_start_cmd()
         buffer = self.sendrecv(buffer)
         buffer, res = self.prot.rec_start_parse(buffer)
+        return res
 
     def rec_stop(self):
         buffer = self.prot.rec_stop_cmd()
         buffer = self.sendrecv(buffer)
         buffer, res = self.prot.rec_stop_parse(buffer)
+        return res
 
     def read_raw_data(self):
         buffer = self.get_notification()
@@ -1135,6 +1137,7 @@ class Ctrlp(DeciQueue):
         buffer = self.prot.play_start_cmd()
         buffer = self.sendrecv(buffer)
         buffer, res = self.prot.play_start_parse(buffer)
+        return res
 
     def play_data(self, events):
         buffer = self.prot.play_data_cmd(events)
@@ -1152,6 +1155,7 @@ class Ctrlp(DeciQueue):
         buffer = self.prot.play_stop_cmd()
         buffer = self.sendrecv(buffer)
         buffer, res = self.prot.play_stop_parse(buffer)
+        return res
 
 class Ttyp(DeciQueue):
     def __init__(self, netmp, ip, port):
