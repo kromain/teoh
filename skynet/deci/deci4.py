@@ -708,6 +708,18 @@ class NetmpProt(Deci4HProt):
     def get_registered_list_cmd(self):
         return self.make_deci_cmd_header(None, self.SCE_NETMP_TYPE_GET_REGISTERED_LIST_CMD, self.PROTOCOL)
 
+    def get_registered_list_parse(self, buffer):
+        buffer, res = self.parse_header(buffer)
+        res["data"] = []
+        terminator = struct.unpack_from("<l", buffer, 0)[0]
+        while(terminator > 0):
+            resdata = {}
+            buffer = self.parse_buffer(buffer, Deci4HProt.recorddefs["SceNetmpRegInfo"], resdata)
+            res["data"].append(resdata)
+            terminator = struct.unpack_from("<l", buffer, 0)[0]
+
+        return buffer, res
+
  #   def get_registered_list_msg(self, stream):
  #       buffer = self.sendrecv(stream, self.get_registered_list_cmd())
  #       buffer, res = self.parse_header(buffer)
@@ -1051,15 +1063,7 @@ class Netmp(DeciQueue):
     def get_registered_list(self):
         buffer = self.prot.get_registered_list_cmd()
         buffer = self.sendrecv(buffer)
-        buffer, res = self.prot.parse_header(buffer)
-        res["data"] = []
-        terminator = struct.unpack_from("<l", buffer, 0)[0]
-        while(terminator > 0):
-            resdata = {}
-            buffer = self.prot.parse_buffer(buffer, Deci4HProt.recorddefs["SceNetmpRegInfo"], resdata)
-            res["data"].append(resdata)
-            terminator = struct.unpack_from("<l", buffer, 0)[0]
-
+        buffer, res = self.prot.get_registered_list_parse(buffer)
         return res
 
     def get_owner(self):
