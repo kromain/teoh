@@ -24,6 +24,7 @@ def regicam_webview(pstarget, request):
     """
     Navigate to Settings -> PSN -> Account Information (regicam webview)
     """
+    pstarget.connect()
     pstarget.dualshock.press_button(DS.PS, timetorelease=1)
     pstarget.dualshock.press_button(DS.UP, timetorelease=1)
 
