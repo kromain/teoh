@@ -2,8 +2,9 @@ import sys
 import threading
 import time
 from enum import IntEnum
+import traceback
 
-from .deci4 import NetmpManager, Netmp
+from .deci4 import NetmpManager, Netmp, Ctrlp
 
 
 class Buttons(IntEnum):
@@ -68,7 +69,8 @@ class DualShock(NetmpManager):
         self.start()
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type, value, tb):
+        traceback.print_tb(tb)
         self.stop()
 
     def start(self):
@@ -84,14 +86,14 @@ class DualShock(NetmpManager):
         self.netmp = super(DualShock, self).startnetmp(self.target_ip)
 
         try:
-            self.ctrlp = self.netmp.register_ctrlp()
+            self.ctrlp = self.netmp.register(Ctrlp)
         except Netmp.InUseException:
 
             if self.force:
                 print("[DualShock] Target in use, forcing disconnection.")
                 self.netmp.force_disconnect()
 
-                self.ctrlp = self.netmp.register_ctrlp()
+                self.ctrlp = self.netmp.register(Ctrlp)
             else:
                 raise
 
@@ -111,7 +113,7 @@ class DualShock(NetmpManager):
         self.running = False
 
         self.ctrlp.play_stop()
-        self.netmp.unregister_ctrlp()
+        self.netmp.unregister(Ctrlp)
         super(DualShock, self).stopnetmp(self.target_ip)
 
         self.ctrlp = None
@@ -125,7 +127,9 @@ class DualShock(NetmpManager):
         :type button: :class:`Buttons`
         """
         self.buttonstate |= button
-        self.ctrlp.play_data([self.buttonstate] * 8)
+        res = self.ctrlp.play_data([self.buttonstate] * 8)
+        if res['result'] != 0:
+            print("ERRROR!", res['result'])
 
     def buttonup(self, button):
         """
@@ -135,7 +139,9 @@ class DualShock(NetmpManager):
         :type button: :class:`Buttons`
         """
         self.buttonstate &= ~button
-        self.ctrlp.play_data([self.buttonstate] * 8)
+        res = self.ctrlp.play_data([self.buttonstate] * 8)
+        if res['result'] != 0:
+            print("ERRROR!", res['result'])
 
 
     def buttonpress(self, button, timetopress=0.2, timetorelease=0.2):
