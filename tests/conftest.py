@@ -2,13 +2,18 @@
 #
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 
-import pytest
+import os
 import re
 
-from tests.util.navigation import pstarget, regicam_webview
-
 # global var: target Target IP
-target_ip=""
+target_ip = os.getenv("SKYNET_TARGET_IP", "")
+all_target_ips = [target_ip]
+
+def safe_target_ip():
+    if target_ip:
+        return  target_ip
+    raise PytestOptionException("Target IP Address Not Configured! Please Use\"--ip=1.2.3.4\" to set Target IP!")
+
 
 class PytestOptionException(Exception):
     def __init__(self, err_msg):
@@ -30,18 +35,20 @@ def pytest_cmdline_preparse(args):
     :raises:  PytestOptionException: invalid IP address
     '''
     global target_ip
+    global all_target_ips
+
+    ip_matching = [opt for opt in args if "--ip" in opt]
+    if  not ip_matching:
+        return
+
+    all_target_ips.clear()
     # ipv4 format ***.***.***.***
     p = re.compile('^--ip=(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$)')
-    ip_matching = [opt for opt in args if "--ip" in opt]
-    if (len(ip_matching)<1):
-        raise  PytestOptionException( "Target IP Address Not Configured!\
-                            Please Use\"--ip=1.2.3.4\" to set Target IP!")
- 
-    # No matter how many "--ip=" options recognized
-    # Just get the first the First one
-    ip_opt = str(ip_matching[0])
-    ip_matched = p.match(ip_opt)
-    if (ip_matched == None):
-        raise  PytestOptionException( "Target IP Address is invalid!")
-    target_ip = ip_matched.groups()[0]
-    return target_ip
+    for ip_opt in ip_matching:
+        ip_matched = p.match(ip_opt)
+        if (ip_matched == None):
+            raise  PytestOptionException( "Target IP Address is invalid!")
+        # target_ip only matches one --ip option, but default the last one
+        target_ip = ip_matched.groups()[0]
+        all_target_ips.append(target_ip)
+
