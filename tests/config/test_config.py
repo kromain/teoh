@@ -12,7 +12,7 @@ class Test_Config(unittest.TestCase):
     def setUpClass(self):
         self.curr_dir=( os.path.dirname ( os.path.join ( os.path.realpath(__file__) ) ) )
         self.default_target_conf_list=skynet.Config().target_configs()
-        
+
     def test_default_json(self):
         self.assertGreater(len(self.default_target_conf_list), 0, "parser /skynet/skynet_config.json incorrectly")
        
@@ -42,11 +42,6 @@ class Test_Config(unittest.TestCase):
     def test_invalid_IP(self):
         self.invlid_IP_list=skynet.Config(os.path.join(self.curr_dir,"invalid_IP.json")).target_configs()
         self.assertEqual(len(self.invlid_IP_list), 1, "stored invalid IP")
-        
-    def test_invalid_ID(self):
-        self.invlid_ID_list=skynet.Config(os.path.join(self.curr_dir,"invalid_ID.json")).target_configs()
-        self.assertEqual(len(self.invlid_ID_list), 1, "stored invalid IP")
-        
+
 if __name__ == '__main__':
     unittest.main()
-    

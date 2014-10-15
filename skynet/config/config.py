@@ -69,9 +69,9 @@ class Config():
                 try:
                     target_id = i["ID"].strip()
                 except:
-                    print("Warning! Didn't find the Target ID!")
+                    target_id = target_ip
                     continue
-                if _is_valid_ipv4_address(target_ip) and target_id.isdigit():
+                if _is_valid_ipv4_address(target_ip):
                     self.target_config_list.append(TargetConfig(target_ip, target_id))
 
     # return target_config object list  
