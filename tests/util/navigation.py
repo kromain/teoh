@@ -12,19 +12,19 @@ from selenium.webdriver.support.ui import WebDriverWait
 from skynet import PSTarget, DS
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def pstarget(request):
     target = PSTarget(conftest.target_ip)
-    request.addfinalizer(target.disconnect)
-
+    target.connect()
+    request.addfinalizer(target.release)
     return target
+
 
 @pytest.fixture(scope="module")
 def regicam_webview(pstarget, request):
     """
     Navigate to Settings -> PSN -> Account Information (regicam webview)
     """
-    pstarget.connect()
     pstarget.dualshock.press_button(DS.PS, timetorelease=1)
     pstarget.dualshock.press_button(DS.UP, timetorelease=1)
 

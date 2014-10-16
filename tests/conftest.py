@@ -5,6 +5,8 @@
 import os
 import re
 
+from tests.util.navigation import pstarget, regicam_webview
+
 # global var: target Target IP
 target_ip = os.getenv("SKYNET_TARGET_IP", "")
 all_target_ips = [target_ip]
