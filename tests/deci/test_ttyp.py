@@ -38,7 +38,7 @@ class TestTtyp:
         assert(ctrlp)
 
         # We know empirically that this generates tty messages
-        ctrlp.play_start()
+        ctrlp.play_start(controller=0xffffffff)
         ctrlp.play_data([0x10000]*8) # PS button
         time.sleep(0.5)
         ctrlp.play_data([0x0]*8)
