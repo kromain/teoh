@@ -37,6 +37,7 @@ def do_setup(cmd_args, bin_dir):
         url='https://qmjira.snei.sony.com/confluence/pages/viewpage.action?title=Skynet+Home&spaceKey=SKYN',
 
         packages=[
+            'mantis',
             'skynet',
             'skynet.config',
             'skynet.deci',
@@ -47,6 +48,15 @@ def do_setup(cmd_args, bin_dir):
         package_data={
             # Also package and distribute the psdriver executables in skynet/psdriver/bin/<platform>
             'skynet.psdriver': bin_dir,
+        },
+
+        entry_points={
+            'console_scripts': [
+                'mantis_run = mantis:testrunner_main',
+                'skynet_run = mantis:testrunner_main',
+                'ill_be_back = mantis:testrunner_main',
+                'hasta_la_vista_baby = mantis:testrunner_main',
+            ],
         },
 
         install_requires=[
