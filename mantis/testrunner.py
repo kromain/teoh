@@ -1,4 +1,3 @@
-import os
 import sys
 
 import pytest
@@ -22,4 +21,4 @@ def testrunner_main():
 
 
 if __name__ == "__main__":
-    main()
+    testrunner_main()
