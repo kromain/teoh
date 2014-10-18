@@ -5,10 +5,10 @@ import pytest
 import _pytest.config
 
 
-def main():
+def testrunner_main():
     args = sys.argv[1:]
 
-    args.extend(["-p", "mantisplugin"])
+    args.extend(["-p", "mantis.pytest_plugin"])
 
     pluginmanager = _pytest.config.get_plugin_manager()
     try:
