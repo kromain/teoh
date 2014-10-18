@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 
-__version__ = "0.1"
+__version__ = "0.2"
 
 from .pstarget import PSTarget, PSTargetException
 from .pstarget import PSTargetInUseException, PSTargetUnreachableException, PSTargetWebViewUnavailableException
