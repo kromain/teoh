@@ -52,10 +52,10 @@ def do_setup(cmd_args, bin_dir):
 
         entry_points={
             'console_scripts': [
-                'mantis_run = mantis:testrunner_main',
-                'skynet_run = mantis:testrunner_main',
-                'ill_be_back = mantis:testrunner_main',
-                'hasta_la_vista_baby = mantis:testrunner_main',
+                'mantis-run = mantis:testrunner_main',
+                'skynet-run = mantis:testrunner_main',
+                'ill-be-back = mantis:testrunner_main',
+                'hasta-la-vista-baby = mantis:testrunner_main',
             ],
         },
 
