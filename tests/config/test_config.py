@@ -36,4 +36,4 @@ def test_invalid_IP():
 def test_library_paths():
     config = skynet.Config()
     assert len(config.library_paths) == 1
-    assert config.library_paths[0] == "."
+    assert config.library_paths[0] == os.path.dirname(__file__)

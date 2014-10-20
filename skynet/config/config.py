@@ -110,5 +110,6 @@ class Config():
             return
 
         for path in data["library_paths"]:
-            self._library_paths.append(path)
+            self._library_paths.append(os.path.abspath(os.path.join(os.path.dirname(self.json_loc),
+                                                                    os.path.normpath(path))))
 
