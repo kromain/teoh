@@ -50,7 +50,8 @@ class MantisSession(DSession):
         """
 
         # avoid infinite recursion by loading the plugin again in the spawned nodes
-        self.config.option.plugins.remove("mantis.pytest_plugin")
+        self.config.option.plugins.remove("mantis.plugin_master")
+        self.config.option.plugins.append("mantis.plugin_slave")
 
         self.nodemanager = NodeManager(self.config, mantis_node_specs(self.config))
         nodes = self.nodemanager.setup_nodes(putevent=self.queue.put)

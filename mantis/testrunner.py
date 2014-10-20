@@ -7,7 +7,7 @@ import _pytest.config
 def testrunner_main():
     args = sys.argv[1:]
 
-    args.extend(["-p", "mantis.pytest_plugin"])
+    args.extend(["-p", "mantis.plugin_master"])
 
     pluginmanager = _pytest.config.get_plugin_manager()
     try:
