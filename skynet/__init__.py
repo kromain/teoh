@@ -9,4 +9,4 @@ from .pstarget import PSTargetInUseException, PSTargetUnreachableException, PSTa
 from .deci.dualshock import Buttons as DS
 from .deci.power import PowerState
 from .osk.osk import OskEntry
-from .config.config import Config
+from .config.config import Config, InvalidConfigException

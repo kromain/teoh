@@ -1,10 +1,10 @@
 import pytest
 import re
+import skynet
 
 from xdist.dsession import DSession, LoadScheduling
 from xdist.slavemanage import NodeManager
 
-from skynet.config import Config
 
 class InvalidIpError(Exception):
     pass
@@ -32,12 +32,11 @@ def mantis_node_specs(pytest_config):
     for iparg in pytest_config.getoption("--ip", default=[], skip=True):
         cmdline_iplist.extend(iparg.split(","))
     if cmdline_iplist:
-
         return ["popen//id=Devkit <{}>//env:SKYNET_TARGET_IP={}".format(ip, validate_ip(ip))
                 for ip in cmdline_iplist]
 
     return ["popen//id={} <{}>//env:SKYNET_TARGET_IP={}".format(tc.id, tc.ip, validate_ip(tc.ip))
-            for tc in Config().target_configs()]
+            for tc in skynet.Config().targets]
 
 
 class MantisSession(DSession):

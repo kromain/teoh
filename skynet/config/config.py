@@ -34,48 +34,81 @@ class TargetConfig(object):
 
 
 class Config():
-    #param: String file_loc: the config_Json file location, e.g. "/Users/Skynet/config/skynet.config"
-    #if file_loc isn't specified, it will point to skynet_root/skynet.conf
-    #return: getIP() will return a list containing all Orbis IP_addr 
-    def __init__(self, file_loc=None):
-        if file_loc is not None:
-            self.json_loc = os.path.join(file_loc)
+
+    _project_dir = "."
+
+    @classmethod
+    def set_project_dir(cls, pdir):
+        cls._project_dir = pdir
+
+    @classmethod
+    def project_dir(cls):
+        return os.path.abspath(cls._project_dir)
+
+    def __init__(self, file_path=None):
+        if file_path is not None:
+            self.json_loc = os.path.join(file_path)
         else:
-            
-            self.root_dir = (os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                          os.pardir, os.pardir)))
-            self.json_loc = os.path.join(self.root_dir, "skynet.conf")
+            self.json_loc = os.path.join(self._project_dir, "skynet.conf")
         if not os.path.isfile(self.json_loc):
             raise FileNotFoundError("FILE: " + str(self.json_loc) + " does not exist!")
-        self.target_config_list = None
-     
+
+        self._targets = None
+        self._library_paths = None
+
+        # return target_config object list
+
+    @property
+    def targets(self):
+        if self._targets is None:
+            self.parse_json()
+        return self._targets
+
+    @property
+    def library_paths(self):
+        if self._library_paths is None:
+            self.parse_json()
+        return self._library_paths
+
     # get IP_addr stored in conf file. Append target_config object to list     
     def parse_json(self):
         with open(self.json_loc) as json_data:
             try:
                 data = json.load(json_data)
-                target_data = data["targets"]
-            except:
+            except ValueError:
                 raise InvalidConfigException(self.json_loc + " format is incorrect!")
-            self.target_config_list = []
-            for i in target_data:
-                target_ip = ""
-                target_id = ""
-                try:
-                    target_ip = i["IP"].strip()
-                except:
-                    print("Warning! Didn't find the Target IP!")
-                    continue
-                try:
-                    target_id = i["ID"].strip()
-                except:
-                    target_id = target_ip
-                    continue
-                if _is_valid_ipv4_address(target_ip):
-                    self.target_config_list.append(TargetConfig(target_ip, target_id))
+            else:
+                self.parse_targets(data)
+                self.parse_library_paths(data)
 
-    # return target_config object list  
-    def target_configs(self):
-        if self.target_config_list is None:
-            self.parse_json()
-        return self.target_config_list
+    def parse_targets(self, data):
+        self._targets = []
+        if "targets" not in data:
+            return
+
+        for i in data["targets"]:
+            target_ip = ""
+            target_id = ""
+            try:
+                target_ip = i["IP"].strip()
+            except:
+                print("Target config is missing required attribute 'IP'! Skipping.")
+                continue
+            if not _is_valid_ipv4_address(target_ip):
+                print("Target config has invalid 'IP' attribute value '{}'! Skipping.".format(target_ip))
+                continue
+            try:
+                target_id = i["ID"].strip()
+            except:
+                target_id = target_ip
+
+            self._targets.append(TargetConfig(target_ip, target_id))
+
+    def parse_library_paths(self, data):
+        self._library_paths = []
+        if "library_paths" not in data:
+            return
+
+        for path in data["library_paths"]:
+            self._library_paths.append(path)
+
