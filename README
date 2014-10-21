@@ -1,7 +1,7 @@
 This is the Skynet core component, providing tools and services to remotely control one or more PlayStation DevKits.
 It is meant to be imported into Python test suites or other tools.
 
-For more info, see the Skynet project's home on Confluence:
+For more info and how-to guides, see the Skynet project's home on Confluence:
 https://qmjira.snei.sony.com/confluence/display/SKYN/Skynet+Home
 
 API documentation
@@ -12,12 +12,29 @@ https://github.snei.sony.com/pages/SNEI/skynet
 Installation
 ============
 
-Target and host setup instructions are found on Confluence:
-https://qmjira.snei.sony.com/confluence/pages/viewpage.action?title=Skynet+test+environment+setup&spaceKey=SKYN
+Download the latest release from the "releases" tab above (or via https://github.snei.sony.com/SNEI/skynet/releases).
+Get the .zip archive for Windows, and the .tar.gz for Mac/Linux.
+
+To install the package, run in a terminal:
+
+```
+pip3 install ~/Downloads/skynet-X.Y.tar.gz
+```
+
+(substitute with skynet-X.Y.zip on Windows)
+
+Using the Mantis test runner
+============================
+
+```
+mantis-run --ip=<devkit_ip>[,<additional_devkit_ip>] path/to/tests
+mantis-run --ip=<devkit_ip>[,<additional_devkit_ip>] path/to/test_file.py
+mantis-run --ip=<devkit_ip>[,<additional_devkit_ip>] -k test_method
+```
 
 Tests suites
 ============
 
 Tests using the Skynet core:
-* Swordfish tests: https://github.snei.sony.com/SNEI/snei-skynet-tests
+* https://github.snei.sony.com/SNEI/skynet-swordfish-tests
 * ...
