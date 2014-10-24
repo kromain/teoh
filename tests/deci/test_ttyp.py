@@ -58,11 +58,10 @@ class TestTtyp:
 
         assert(msgcount)
 
-        # For some reason, unregister always returns a failure code (0x1004, not registered) 
-        #res = self.netmp.unregister(Ctrlp)
-        #assert(res)
-        #assert(res['result'] == 0)
-        #res = self.netmp.unregister(Ttyp)
-        #assert(res)
-        #assert(res['result'] == 0)
+        res = self.netmp.unregister(Ctrlp)
+        assert(res)
+        assert(res['result'] == 0)
+        res = self.netmp.unregister(Ttyp)
+        assert(res)
+        assert(res['result'] == 0)
 

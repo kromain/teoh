@@ -4,7 +4,7 @@ import time
 import pytest
 
 from skynet.deci import Netmp
-from skynet.deci.deci4 import Ctrlp, CtrlpProt
+from skynet.deci.deci4 import Ctrlp
 import conftest
 
 test_target_ip = conftest.target_ip
@@ -64,8 +64,7 @@ class TestCtrlp:
 
         assert(cnt > 0)
 
-        # For some reason, unregister always returns a failure code (0x1004, not registered) 
-        #res = self.netmp.unregister(Ctrlp)
-        #assert(res)
-        #assert(res['result'] == 0)
+        res = self.netmp.unregister(Ctrlp)
+        assert(res)
+        assert(res['result'] == 0)
 

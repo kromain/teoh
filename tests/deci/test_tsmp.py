@@ -54,8 +54,7 @@ class TestTsmp:
         assert(res['result'] == 0)
         assert(res['powerState'] in [1,2,3,4,5,6,7,8])
 
-        # For some reason, unregister always returns a failure code (0x1004, not registered) 
-        #res = self.netmp.unregister(Tsmp)
-        #assert(res)
-        #assert(res['result'] == 0)
+        res = self.netmp.unregister(Tsmp)
+        assert(res)
+        assert(res['result'] == 0)
 
