@@ -9,6 +9,8 @@ import time
 from skynet import PSTarget, DS, PowerState
 from skynet import PSTargetInUseException, PSTargetUnreachableException, PSTargetWebViewUnavailableException
 from skynet.deci import Netmp, Console, Info, Power
+from skynet.deci.deci4 import Ctrlp
+
 import conftest
 
 
@@ -119,6 +121,7 @@ def test_power_functions(local_pstarget):
     local_pstarget.release()
     assert Power not in local_pstarget._deci_wrappers
 
+
 def test_invalid_target_ip():
     target = PSTarget("0.0.0.0")
 
@@ -144,6 +147,7 @@ def test_invalid_target_ip():
     assert target._psdriver is None
 
 
+@pytest.mark.skipif(True, reason="skipping due to Netmp multiple connection issue leading to hangs (fix pending)")
 def test_target_in_use():
     # Create a raw CTRLP connection to the target so the PSTarget below will fail with PSTargetInUseException
     try:
@@ -154,7 +158,7 @@ def test_target_in_use():
     ctrlp_registered = False
     try:
         netmp.connect()
-        netmp.register_ctrlp()
+        netmp.register(Ctrlp)
     except Netmp.InUseException:
         # fine we're already in the in-use state, nothing else to do
         pass
@@ -168,10 +172,11 @@ def test_target_in_use():
 
     # Netmp cleanup
     if ctrlp_registered:
-        netmp.unregister_ctrlp()
+        netmp.unregister(Ctrlp)
     netmp.disconnect()
 
 
+@pytest.mark.skipif(True, reason="skipping due to Netmp multiple connection issue leading to hangs (fix pending)")
 def test_target_force_connect():
     # Create a raw CTRLP connection to the target to simulate an existing connection
     try:
@@ -182,7 +187,7 @@ def test_target_force_connect():
     ctrlp_registered = False
     try:
         netmp.connect()
-        netmp.register_ctrlp()
+        netmp.register(Ctrlp)
     except Netmp.InUseException:
         # fine we're already in the in-use state, nothing else to do
         pass
@@ -192,9 +197,9 @@ def test_target_force_connect():
     target = PSTarget(conftest.target_ip)
     target.connect(force=True)
     assert target.dualshock is not None
-    target.disconnect()
+    target.release()
 
     # Netmp cleanup
     if ctrlp_registered:
-        netmp.unregister_ctrlp()
+        netmp.unregister(Ctrlp)
     netmp.disconnect()
