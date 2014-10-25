@@ -73,12 +73,15 @@ def test_target_tty(local_pstarget):
     assert local_pstarget.tty is not None
     assert Console in local_pstarget._deci_wrappers
 
+    # tty.read() should return immediately with None if there's no data
+    msg = local_pstarget.tty.read()
+    assert msg is None or len(msg) > 0
+
     # going in and out of What's New reliably generates TTY output
     local_pstarget.connect()
     local_pstarget.dualshock.press_buttons([DS.DOWN, DS.UP])
     msg = local_pstarget.tty.read()
-    if msg is not None:
-        print("Received TTY output: " + msg)
+    assert msg is not None and len(msg) > 0
 
     # check that the TTY object has been cleaned up
     local_pstarget.release()
