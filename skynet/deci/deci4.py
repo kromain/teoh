@@ -14,7 +14,7 @@ import functools
 if sys.version_info[0] < 3:
     raise Exception("Python 3 required")
 
-log_level = 0
+log_level = 1
 
 def log(*args):
     if log_level >= 2:
@@ -1155,10 +1155,10 @@ class Tsmp(DeciObj):
                 yield buffer
     
     def reboot(self):
-        return self.power_control(TsmpProt.POWER_REBOOT)
+        return self.power_control(powerstate=TsmpProt.POWER_REBOOT)
 
     def power_off(self):
-        return self.power_control(TsmpProt.POWER_OFF)
+        return self.power_control(powerstate=TsmpProt.POWER_OFF)
 
 
 class NetmpManager:
