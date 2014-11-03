@@ -83,7 +83,7 @@ class DualShock(NetmpManager):
         if self.running:
             return
 
-        self.netmp = super(DualShock, self).startnetmp(self.target_ip)
+        self.netmp = self.startnetmp(self.target_ip)
 
         try:
             self.ctrlp = self.netmp.register(Ctrlp)
@@ -95,6 +95,8 @@ class DualShock(NetmpManager):
 
                 self.ctrlp = self.netmp.register(Ctrlp)
             else:
+                self.stopnetmp(self.target_ip)
+                self.netmp = None
                 raise
 
         self.ctrlp.play_start()
@@ -114,7 +116,7 @@ class DualShock(NetmpManager):
 
         self.ctrlp.play_stop()
         self.netmp.unregister(Ctrlp)
-        super(DualShock, self).stopnetmp(self.target_ip)
+        self.stopnetmp(self.target_ip)
 
         self.ctrlp = None
         self.netmp = None
