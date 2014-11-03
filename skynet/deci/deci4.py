@@ -14,7 +14,7 @@ import functools
 if sys.version_info[0] < 3:
     raise Exception("Python 3 required")
 
-log_level = 1
+log_level = 0
 
 def log(*args):
     if log_level >= 2:
@@ -524,6 +524,12 @@ class DeciQueue:
         self._exception = None
 
         while self._run and not self._exception:
+            # Windows doesn't handle empty descriptors in select(), so skip the call altogether when there's
+            # nothing to wait on. This should only be the case for at most a few loop iterations at startup,
+            # between the time the thread is created and the time the first protocol is registered.
+            if sys.platform == "win32" and not self._streams:
+                continue
+
             respondevent = []
 
             rd,wr,ex = select.select(self._streams.values(), self._streams.values(), self._streams.values(), 0)
