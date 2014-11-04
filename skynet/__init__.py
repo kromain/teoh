@@ -4,9 +4,10 @@
 
 __version__ = "0.2"
 
+from .config.config import Config, InvalidConfigException
+from .deci.dualshock import DualShock, Buttons, Buttons as DS
+from .deci.power import PowerState
+from .deci.console import Console
+from .osk.osk import OskEntry
 from .pstarget import PSTarget, PSTargetException
 from .pstarget import PSTargetInUseException, PSTargetUnreachableException, PSTargetWebViewUnavailableException
-from .deci.dualshock import Buttons as DS
-from .deci.power import PowerState
-from .osk.osk import OskEntry
-from .config.config import Config, InvalidConfigException
