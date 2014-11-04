@@ -275,7 +275,8 @@ class Deci4HProt:
         buffer, res = self.parse_header(buffer)
         if command in self.PARSE_RULES.keys():
             for rule in self.PARSE_RULES[command]:
-                buffer = self.parse_buffer(buffer, Deci4HProt.recorddefs[rule], res)
+                if buffer:
+                    buffer = self.parse_buffer(buffer, Deci4HProt.recorddefs[rule], res)
 
         return buffer, res
 
@@ -344,12 +345,17 @@ class Deci4HProt:
             res - key/value pairs from previous parses new values inserted into this
 
             returns:
-                buffer
+                buffer - more to parse
+                empty byte stream - no more to parse
+                None - Buffer exhausted before parse complete
         """
 
         tmpbuff = buffer
         offset = 0
         for f in format:
+            if offset >= len(buffer):
+                return None
+
             if f["type"] == "SceDeciTtyStreamData":
                 length = struct.unpack_from("<L", buffer, offset)[0]
                 offset += 4
@@ -461,6 +467,7 @@ class DeciQueue:
         self._run = True
         self._sendlock = threading.Lock()
         self._recvlock = threading.Lock()
+        self._streamlock = threading.Lock()
 
         self._workbuff = {}
         self._worklength = {}
@@ -476,10 +483,11 @@ class DeciQueue:
     def add_stream(self, obj, netmp):
         stream = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         stream.connect((self._ip, self._port))
-        self._streams[obj] = stream
-        self._objects[stream] = obj
 
-        self._notifications[obj] = []
+        with self._streamlock:
+            self._streams[obj] = stream
+            self._objects[stream] = obj
+            self._notifications[obj] = []
 
         if netmp:
             buffer = netmp.prot.register_cmd(netmp_key=netmp.netmp_key, reg_protocol=obj.prot.PROTOCOL)
@@ -495,28 +503,29 @@ class DeciQueue:
 
     def _abort(self, exception):
 
-        for s in self._streams.values():
+        with self._streamlock:
+            for s in self._streams.values():
+                try:
+                    s.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    # the socket may already be in shutdown state when the last protocol was closed,
+                    # so ignore the exception that would then be thrown by shutdown()
+                    pass
+                finally:
+                    s.close()   
+                    
+            self._exception = exception
+
+            self._streams = {}
+
             try:
-                s.shutdown(socket.SHUT_RDWR)
-            except OSError:
-                # the socket may already be in shutdown state when the last protocol was closed,
-                # so ignore the exception that would then be thrown by shutdown()
+                self._recvlock.release()
+            except:
                 pass
-            finally:
-                s.close()   
-                
-        self._exception = exception
-
-        self._streams = {}
-
-        try:
-            self._recvlock.release()
-        except:
-            pass
-        try:
-            self._sendlock.release()
-        except:
-            pass
+            try:
+                self._sendlock.release()
+            except:
+                pass
 
 
     def _readwrite(self, *args, **kwargs):
@@ -532,13 +541,12 @@ class DeciQueue:
 
             respondevent = []
 
-            rd,wr,ex = select.select(self._streams.values(), self._streams.values(), self._streams.values(), 0)
-
-            for stream in ex:
-                print("ACK!", ex)
+            with self._streamlock:
+                rd,wr,ex = select.select(self._streams.values(), self._streams.values(), self._streams.values(), 0)
 
             for stream in rd:
-                obj = self._objects[stream]
+                with self._streamlock:
+                    obj = self._objects[stream]
 
                 # To read a full message, we have to read 8 bytes to determin length, then
                 # read the rest of the bytes until we reach length.  At any time in this

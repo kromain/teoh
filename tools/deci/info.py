@@ -17,6 +17,11 @@ if __name__ == "__main__":
             else:
                 print("No")
 
+            if info.is_user_signed_in("steve-e2"):
+                print("Yes")
+            else:
+                print("No")
+
             infolist = info.get_info()
             print("Infolist", infolist)
 
