@@ -2,6 +2,7 @@
 #
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 
+import os
 import setuptools
 import shutil
 import subprocess
@@ -90,6 +91,18 @@ if __name__ == '__main__':
         if len(sys.argv) > 1 and sys.argv[-1] != "sdist":
             do_setup(sys.argv[1:], ["bin/*/*"])
             sys.exit(0)
+
+        # Generate documentation in doc/
+        print("[INFO] Generating HTML documentation in doc/build/ ...")
+        cwd = os.getcwd()
+        os.environ["PYTHONPATH"] = cwd
+        # This updates the .rst files with all the found packages and modules
+        subprocess.call(["sphinx-apidoc", "-f", "-o", "doc", "skynet"], shell=True)
+        os.chdir(os.path.join(cwd, "doc"))
+        shutil.rmtree("_build")
+        # Generate the HTML docs from the .rst files
+        subprocess.call(["make", "html"], shell=True)
+        os.chdir(cwd)
 
         if sys.platform == 'win32':
             print("[NOTE] Linux/Mac package creation unsupported on Windows, only Windows package will be created.")
