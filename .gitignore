@@ -10,3 +10,5 @@ dist
 skynet.egg-info
 
 doc/_build
+doc/modules.rst
+doc/skynet*.rst
