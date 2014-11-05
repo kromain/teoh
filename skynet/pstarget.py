@@ -58,7 +58,7 @@ class PSTarget(object):
     PSTarget objects manage many network connections to the target internally, and you're responsible for releasing
     these connections by calling the :meth:`release` method at the end of your target session.
 
-    A typical PSTarget session looks like:
+    A typical PSTarget session looks like::
 
         target = PSTarget("123.123.123.123")
         print(target.tty.read())
@@ -73,7 +73,7 @@ class PSTarget(object):
         assert target.dualshock is None
 
     You can also use the :class:`PSTarget` class with the 'with' operator to automatically handle the connection
-    to the target, for example:
+    to the target, for example::
 
         with PSTarget("123.123.123.123") as target:
             target.dualshock.press_button(DS.CROSS)
