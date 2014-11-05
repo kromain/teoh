@@ -99,7 +99,10 @@ if __name__ == '__main__':
         # This updates the .rst files with all the found packages and modules
         subprocess.call(["sphinx-apidoc", "-f", "-o", "doc", "skynet"], shell=True)
         os.chdir(os.path.join(cwd, "doc"))
-        shutil.rmtree("_build")
+        try:
+            shutil.rmtree("_build")
+        except FileNotFoundError:
+            pass
         # Generate the HTML docs from the .rst files
         subprocess.call(["make", "html"], shell=True)
         os.chdir(cwd)

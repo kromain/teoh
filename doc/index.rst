@@ -7,6 +7,10 @@ Welcome to Skynet's documentation!
 ==================================
 
 .. toctree::
+
+    installation
+
+.. toctree::
     :hidden:
 
     skynet.*
