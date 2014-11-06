@@ -54,6 +54,9 @@ inspector. The connection to the devkit is then closed before exiting the script
 General API usage
 -----------------
 
+The PSTarget class
+~~~~~~~~~~~~~~~~~~
+
 The Skynet API is centered around the :class:`~skynet.pstarget.PSTarget` class, which provides the entry point
 to most of the remote control and introspection features, based on the DEVLAN IP address of the devkit .
 
@@ -81,6 +84,19 @@ at the end of your target session.
 
 An overview of the complete skynet package contents, including details of the :class:`~skynet.pstarget.PSTarget` API
 and its members, can be found below.
+
+Manipulating the webview with WebDriver
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :attr:`~skynet.pstarget.PSTarget.webview` property of :class:`~skynet.pstarget.PSTarget` is an instance of
+the class :class:`~webdriver:selenium.webdriver.remote.webdriver.WebDriver`. WebDriver is an API provided as part of
+`Selenium <http://www.seleniumhq.org/>`_, which allows controlling a browser or webview remotely using several
+languages including Python.
+
+The WebDriver Python bindings are documented at: http://selenium-python.readthedocs.org/en/latest/index.html
+
+Note that some Skynet UI libraries like Swordfish also provide some utilities and helpers on top of WebDriver.
+When available, make sure to use those as much as possible instead of WebDriver directly.
 
 skynet package overview:
 ------------------------

@@ -186,9 +186,15 @@ class PSTarget(object):
 
     @property
     def psdriver(self):
-        """The Webview introspection interface
+        """The Webview introspection interface. This is returning a WebDriver Remote object.
 
-        :type: :class:`selenium.webdriver.Remote`
+        For more details about working with Selenium WebDriver, see:
+        http://selenium-python.readthedocs.org/en/latest/getting-started.html
+
+        For the complete WebDriver API documentation, see:
+        http://selenium-python.readthedocs.org/en/latest/api.html
+
+        :type: :class:`webdriver:selenium.webdriver.remote.webdriver.WebDriver`
 
         :raises PSTargetWebViewUnavailableException: if there's no active WebView on the target
         :raises PSTargetUnreachableException: if the target connection failed due to being unreachable

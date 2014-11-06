@@ -33,9 +33,11 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
 ]
 
 autosummary_generate = True
+intersphinx_mapping = {'webdriver': ('http://selenium-python.readthedocs.org/en/latest', None)}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
