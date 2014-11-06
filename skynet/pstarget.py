@@ -84,17 +84,17 @@ class PSTarget(object):
     :param String target_ip: the IP address of the target, e.g. "43.138.12.123"
     """
     def __init__(self, target_ip):
-        self.target_ip = target_ip
+        self._target_ip = target_ip
         """The remote target IP address
 
         :type: String
         """
-        self.dualshock = None
+        self._dualshock = None
         """The Dualshock emulator interface. Only valid when the target is in connected state.
 
         :type: :class:`skynet.deci.dualshock.DualShock`
         """
-        self.osk = None
+        self._osk = None
         """The ShellUI On-Screen Keyboard interface. Only valid when the target is in connected state.
 
         :type: :class:`skynet.osk.OskEntry`
@@ -138,7 +138,7 @@ class PSTarget(object):
         Returns whether this PSTarget instance is connected to the target at :attr:`target_ip`
         :return: True if the target is in connected state, False otherwise
         """
-        return self.dualshock is not None
+        return self._dualshock is not None
 
     def connect(self, force=False):
         """
@@ -155,8 +155,8 @@ class PSTarget(object):
         :raises PSTargetInUseException: if the target connection failed due to being in use
         :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
-        if self.dualshock is None:
-            ds = DualShock(self.target_ip, force)
+        if self._dualshock is None:
+            ds = DualShock(self._target_ip, force)
             try:
                 ds.start()
             except Netmp.InUseException as e:
@@ -164,10 +164,10 @@ class PSTarget(object):
             except Exception as e:
                 raise PSTargetUnreachableException("Target unreachable") from e
             else:
-                self.dualshock = ds
+                self._dualshock = ds
 
-        if self.osk is None:
-            self.osk = osk.OskEntry(self.dualshock)
+        if self._osk is None:
+            self._osk = osk.OskEntry(self._dualshock)
 
     def disconnect(self):
         """
@@ -178,11 +178,11 @@ class PSTarget(object):
 
         Does nothing if the target is already in disconnected state.
         """
-        if self.dualshock is not None:
-            self.dualshock.stop()
-            self.dualshock = None
-        if self.osk is not None:
-            self.osk = None
+        if self._dualshock is not None:
+            self._dualshock.stop()
+            self._dualshock = None
+        if self._osk is not None:
+            self._osk = None
 
     @property
     def psdriver(self):
@@ -214,14 +214,14 @@ class PSTarget(object):
         """
         if self._webview is None:
             try:
-                self._webview = psdriver.server.connect(self.target_ip)
+                self._webview = psdriver.server.connect(self._target_ip)
             except psdriver.PSDriverError:
                 # Report psdriver server startup errors
                 raise
             except psdriver.PSDriverConnectionError as e:
                 # Distinguish between the target IP being unreachable and the target just not having a webview by
                 # checking the deci.Info wrapper. If that fails it's the target, otherwise it's the webview
-                tmp_wrapper = Info(self.target_ip)
+                tmp_wrapper = Info(self._target_ip)
                 try:
                     tmp_wrapper.start()
                 except Exception:
@@ -313,7 +313,7 @@ class PSTarget(object):
 
     def _deci_wrapper(self, wrapper_class):
         if wrapper_class not in self._deci_wrappers:
-            wrapper = wrapper_class(self.target_ip)
+            wrapper = wrapper_class(self._target_ip)
             try:
                 wrapper.start()
             except Exception as e:
