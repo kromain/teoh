@@ -32,22 +32,22 @@ def test_disconnected_target(local_pstarget):
     assert local_pstarget.dualshock is None
     assert local_pstarget.osk is None
     assert local_pstarget.tty is not None
-    assert local_pstarget.psdriver is not None
+    assert local_pstarget.webview is not None
 
 
 def test_connected_target(connected_pstarget):
     assert connected_pstarget.dualshock is not None
     assert connected_pstarget.osk is not None
     assert connected_pstarget.tty is not None
-    assert connected_pstarget.psdriver is not None
+    assert connected_pstarget.webview is not None
 
 
 @pytest.mark.xfail(reason="needs ShellUI logout/login routines to test on login screen then log back in")
-def test_target_without_psdriver(local_pstarget):
+def test_target_without_webview(local_pstarget):
     assert local_pstarget.tty is not None
 
     with pytest.raises(PSTargetWebViewUnavailableException):
-        assert local_pstarget.psdriver is not None
+        assert local_pstarget.webview is not None
 
 
 def test_target_disconnect(connected_pstarget):
@@ -57,14 +57,14 @@ def test_target_disconnect(connected_pstarget):
     assert connected_pstarget.osk is None
 
 
-def test_target_psdriver(local_pstarget):
-    assert local_pstarget.psdriver is not None
+def test_target_webview(local_pstarget):
+    assert local_pstarget.webview is not None
     # System (Secure) webview is called Swordfish
-    assert "Swordfish" in local_pstarget.psdriver.title
+    assert "Swordfish" in local_pstarget.webview.title
 
-    # check that the psdriver object has been cleaned up
+    # check that the webview object has been cleaned up
     local_pstarget.release()
-    assert local_pstarget._psdriver is None
+    assert local_pstarget._webview is None
 
 
 def test_target_tty(local_pstarget):
@@ -89,7 +89,7 @@ def test_target_tty(local_pstarget):
 
 def test_info_functions(local_pstarget):
     # unfortunately, returns the email address, while is_user_signed_in expects the username
-    # signin_id = local_pstarget.psdriver.execute_script("return sce.getSigninId()")
+    # signin_id = local_pstarget.webview.execute_script("return sce.getSigninId()")
     # FIXME figure out a way to retrieve the current username
     # PENDING currently disabled due to a bug in the deci layer (fix pending)
     # assert not local_pstarget.is_user_signed_in("unknown_username")
@@ -146,8 +146,8 @@ def test_invalid_target_ip():
     assert Power not in target._deci_wrappers
 
     with pytest.raises(PSTargetUnreachableException):
-        target.psdriver.refresh()
-    assert target._psdriver is None
+        target.webview.refresh()
+    assert target._webview is None
 
 
 def test_target_in_use():

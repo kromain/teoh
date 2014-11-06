@@ -44,7 +44,7 @@ class PSTarget(object):
     The PSTarget class mainly exposes two objects to control the target remotely:
 
     * :attr:`dualshock`: allows emulating DualShock keys on the target
-    * :attr:`psdriver` allows introspecting webviews and executing JavaScript code on the target
+    * :attr:`webview` allows introspecting webviews and executing JavaScript code on the target
 
     In addition, the class provides access to many utility interfaces and methods, such as :attr:`osk` to control
     OSK typing, :attr:`tty` to read the target's TTY console output, or :meth:`save_screenshot` to save a screenshot
@@ -62,12 +62,12 @@ class PSTarget(object):
 
         target = PSTarget("123.123.123.123")
         print(target.tty.read())
-        assert target.psdriver.title == "Some Title"
+        assert target.webview.title == "Some Title"
         # explicit connection required for target.dualshock
         assert target.dualshock is None
         target.connect()
         target.dualshock.press_button(DS.CROSS)
-        target.psdriver.execute_script("window.origin.href")
+        target.webview.execute_script("window.origin.href")
         # calls target.disconnect() implicitly
         target.release()
         assert target.dualshock is None
@@ -77,7 +77,7 @@ class PSTarget(object):
 
         with PSTarget("123.123.123.123") as target:
             target.dualshock.press_button(DS.CROSS)
-            print("Target WebView URL: " + target.psdriver.current_url)
+            print("Target WebView URL: " + target.webview.current_url)
         # target is automatically released then destroyed at the end of the 'with' block above
         print("bla")
 
@@ -100,7 +100,7 @@ class PSTarget(object):
         :type: :class:`skynet.osk.OskEntry`
         """
 
-        self._psdriver = None
+        self._webview = None
         self._deci_wrappers = {}
 
     def __del__(self):
@@ -116,7 +116,7 @@ class PSTarget(object):
 
     def release(self):
         """
-        Closes all PSDriver and DECI connections to the target at the IP address specified in the constructor.
+        Closes all WebView and DECI connections to the target at the IP address specified in the constructor.
 
         This method implicitly calls :method:`disconnect` first, if the target is in connected state.
 
@@ -129,9 +129,9 @@ class PSTarget(object):
             wrapper.stop()
         self._deci_wrappers.clear()
 
-        if self._psdriver is not None:
-            self._psdriver.quit()
-            self._psdriver = None
+        if self._webview is not None:
+            self._webview.quit()
+            self._webview = None
 
     def is_connected(self):
         """
@@ -186,6 +186,19 @@ class PSTarget(object):
 
     @property
     def psdriver(self):
+        """[DEPRECATED] alias for :attr:`webview`
+
+        .. deprecated:: 0.2
+            Use :attr:`webview` instead.
+
+        """
+        from warnings import warn
+        warn("PSTarget.psdriver is deprecated and will be removed in future versions, "
+             "please use PSTarget.webview instead.", stacklevel=2)
+        return self.webview
+
+    @property
+    def webview(self):
         """The Webview introspection interface. This is returning a WebDriver Remote object.
 
         For more details about working with Selenium WebDriver, see:
@@ -199,9 +212,9 @@ class PSTarget(object):
         :raises PSTargetWebViewUnavailableException: if there's no active WebView on the target
         :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
-        if self._psdriver is None:
+        if self._webview is None:
             try:
-                self._psdriver = psdriver.server.connect(self.target_ip)
+                self._webview = psdriver.server.connect(self.target_ip)
             except psdriver.PSDriverError:
                 # Report psdriver server startup errors
                 raise
@@ -215,7 +228,7 @@ class PSTarget(object):
                     raise PSTargetUnreachableException("Target unreachable") from e
                 tmp_wrapper.stop()
                 raise PSTargetWebViewUnavailableException from e
-        return self._psdriver
+        return self._webview
 
     @property
     def tty(self):
@@ -334,7 +347,7 @@ def main():
 
     print("Connecting to target at {}...".format(sys.argv[1]))
     with PSTarget(sys.argv[1]) as target:
-        print("Target WebView URL: " + target.psdriver.current_url)
+        print("Target WebView URL: " + target.webview.current_url)
     return 0
 
 if __name__ == '__main__':
