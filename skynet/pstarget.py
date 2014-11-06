@@ -85,21 +85,8 @@ class PSTarget(object):
     """
     def __init__(self, target_ip):
         self._target_ip = target_ip
-        """The remote target IP address
-
-        :type: String
-        """
         self._dualshock = None
-        """The Dualshock emulator interface. Only valid when the target is in connected state.
-
-        :type: :class:`skynet.deci.dualshock.DualShock`
-        """
         self._osk = None
-        """The ShellUI On-Screen Keyboard interface. Only valid when the target is in connected state.
-
-        :type: :class:`skynet.osk.OskEntry`
-        """
-
         self._webview = None
         self._deci_wrappers = {}
 
@@ -185,6 +172,42 @@ class PSTarget(object):
             self._osk = None
 
     @property
+    def ip_address(self):
+        """The remote target IP address
+
+        :type: String
+        """
+        return self._target_ip
+
+    @property
+    def dualshock(self):
+        """The Dualshock emulator interface. Only valid when the target is in connected state.
+
+        :type: :class:`skynet.deci.dualshock.DualShock`
+        """
+        return self._dualshock
+
+    @property
+    def osk(self):
+        """The ShellUI On-Screen Keyboard interface. Only valid when the target is in connected state.
+
+        :type: :class:`skynet.osk.osk.OskEntry`
+        """
+        return self._osk
+
+    @property
+    def tty(self):
+        """The TTY console interface
+
+        This object can be accessed regardless of the connection state.
+
+        :type: :class:`skynet.deci.console.Console`
+
+        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
+        """
+        return self._deci_wrapper(Console)
+
+    @property
     def psdriver(self):
         """[DEPRECATED] alias for :attr:`webview`
 
@@ -229,18 +252,6 @@ class PSTarget(object):
                 tmp_wrapper.stop()
                 raise PSTargetWebViewUnavailableException from e
         return self._webview
-
-    @property
-    def tty(self):
-        """The TTY console interface
-
-        This object can be accessed regardless of the connection state.
-
-        :type: :class:`skynet.deci.console.Console`
-
-        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
-        """
-        return self._deci_wrapper(Console)
 
     def is_user_signed_in(self, username):
         """
