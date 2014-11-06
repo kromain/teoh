@@ -21,8 +21,8 @@ class Buttons(IntEnum):
     L1 = 0x400  #:
     R2 = 0x200  #:
     L2 = 0x100  #:
-    R3 = 0x00000004 #:
-    L3 = 0x00000002 #:
+    R3 = 0x00000004  #:
+    L3 = 0x00000002  #:
     CROSS = 0x4000  #:
     CIRCLE = 0x2000  #:
     SQUARE = 0x8000  #:
@@ -45,11 +45,12 @@ class DualShock(NetmpManager):
 
         with DualShock("123.123.123.123") as controller:
             # controller is automatically connected to the target at 123.123.123.123 here
-            controller.buttonpress(Buttons.CROSS)
+            controller.press_button(Buttons.CROSS)
         # controller is automatically disconnected then destroyed at the end of the 'with' block above
         print("bla")
 
     :param String target_ip: the IP address of the target, e.g. "43.138.12.123"
+    :param Bool force: if True, disconnect any existing connection on the target instead of aborting the new connection
     """
 
     def __init__(self, target_ip, force=False):
@@ -145,9 +146,16 @@ class DualShock(NetmpManager):
         if res['result'] != 0:
             print("ERRROR!", res['result'])
 
-
     def buttonpress(self, button, timetopress=0.2, timetorelease=0.2):
-        print("[Dualshock] buttonpress is DEPRECATED! Please use press_button instead")
+        """[DEPRECATED] alias for :meth:`press_button`
+
+        .. deprecated:: 0.2
+            Use :meth:`press_button` instead.
+
+        """
+        from warnings import warn
+        warn("Dualshock.buttonpress() is deprecated and will be removed in future versions, "
+             "please use Dualshock.press_button() instead.", stacklevel=2)
         self.press_button(button, timetopress, timetorelease)
 
     def press_button(self, button, timetopress=0.2, timetorelease=0.2):
@@ -201,5 +209,3 @@ class DualShock(NetmpManager):
             self.press_button(x, timetopress, 0)
 
             time.sleep(timetorelease)
-
-        
