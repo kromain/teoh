@@ -4,7 +4,7 @@
 
 """
 Contains list mappings of various keyboards for the English language, or locale en_*.
-Locales starting with "pt_", "it_", "da_", "nl_", "sv_", "no_", and "fi_" share the same osk as "en_".
+Locales starting with pt_*, it_*, da_*, nl_*, sv_*, no_*, and fi_* share the same osk as en_*.
 
 Each list represents a keyboard layer (e.g. 'lo' represents the lower-case keyboard chars).
 

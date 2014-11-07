@@ -310,12 +310,10 @@ class Deci4HProt:
 
             buffer - byte array input
             format - list of formats to apply to buffer
-            res - key/value pairs from previous parses
-                  new values inserted into this
-                
+            res - key/value pairs from previous parses new values inserted into this
+
             returns:
                 buffer
-
         """
 
         tmpbuff = buffer

@@ -105,7 +105,7 @@ class PSTarget(object):
         """
         Closes all WebView and DECI connections to the target at the IP address specified in the constructor.
 
-        This method implicitly calls :method:`disconnect` first, if the target is in connected state.
+        This method implicitly calls :meth:`disconnect` first, if the target is in connected state.
 
         You should call this method at the end of your PSTarget session to ensure all resources and connections
         are properly closed and cleaned up.
@@ -259,7 +259,7 @@ class PSTarget(object):
 
         This method can be called regardless of the connection state.
 
-        :param string username: the PSN username to check for signed-in status
+        :param String username: the PSN username to check for signed-in status
         :returns: True if the username is signed in to PSN on the target, False otherwise
 
         :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
@@ -292,11 +292,11 @@ class PSTarget(object):
         * '.png': encoded as a PNG image (medium compression, non-lossy)
         * '.tga': encdoded as a TARGA image (non-compressed, non-lossy)
 
-        If no extension is specified, images are saved as *.tga by default.
+        If no extension is specified, images are saved as .tga by default.
 
         This method can be called regardless of the connection state.
 
-        :param string filepath: the saved image file path
+        :param String filepath: the saved image file path
 
         :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """

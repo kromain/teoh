@@ -4,7 +4,7 @@
 
 """
 Contains list mappings of various keyboards for the Russian language, or locale ru_*.
-Main difference between locales en_ and ru_ exist in the text OSK.
+Main difference between locales en_* and ru_* exist in the text OSK.
 
 Each list represents a keyboard layer (e.g. 'lo' represents the lower-case keyboard chars).
 

@@ -4,7 +4,7 @@
 
 """
 Contains list mappings of various keyboards for the Japanese language, or locale ja_*.
-Main difference between locales en_ and ja_ exist in the text OSK.
+Main difference between locales en_* and ja_* exist in the text OSK.
 
 Each list represents a keyboard layer (e.g. 'lo' represents the lower-case keyboard chars).
 
