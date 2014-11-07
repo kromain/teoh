@@ -8,7 +8,7 @@ from skynet.deci.dualshock import Buttons as DS
 from skynet.osk.osk_graph import osk_graph
 from skynet.osk.osk_nav import nav_path
 
-from skynet.osk.ru_ import ru_dict_text
+from skynet.osk.osk_ru import ru_dict_text
 
 class TextOsk_ru(osk_graph):
     """

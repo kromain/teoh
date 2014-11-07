@@ -8,10 +8,10 @@ from skynet.deci.dualshock import Buttons as DS
 from skynet.osk.osk_graph import osk_graph
 from skynet.osk.osk_nav import nav_path
 
-from skynet.osk.en_ import en_dict_text
-from skynet.osk.de_ import de_dict_text
-from skynet.osk.es_ import es_dict_text
-from skynet.osk.fr_ import fr_dict_text
+from skynet.osk.osk_en import en_dict_text
+from skynet.osk.osk_de import de_dict_text
+from skynet.osk.osk_es import es_dict_text
+from skynet.osk.osk_fr import fr_dict_text
 
 from skynet.osk.text_ja import TextOsk_ja
 

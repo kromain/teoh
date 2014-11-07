@@ -6,12 +6,12 @@ import string
 from skynet.deci.dualshock import Buttons as DS
 from skynet.osk.osk_graph import osk_graph
 
-from skynet.osk.en_ import en_dict_basic
-from skynet.osk.de_ import de_dict_basic
-from skynet.osk.es_ import es_dict_basic
-from skynet.osk.fr_ import fr_dict_basic
-from skynet.osk.ja_ import ja_dict_basic
-from skynet.osk.ru_ import ru_dict_basic
+from skynet.osk.osk_en import en_dict_basic
+from skynet.osk.osk_de import de_dict_basic
+from skynet.osk.osk_es import es_dict_basic
+from skynet.osk.osk_fr import fr_dict_basic
+from skynet.osk.osk_ja import ja_dict_basic
+from skynet.osk.osk_ru import ru_dict_basic
 
 class BasicLatinOsk(osk_graph):
     """

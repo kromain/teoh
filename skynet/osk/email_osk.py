@@ -5,10 +5,10 @@ import string
 
 from skynet.deci.dualshock import Buttons as DS
 from skynet.osk.osk_graph import osk_graph
-from skynet.osk.en_ import en_dict_email
-from skynet.osk.de_ import de_dict_email
-from skynet.osk.es_ import es_dict_email
-from skynet.osk.fr_ import fr_dict_email
+from skynet.osk.osk_en import en_dict_email
+from skynet.osk.osk_de import de_dict_email
+from skynet.osk.osk_es import es_dict_email
+from skynet.osk.osk_fr import fr_dict_email
 
 class EmailOsk(osk_graph):
     """
