@@ -4,7 +4,7 @@
 
 __version__ = "0.2"
 
-from .config.config import Config, InvalidConfigException
+from .config.config import Config, ConfigType, InvalidConfigError
 from .deci.dualshock import DualShock, Buttons, Buttons as DS
 from .deci.power import PowerState
 from .deci.console import Console
