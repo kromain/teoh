@@ -1,5 +1,5 @@
+import json
 from skynet import Config, ConfigType
-
 
 def get_skynet_config(pytest_config):
     if pytest_config.getoption("skynet_shared_config", default=False, skip=True):
@@ -19,3 +19,10 @@ def get_skynet_config(pytest_config):
         pass
 
     return None
+
+def create_user_config_file(target_ip_list, future_args=None):
+    targets = []
+    for ip in target_ip_list:
+        targets.append({"IP": ip})
+
+    json.dump({"targets": targets}, open("skynet.user.conf",'x'), indent=4)

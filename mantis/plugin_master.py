@@ -1,9 +1,10 @@
 import pytest
 import re
 
-from mantis.configmanager import get_skynet_config
+from mantis.configmanager import get_skynet_config, create_user_config_file
 from xdist.dsession import DSession, LoadScheduling
 from xdist.slavemanage import NodeManager
+from skynet.config.config import Config
 
 
 class InvalidIpError(Exception):
@@ -31,12 +32,15 @@ class MantisSession(DSession):
         super().__init__(config)
         self._skynet_config = None
 
-    def mantis_cmdline_node_specs(self):
+    def mantis_cmdline_ip_list(self):
         cmdline_iplist = []
         for iparg in self.config.getoption("target_ip", default=[], skip=True):
             cmdline_iplist.extend(iparg.split(","))
+        return cmdline_iplist
+
+    def mantis_cmdline_node_specs(self):
         return ["popen//id=Devkit <{}>//env:SKYNET_TARGET_IP={}".format(ip, validate_ip(ip))
-                for ip in cmdline_iplist]
+                for ip in self.mantis_cmdline_ip_list()]
 
     def mantis_config_node_specs(self):
         return ["popen//id={} <{}>//env:SKYNET_TARGET_IP={}".format(tc.id, tc.ip, validate_ip(tc.ip))
@@ -60,6 +64,11 @@ class MantisSession(DSession):
         node_specs = self.mantis_cmdline_node_specs()
         if not node_specs:
             node_specs = self.mantis_config_node_specs()
+        elif self._skynet_config is None:
+            print("*** NOTE: No Skynet user config file found in {}!".format(Config.project_dir()))
+            print("      --> Creating 'skynet.user.conf' in folder using command arguments.")
+            create_user_config_file(self.mantis_cmdline_ip_list())
+
 
         self.nodemanager = NodeManager(self.config, node_specs)
         nodes = self.nodemanager.setup_nodes(putevent=self.queue.put)
