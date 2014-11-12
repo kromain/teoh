@@ -87,8 +87,11 @@ class Config():
 
     The *config_type* constructor argument must be one of the values from the :class:`~skynet.config.config.ConfigType`
     enum. If it is set to :attr:`~skynet.config.config.ConfigType.SHARED` then only the shared config file is parsed,
-    but if it is set to :attr:`~skynet.config.config.ConfigType.USER`, then *both* the shared and user config files are
-    parsed. If either is missing, a :class:`FileNotFoundError` will be thrown.
+    and a :class:`FileNotFoundError` will be thrown if it can't be found.
+    If it is set to :attr:`~skynet.config.config.ConfigType.USER`, then *both* the shared and user config files are
+    parsed if both are found. If either one is missing, only the contents of the other file will be parsed. However,
+    if a custom *user_ext* string is specified and the matching user file can't be found, then a
+    :class:`FileNotFoundError` will be thrown.
 
     When both files are found and parsed, the settings defined in the user config file always take precedence over
     the shared settings. However shared settings not also defined in the user config file are not hidden. This allows
@@ -126,29 +129,32 @@ class Config():
         """
         return os.path.abspath(cls._project_dir)
 
-    def __init__(self, config_type=ConfigType.USER, user_ext="user", file_basename="skynet", file_ext="conf"):
+    def __init__(self, config_type=ConfigType.USER, user_ext='', file_basename="skynet", file_ext="conf"):
         self._targets = []
         self._library_paths = []
         self._test_data = {}
 
         shared_filename = "{}.{}".format(file_basename, file_ext)
-        user_filename = "{}.{}.{}".format(file_basename, user_ext, file_ext)
+        user_filename = "{}.{}.{}".format(file_basename, user_ext if user_ext else '*', file_ext)
 
+        self._shared_conf_file = None
         glob_matches = glob(os.path.join(self._project_dir, shared_filename))
-        if not glob_matches:
+        if glob_matches:
+            self._shared_conf_file = glob_matches.pop()
+            self._parse_config_file(self._shared_conf_file)
+        elif config_type == ConfigType.SHARED:
             raise FileNotFoundError("Shared config file {} does not exist!"
                                     .format(os.path.join(self.project_dir(), shared_filename)))
-        self._shared_conf_file = glob_matches.pop()
-        self._parse_config_file(self._shared_conf_file)
 
         self._user_conf_file = None
         if config_type == ConfigType.USER:
             glob_matches = glob(os.path.join(self._project_dir, user_filename))
-            if not glob_matches:
+            if glob_matches:
+                self._user_conf_file = glob_matches.pop()
+                self._parse_config_file(self._user_conf_file)
+            else:
                 raise FileNotFoundError("User config file {} does not exist!"
                                         .format(os.path.join(self.project_dir(), user_filename)))
-            self._user_conf_file = glob_matches.pop()
-            self._parse_config_file(self._user_conf_file)
 
     @property
     def targets(self):

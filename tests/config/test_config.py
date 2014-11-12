@@ -39,6 +39,17 @@ def test_custom_user_config_ext():
     assert Config(ConfigType.USER, user_ext="foo").targets
 
 
+def test_user_config_without_shared_config():
+    conf = Config(ConfigType.USER, file_basename="no_shared_config")
+    assert len(conf.targets) == 1
+    assert len(conf.library_paths) == 0
+
+
+def test_user_config_without_user_config():
+    with pytest.raises(FileNotFoundError) as e:
+        Config(ConfigType.USER, file_basename="no_user_config")
+    print("Caught expected exception:\n  {}".format(e))
+
 def test_unknown_shared_config():
     with pytest.raises(FileNotFoundError) as e:
         Config(ConfigType.SHARED, file_basename="foo")
