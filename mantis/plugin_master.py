@@ -1,7 +1,7 @@
 import pytest
 import re
-import skynet
 
+from mantis.configmanager import get_skynet_config
 from xdist.dsession import DSession, LoadScheduling
 from xdist.slavemanage import NodeManager
 
@@ -26,20 +26,21 @@ def validate_ip(ipstring):
     return ipstring
 
 
-def mantis_node_specs(pytest_config):
-    # Command line args take precedence over config files
-    cmdline_iplist = []
-    for iparg in pytest_config.getoption("--ip", default=[], skip=True):
-        cmdline_iplist.extend(iparg.split(","))
-    if cmdline_iplist:
+class MantisSession(DSession):
+    def __init__(self, config):
+        super().__init__(config)
+        self._skynet_config = None
+
+    def mantis_cmdline_node_specs(self):
+        cmdline_iplist = []
+        for iparg in self.config.getoption("target_ip", default=[], skip=True):
+            cmdline_iplist.extend(iparg.split(","))
         return ["popen//id=Devkit <{}>//env:SKYNET_TARGET_IP={}".format(ip, validate_ip(ip))
                 for ip in cmdline_iplist]
 
-    return ["popen//id={} <{}>//env:SKYNET_TARGET_IP={}".format(tc.id, tc.ip, validate_ip(tc.ip))
-            for tc in skynet.Config().targets]
-
-
-class MantisSession(DSession):
+    def mantis_config_node_specs(self):
+        return ["popen//id={} <{}>//env:SKYNET_TARGET_IP={}".format(tc.id, tc.ip, validate_ip(tc.ip))
+                for tc in self._skynet_config.targets]
 
     @pytest.mark.trylast
     def pytest_sessionstart(self, session):
@@ -49,11 +50,18 @@ class MantisSession(DSession):
         soon as nodes start they will emit the slave_slaveready event.
         """
 
+        self._skynet_config = get_skynet_config(self.config)
+
         # avoid infinite recursion by loading the plugin again in the spawned nodes
         self.config.option.plugins.remove("mantis.plugin_master")
         self.config.option.plugins.append("mantis.plugin_slave")
 
-        self.nodemanager = NodeManager(self.config, mantis_node_specs(self.config))
+        # Command line args take precedence over config files
+        node_specs = self.mantis_cmdline_node_specs()
+        if not node_specs:
+            node_specs = self.mantis_config_node_specs()
+
+        self.nodemanager = NodeManager(self.config, node_specs)
         nodes = self.nodemanager.setup_nodes(putevent=self.queue.put)
         self._active_nodes.update(nodes)
 
@@ -80,7 +88,12 @@ class MantisSession(DSession):
 # -------------------------------------------------------------------------
 
 def pytest_addoption(parser):
-    parser.addoption("--ip", action="append", help="specify one or more ip addresses")
+    parser.addoption("--ip", action="append", dest="target_ip",
+                     help="specify one or more ip addresses")
+    parser.addoption("-S", "-G", "--shared", "--global", action="store_true", dest="skynet_shared_config",
+                     help="force usage of the shared config file (ignore the user config file)")
+    parser.addoption("-C", "--config", dest="skynet_user_config",
+                     help="specify a custom user config file extension, e.g.: skynet.<CONFIG>.conf. Default is 'user'")
 
 
 def pytest_configure(config, __multicall__):
