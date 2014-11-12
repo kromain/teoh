@@ -20,6 +20,7 @@ def test_shared_config():
     assert conf.targets[0].id == "PS4 DevKit Foo" and conf.targets[1].id == "PS4 DevKit Bla"
     assert len(conf.library_paths) == 1
     assert conf.library_paths[0] == curr_dir
+    assert conf.test_data
 
 
 def test_user_config():
@@ -29,6 +30,7 @@ def test_user_config():
     assert conf.targets[0].id == "User PS4 DevKit"
     assert len(conf.library_paths) == 1
     assert conf.library_paths[0] == curr_dir
+    assert conf.test_data
 
 
 def test_custom_shared_config_basename():
@@ -95,3 +97,19 @@ def test_library_paths():
         assert config.library_paths[4] == os.path.normpath("C:/Windows")
     else:
         assert config.library_paths[4] == os.path.normpath("/usr/local")
+
+
+def test_test_data():
+    conf = Config()
+    d = conf.test_data
+
+    assert "string_data" in d and d["string_data"] == "foobar"
+    assert "list_data" in d and d["list_data"] == ["foo", "bar"]
+    assert "object_data" in d
+
+    obj = d["object_data"]
+    assert "prop1" in obj and obj["prop1"] == "foo"
+    assert "prop2" in obj and obj["prop2"] == "bar"
+
+
+

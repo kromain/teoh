@@ -176,6 +176,10 @@ class Config():
         """
         return self._library_paths
 
+    @property
+    def test_data(self):
+        return self._test_data
+
     def _parse_config_file(self, file_path):
         with open(file_path) as json_data:
             try:
@@ -185,6 +189,7 @@ class Config():
             else:
                 self._parse_targets(data)
                 self._parse_library_paths(data)
+                self._parse_test_data(data)
 
     def _parse_targets(self, data):
         if "targets" not in data:
@@ -219,3 +224,9 @@ class Config():
                     print("library_path {} isn't a valid directory! Skipping.".format(match))
                     continue
                 self._library_paths.append(os.path.normpath(match))
+
+    def _parse_test_data(self, data):
+        if "test_data" not in data:
+            return
+
+        self._test_data = data["test_data"]
