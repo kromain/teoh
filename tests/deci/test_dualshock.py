@@ -18,16 +18,17 @@ def dualshock_test_setup(regicam_webview):
     # Replace the regicam app with the test page
     testfile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "keyevent.html")
     html = ''.join([x[:-1] for x in open(testfile).readlines()])
-    regicam_webview.psdriver.execute_script("document.getElementsByTagName('html')[0].innerHTML = \'%s\';" % html)
+    regicam_webview.webview.execute_script("document.getElementsByTagName('html')[0].innerHTML = \'%s\';" % html)
 
     bhtml = ""
-    buttonset = ((Buttons.LEFT, 37, "left"),
+    buttonset = (
                  (Buttons.UP, 38, "up"),
                  (Buttons.RIGHT, 39, "right"),
                  (Buttons.DOWN, 40, "down"),
                  (Buttons.CROSS, 13, "cross"),
                  (Buttons.CIRCLE, 27, "circle"),
                  (Buttons.TRIANGLE, 112, "triangle"),
+                 (Buttons.LEFT, 37, "left"),
                  (Buttons.SQUARE, 113, "square"),
                  (Buttons.OPTION, 114, "option"),
                  (Buttons.L1, 116, "L1"),
@@ -38,7 +39,7 @@ def dualshock_test_setup(regicam_webview):
                  (Buttons.R3, 121, "R3"))
     for button, val, name in buttonset:
         bhtml += '<input id="%s" type="text"/><br>' % name
-    regicam_webview.psdriver.execute_script("document.getElementById('buttons').innerHTML = \'%s\';" % bhtml)
+    regicam_webview.webview.execute_script("document.getElementById('buttons').innerHTML = \'%s\';" % bhtml)
 
     class TestContext:
         def __init__(self, _pstarget, _buttonset):
@@ -48,7 +49,7 @@ def dualshock_test_setup(regicam_webview):
 
 
 def test_press_button(dualshock_test_setup):
-    browser = dualshock_test_setup.pstarget.psdriver
+    browser = dualshock_test_setup.pstarget.webview
     ds = dualshock_test_setup.pstarget.dualshock
     buttonset = dualshock_test_setup.buttonset
 
@@ -63,7 +64,7 @@ def test_press_button(dualshock_test_setup):
 
 
 def test_press_buttons(dualshock_test_setup):
-    browser = dualshock_test_setup.pstarget.psdriver
+    browser = dualshock_test_setup.pstarget.webview
     ds = dualshock_test_setup.pstarget.dualshock
     buttonset = dualshock_test_setup.buttonset
 
@@ -83,7 +84,7 @@ def test_press_buttons(dualshock_test_setup):
 
 def test_up_down_single(dualshock_test_setup):
     """ Test buttondown/buttonup for each single button at a time """
-    browser = dualshock_test_setup.pstarget.psdriver
+    browser = dualshock_test_setup.pstarget.webview
     ds = dualshock_test_setup.pstarget.dualshock
     buttonset = dualshock_test_setup.buttonset
 
@@ -113,7 +114,7 @@ def test_up_down_single(dualshock_test_setup):
 
 def test_up_down_multiple(dualshock_test_setup):
     """ Test buttondown/buttonup for CROSS/CIRCLE/TRIANGLE/SQUARE at the same time """
-    browser = dualshock_test_setup.pstarget.psdriver
+    browser = dualshock_test_setup.pstarget.webview
     ds = dualshock_test_setup.pstarget.dualshock
     buttonset = dualshock_test_setup.buttonset
 

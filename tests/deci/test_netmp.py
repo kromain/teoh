@@ -176,3 +176,7 @@ class TestNetmp:
         res = netmp2.disconnect()
         assert(res)
         assert(res['result'] == 0)
+
+    def test_error(self):
+        with pytest.raises(Exception):
+            netmp = Netmp(ip="256.127.127.127")

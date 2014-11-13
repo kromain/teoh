@@ -481,8 +481,13 @@ class DeciQueue:
         self._rwthread.start()
 
     def add_stream(self, obj, netmp):
-        stream = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        stream.connect((self._ip, self._port))
+        try:
+            stream = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            stream.connect((self._ip, self._port))
+        except:
+            self.stop()
+
+            raise
 
         with self._streamlock:
             self._streams[obj] = stream
@@ -501,19 +506,22 @@ class DeciQueue:
                     raise self.NetmpException(res["result"])
 
 
+    def _closestreams(self):
+        for s in self._streams.values():
+            try:
+                s.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                # the socket may already be in shutdown state when the last protocol was closed,
+                # so ignore the exception that would then be thrown by shutdown()
+                pass
+            finally:
+                s.close()   
+
     def _abort(self, exception):
 
         with self._streamlock:
-            for s in self._streams.values():
-                try:
-                    s.shutdown(socket.SHUT_RDWR)
-                except OSError:
-                    # the socket may already be in shutdown state when the last protocol was closed,
-                    # so ignore the exception that would then be thrown by shutdown()
-                    pass
-                finally:
-                    s.close()   
-                    
+            self._closestreams()
+             
             self._exception = exception
 
             self._streams = {}
@@ -632,15 +640,7 @@ class DeciQueue:
             self._run = False
             self._rwthread.join()
 
-            for s in self._streams.values():
-                try:
-                    s.shutdown(socket.SHUT_RDWR)
-                except OSError:
-                    # the socket may already be in shutdown state when the last protocol was closed,
-                    # so ignore the exception that would then be thrown by shutdown()
-                    pass
-                finally:
-                    s.close()   
+            self._closestreams()
 
     def send(self, prot, buffer, condition=None):
         if not self._run:
