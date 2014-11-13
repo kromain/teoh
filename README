@@ -38,3 +38,28 @@ Tests suites
 Tests using the Skynet core:
 * https://github.snei.sony.com/SNEI/skynet-swordfish-tests
 * ...
+
+Creating the pip packages and generating the HTML API documentation
+===================================================================
+
+```
+python setup.py
+```
+
+The .zip and .tar.gz packages are generated under dist/
+(nb: on windows only .zip packages are generated)
+
+The HTML API Documentation is generated under doc/_build/html.
+Other document formats can be generated, see doc/Makefile for the supported formats and how to generate them.
+
+Uploading the documentation on github
+=====================================
+
+Generate the documentation using the steps above, then switch to the gh-pages branch:
+
+```
+git checkout gh-pages
+```
+
+Put the contents of doc/_build/html into the top-level folder, then commit the changes to the branch and push to origin.
+This automatically updates the documentation at https://github.snei.sony.com/pages/SNEI/skynet
