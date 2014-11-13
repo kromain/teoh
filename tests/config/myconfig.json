@@ -1,0 +1,10 @@
+{
+    "targets": [
+        {"ID":"PS4 DevKit Foo","IP":"172.31.1.27"},
+        {"ID":"PS4 DevKit Bla","IP":"172.31.1.28"}
+    ],
+
+    "library_paths": [
+        "."
+    ]
+}

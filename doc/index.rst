@@ -119,6 +119,7 @@ skynet package overview:
     :toctree:
 
     ~skynet.Buttons
+    ~skynet.ConfigType
     ~skynet.DS
     ~skynet.PowerState
 
@@ -129,4 +130,4 @@ skynet package overview:
     ~skynet.pstarget.PSTargetInUseException
     ~skynet.pstarget.PSTargetUnreachableException
     ~skynet.pstarget.PSTargetWebViewUnavailableException
-    ~skynet.config.config.InvalidConfigException
+    ~skynet.config.config.InvalidConfigError

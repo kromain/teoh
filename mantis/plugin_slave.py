@@ -1,6 +1,8 @@
 import skynet
 import sys
 
+from mantis.configmanager import get_skynet_config
+
 # -------------------------------------------------------------------------
 # distributed testing slave initialization
 # -------------------------------------------------------------------------
@@ -8,11 +10,9 @@ import sys
 def pytest_configure(config, __multicall__):
     __multicall__.execute()
 
-    # TODO
-    # skynet.Config.set_project_dir()
-
+    conf = get_skynet_config(config)
     # Add any specified library paths to the Python system path
-    try:
-        sys.path.extend(skynet.Config().library_paths)
-    except FileNotFoundError:
-        pass
+    if conf is not None and conf.library_paths:
+        sys.path.extend(conf.library_paths)
+    # attach to the pytest config object
+    config.skynet = conf
