@@ -5,8 +5,6 @@
 import os
 import pytest
 
-from skynet.deci.info import Info
-import conftest
 
 pil_loaded = False
 try:
@@ -16,14 +14,6 @@ except:
     pass
 
 
-@pytest.fixture(scope="module")
-def info(request):
-    i = Info(ip=conftest.target_ip)
-    i.start()
-    request.addfinalizer(i.stop)
-    return i
-
-
 def test_tga_screenshot(info):
 
     # just tests that the results are as big as we expect
@@ -31,12 +21,13 @@ def test_tga_screenshot(info):
     assert(os.path.getsize("TEST.tga") == 8294428)
     os.remove("TEST.tga")
 
+
 def test_async_screenshot(info):
     # Async tests.  Try to do more than one call to TSMP protocol at the same time
-    th1 = info.get_pict("ASYNC.tga", async = True)
-    assert(th1)
+    th1 = info.get_pict("ASYNC.tga", async=True)
+    assert th1
     info.is_user_signed_in("steve-e1")
-    th2 = info.get_pict("SYNC.tga", async = False)
+    th2 = info.get_pict("SYNC.tga", async=False)
     assert(not th2)
     assert(os.path.getsize("ASYNC.tga") == 8294428)
     th1.join()
@@ -54,12 +45,11 @@ def test_async_screenshot(info):
             os.remove("TEST.tga")
 
         if cnt == 127:
-            assert( len(block) == 36892 )
+            assert(len(block) == 36892)
         else:
-            assert( len(block) == 65536 )
+            assert(len(block) == 65536)
 
     assert(cnt == 127)
-
 
 
 @pytest.mark.skipif(not pil_loaded, reason="requires Pillow package")
