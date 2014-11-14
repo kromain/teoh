@@ -7,7 +7,9 @@ import os
 
 # Don't remove! this makes the fixtures available to the tests without having to include them directly in here
 from tests.util.navigation import pstarget, regicam_webview
+from skynet.test.fixtures import *
 
+# PENDING this global var can be removed when all tests have been migrated to SkynetTestCase
 # global var
 target_ip = os.getenv("SKYNET_TARGET_IP", "")
 
@@ -27,5 +29,6 @@ def pytest_configure(config):
     except ValueError:
         raise # just pass the exception over if the ip address is invalid
 
+    # PENDING this global var can be removed when all tests have been migrated to SkynetTestCase
     global target_ip
     target_ip = iparg
