@@ -29,7 +29,7 @@ class Info(NetmpManager):
         self.netmp = super(Info, self).stopnetmp(self.ip)
     
     def is_user_signed_in(self, username):
-        state = self.tsmp.get_psn_state(username)
+        state = self.tsmp.get_psn_state(username=username)
 
         return state['result'] == 0 and state['psnState'] == 2
 
@@ -38,7 +38,8 @@ class Info(NetmpManager):
         return self.tsmp.get_conf()
 
     def get_info(self):
-        return self.tsmp.get_info()
+        res = self.tsmp.get_info()
+        return {item["name"]:item["value"] for item in res["data"]}
 
     def get_pict_blocks(self, mode=Tsmp.MODE_AUTO):
         for buffer in self.tsmp.get_pict(mode):

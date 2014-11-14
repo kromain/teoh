@@ -100,7 +100,7 @@ class DualShock(NetmpManager):
                 self.netmp = None
                 raise
 
-        self.ctrlp.play_start()
+        self.ctrlp.play_start(controller=0xffffffff)
 
         self.running = True
         time.sleep(0.1)

@@ -277,7 +277,7 @@ class PSTarget(object):
 
         :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
-        return self._power.power_state()
+        return self._power.power_status()
 
     def save_screenshot(self, filepath):
         """

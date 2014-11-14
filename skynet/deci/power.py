@@ -28,7 +28,7 @@ class Power(NetmpManager):
     def power_off(self):
         return self.tsmp.power_off()
 
-    def power_state(self):
+    def power_status(self):
         state = self.tsmp.get_power_status()
         return PowerState(state["powerState"])
 

@@ -35,31 +35,70 @@ class TestNetmp:
         assert(tsmp)
         assert(type(tsmp) == Tsmp)
 
+        res = netmp.get_registered_list()
+        assert(res)
+        assert(res['result'] == 0)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == tsmp.prot.PROTOCOL]) == 1)
+
         tsmp2 = netmp.register(Tsmp)
         assert(tsmp2)
         assert(type(tsmp2) == Tsmp)
         assert(tsmp2 is tsmp)
 
+        res = netmp.get_registered_list()
+        assert(res)
+        assert(res['result'] == 0)
+        res = netmp.get_registered_list()
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == tsmp.prot.PROTOCOL]) == 1)
+
         ctrlp = netmp.register(Ctrlp)
         assert(ctrlp)
         assert(type(ctrlp) == Ctrlp)
+
+        res = netmp.get_registered_list()
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == tsmp.prot.PROTOCOL]) == 1)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == ctrlp.prot.PROTOCOL]) == 1)
 
         ttyp = netmp.register(Ttyp)
         assert(ttyp)
         assert(type(ttyp) == Ttyp)
 
+        res = netmp.get_registered_list()
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == ttyp.prot.PROTOCOL]) == 1)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == tsmp.prot.PROTOCOL]) == 1)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == ctrlp.prot.PROTOCOL]) == 1)
 
         res = netmp.unregister(Tsmp)
         assert(res == None)
+        res = netmp.get_registered_list()
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == ttyp.prot.PROTOCOL]) == 1)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == tsmp.prot.PROTOCOL]) == 1)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == ctrlp.prot.PROTOCOL]) == 1)
 
         res = netmp.unregister(Tsmp)
         assert(res)
         assert(res['result'] == 0)
+        res = netmp.get_registered_list()
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == ttyp.prot.PROTOCOL]) == 1)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == tsmp.prot.PROTOCOL]) == 0)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == ctrlp.prot.PROTOCOL]) == 1)
 
         res = netmp.unregister(Ttyp)
+
+        res = netmp.get_registered_list()
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == ttyp.prot.PROTOCOL]) == 0)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == tsmp.prot.PROTOCOL]) == 0)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == ctrlp.prot.PROTOCOL]) == 1)
+
         assert(res)
         assert(res['result'] == 0)
         res = netmp.unregister(Ctrlp)
+
+        res = netmp.get_registered_list()
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == ttyp.prot.PROTOCOL]) == 0)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == tsmp.prot.PROTOCOL]) == 0)
+        assert(len([x for x in res['data'] if netmp.client_id.startswith(x['owner']) and x['protocol'] == ctrlp.prot.PROTOCOL]) == 0)
+
         assert(res)
         assert(res['result'] == 0)
 
@@ -119,18 +158,25 @@ class TestNetmp:
         with pytest.raises(Netmp.InUseException):
             ctrlp2 = netmp2.register(Ctrlp)
 
-        # Works but leaves netmp thread in a bad state
-        # This is because netmp does not yet do proper error response
-        #res = netmp2.force_disconnect()
-        #assert(res)
-        #assert(res['result'] == 0)
-        #ctrlp2 = netmp2.register(Ctrlp)
-        #assert(ctrlp2)
-
-        res = netmp.disconnect()
+        res = netmp2.force_disconnect()
         assert(res)
         assert(res['result'] == 0)
+        ctrlp2 = netmp2.register(Ctrlp)
+        assert(ctrlp2)
+
+        with pytest.raises(Netmp.InUseException):
+            res = netmp.disconnect()
+
+        assert(not netmp.is_connected())
+
+        note = netmp.get_notification()
+        assert( note['protocol'] == NetmpProt.PROTOCOL )
+        assert( note['msgtype'] == NetmpProt.FORCE_DISCON_NOTIFICATION )
 
         res = netmp2.disconnect()
         assert(res)
         assert(res['result'] == 0)
+
+    def test_error(self):
+        with pytest.raises(Exception):
+            netmp = Netmp(ip="256.127.127.127")

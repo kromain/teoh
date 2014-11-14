@@ -10,13 +10,23 @@ if __name__ == "__main__":
     try:
         with Info(ip=sys.argv[1]) as info:
 
+            print(info.get_conf())
+
             if info.is_user_signed_in("steve-e1"):
                 print("Yes")
             else:
                 print("No")
 
+            if info.is_user_signed_in("steve-e2"):
+                print("Yes")
+            else:
+                print("No")
+
             infolist = info.get_info()
+            print("Infolist", infolist)
+
             for item in infolist:
+                print(item)
                 if type(infolist[item]) == int:
                     if item in["GameLanIpAddress",
                                 "GameLanSubnetMask",
