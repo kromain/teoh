@@ -46,8 +46,8 @@ class TestTsmp:
 
         res = tsmp.get_psn_state(username="steve-e1")
         assert(res)
-        assert(res['result'] == 0)
-        assert(res['psnState'] == 2 or res['psnState'] == 1)
+        if res['result'] == 0:
+            assert(res['psnState'] == 2 or res['psnState'] == 1)
 
         res = tsmp.get_power_status()
         assert(res)

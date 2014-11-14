@@ -468,6 +468,7 @@ class DeciQueue:
         self._sendlock = threading.Lock()
         self._recvlock = threading.Lock()
         self._streamlock = threading.Lock()
+        self._exceptionlock = threading.Lock()
 
         self._workbuff = {}
         self._worklength = {}
@@ -486,7 +487,6 @@ class DeciQueue:
             stream.connect((self._ip, self._port))
         except:
             self.stop()
-
             raise
 
         with self._streamlock:
@@ -515,53 +515,36 @@ class DeciQueue:
                 # so ignore the exception that would then be thrown by shutdown()
                 pass
             finally:
-                s.close()   
+                s.close()
 
-    def _abort(self, exception):
-
-        with self._streamlock:
-            self._closestreams()
-             
-            self._exception = exception
-
-            self._streams = {}
-
-            try:
-                self._recvlock.release()
-            except:
-                pass
-            try:
-                self._sendlock.release()
-            except:
-                pass
-
+        self._streams = {}
+        self._objects = {}
 
     def _readwrite(self, *args, **kwargs):
+        try:
+            while self._run:
+                # Windows doesn't handle empty descriptors in select(), so skip the call altogether when there's
+                # nothing to wait on. This should only be the case for at most a few loop iterations at startup,
+                # between the time the thread is created and the time the first protocol is registered.
+                if sys.platform == "win32" and not self._streams:
+                    continue
 
-        self._exception = None
+                respondevent = []
 
-        while self._run and not self._exception:
-            # Windows doesn't handle empty descriptors in select(), so skip the call altogether when there's
-            # nothing to wait on. This should only be the case for at most a few loop iterations at startup,
-            # between the time the thread is created and the time the first protocol is registered.
-            if sys.platform == "win32" and not self._streams:
-                continue
-
-            respondevent = []
-
-            with self._streamlock:
-                rd,wr,ex = select.select(self._streams.values(), self._streams.values(), self._streams.values(), 0)
-
-            for stream in rd:
                 with self._streamlock:
-                    obj = self._objects[stream]
+                    streams = self._streams.values()
 
-                # To read a full message, we have to read 8 bytes to determin length, then
-                # read the rest of the bytes until we reach length.  At any time in this
-                # process, the current read could end.  We build the message in _workbuff
-                # over potentionally multiple passes, with _worklength set once we've read 8
-                if self._recvlock.acquire(blocking=False):
-                    try:
+                rd,wr,ex = select.select(streams, streams, streams, 0)
+
+                for stream in rd:
+                    with self._streamlock:
+                        obj = self._objects[stream]
+
+                    # To read a full message, we have to read 8 bytes to determin length, then
+                    # read the rest of the bytes until we reach length.  At any time in this
+                    # process, the current read could end.  We build the message in _workbuff
+                    # over potentionally multiple passes, with _worklength set once we've read 8
+                    with self._recvlock:
                         if stream not in self._workbuff:
                             self._workbuff[stream] = {}
                             self._worklength[stream] = {}
@@ -572,7 +555,7 @@ class DeciQueue:
                                 self._workbuff[stream] = stream.recv(8)
                             elif not self._worklength[stream]:
                                 self._workbuff[stream] += stream.recv(8-len(self._workbuff[stream]))
-                                
+
                             if len(self._workbuff[stream]) >= 8:
                                 self._worklength[stream] = struct.unpack_from("<L", self._workbuff[stream], 4)[0]
 
@@ -597,32 +580,26 @@ class DeciQueue:
                                     self._notifications[obj].append(self._workbuff[stream])
 
                                     if protocol == NetmpProt.PROTOCOL and msgtype == NetmpProt.FORCE_DISCON_NOTIFICATION:
-                                        return self._abort(Netmp.InUseException())
+                                        raise Netmp.InUseException()
                                 else:
                                     if sequence not in self._responses:
                                         self._responses[sequence] = []
                                     self._responses[sequence].append(self._workbuff[stream])
                                     respondevent.append(sequence)
 
-
                                 self._workbuff[stream] = None
                                 self._worklength[stream] = None
-                    except Exception as e:
-                        return self._abort(e)
-                         
-                    self._recvlock.release()
 
-            # must happen here to avoid race condition with _recvlock
-            for sequence in respondevent:
-                if sequence in self._conditions:
-                    condition = self._conditions[sequence]
-                    condition.acquire()
-                    condition.notify()
-                    condition.release()
+                # must happen here to avoid race condition with _recvlock
+                for sequence in respondevent:
+                    if sequence in self._conditions:
+                        condition = self._conditions[sequence]
+                        condition.acquire()
+                        condition.notify()
+                        condition.release()
 
-            for stream in wr:
-                if self._sendlock.acquire(blocking=False):
-                    try:
+                with self._sendlock:
+                    for stream in wr:
                         if stream in self._tosend and len(self._tosend[stream]) > 0:
                             if log_level >= 1:
                                 print("SEND %d - %s" % (stream.fileno(),summarize(self._tosend[stream][0])))
@@ -630,24 +607,24 @@ class DeciQueue:
                             stream.send(self._tosend[stream][0])
                             self._tosend[stream].pop(0)
 
-                    except Exception as e:
-                        return self._abort(e)
-
-                    self._sendlock.release()
+        except Exception as e:
+            with self._exceptionlock:
+                self._exception = e
 
     def stop(self):
         if self._run:
             self._run = False
             self._rwthread.join()
-
             self._closestreams()
 
     def send(self, prot, buffer, condition=None):
         if not self._run:
             return None
 
-        if self._exception:
-            raise self._exception
+        with self._exceptionlock:
+            if self._exception is not None:
+                self.stop()
+                raise self._exception
 
 
         sequence = struct.unpack_from("<H", buffer, 12)[0]
@@ -738,9 +715,11 @@ class DeciObj:
 
     def is_connected(self):
         if hasattr(self, "netmp"):
-            return self.netmp._exception == None
+            with self.netmp._exceptionlock:
+                return self.netmp._exception is None
         else:
-            return self._exception == None
+            with self._exceptionlock:
+                return self._exception is None
 
     def _calldefault(self, name, *args, **kwargs):
         buffer = getattr(self.prot, name + "_cmd")(*args, **kwargs)
