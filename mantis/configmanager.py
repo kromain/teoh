@@ -12,7 +12,7 @@ def get_skynet_config(pytest_config):
         return Config(conf_type, user_ext)
     except FileNotFoundError:
         # ignore missing config file if at least one --ip in cmdline args and no --shared or --conf specified
-        if not pytest_config.getoption("target_ip", default=[], skip=True):
+        if not pytest_config.getoption("target_ips", default=[], skip=True):
             raise
         if conf_type == ConfigType.SHARED or user_ext:
             raise
