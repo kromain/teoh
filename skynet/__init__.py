@@ -11,3 +11,4 @@ from .deci.console import Console
 from .osk.osk import OskEntry
 from .pstarget import PSTarget, PSTargetException
 from .pstarget import PSTargetInUseException, PSTargetUnreachableException, PSTargetWebViewUnavailableException
+from .test.classes import SkynetTestCase, PSTestCase, TLXTestCase
