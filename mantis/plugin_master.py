@@ -1,5 +1,6 @@
 import pytest
 import re
+import sys
 
 from mantis.configmanager import get_skynet_config, create_user_config_file
 from xdist.dsession import DSession, LoadScheduling
@@ -25,6 +26,20 @@ def validate_ip(ipstring):
     if not valid:
         raise InvalidIpError("Target IP address '{}' is invalid!".format(ipstring))
     return ipstring
+
+
+def format_report_output(sections):
+    if not sections:
+        return
+
+    print("")  # because test result indicators don't add a newline (so they can be combined e.g. "..E.s..")
+    for section in sections:
+        dest, content = section
+        for line in content.split("\n"):
+            if "stderr" in dest:
+                print("! ", line, file=sys.stderr)
+            else:
+                print("> ", line, file=sys.stdout)
 
 
 class MantisSession(DSession):
@@ -69,7 +84,6 @@ class MantisSession(DSession):
             print("      --> Creating 'skynet.user.conf' in folder using command arguments.")
             create_user_config_file(self.mantis_cmdline_ip_list())
 
-
         self.nodemanager = NodeManager(self.config, node_specs)
         nodes = self.nodemanager.setup_nodes(putevent=self.queue.put)
         self._active_nodes.update(nodes)
@@ -91,6 +105,11 @@ class MantisSession(DSession):
                 raise KeyboardInterrupt(str(self.shouldstop))
         return True
 
+    @pytest.mark.trylast
+    def pytest_runtest_logreport(self, report):
+        if self.config.option.verbose >= 0 and report.when == "teardown":
+            format_report_output(report.sections)
+
 
 # -------------------------------------------------------------------------
 # distributed testing initialization
@@ -109,5 +128,7 @@ def pytest_configure(config, __multicall__):
     __multicall__.execute()
     session = MantisSession(config)
     config.pluginmanager.register(session, "mantissession")
-    tr = config.pluginmanager.getplugin("terminalreporter")
-    # tr.showfspath = False
+
+    if config.option.verbose >= 0:
+        tr = config.pluginmanager.getplugin("terminalreporter")
+        tr.showlongtestinfo = True
