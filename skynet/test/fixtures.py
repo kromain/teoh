@@ -10,6 +10,11 @@ from skynet import PSTarget, PSTargetInUseException, PSTargetUnreachableExceptio
 
 
 @pytest.fixture(scope="session")
+def config(request):
+    return request.config.skynet
+
+
+@pytest.fixture(scope="session")
 def pstarget_session(request):
     return _init_pstarget(request)
 
