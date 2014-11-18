@@ -75,7 +75,7 @@ def test_target_tty(disconnected_pstarget_function):
     # going in and out of What's New reliably generates TTY output
     pstarget.connect()
     pstarget.dualshock.press_buttons([DS.DOWN, DS.UP])
-    msg = pstarget.tty.read()
+    msg = pstarget.tty.readsync()
     assert msg is not None and len(msg) > 0
 
     # check that the TTY object has been cleaned up
