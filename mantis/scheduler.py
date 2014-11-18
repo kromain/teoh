@@ -150,6 +150,11 @@ class TargetScheduler:
         self.node2pending[node].remove(item_index)
         self.check_schedule(node, duration=duration)
 
+    def retry_item(self, node, item_index):
+        # re-add to the end of the list for the node
+        self.node2pending[node].append(item_index)
+        node.send_runtest_some([item_index])
+
     def check_schedule(self, node, duration=0):
         """Maybe schedule new items on the node
 
@@ -268,6 +273,7 @@ class TargetScheduler:
                 same_collection = False
 
         return same_collection
+
 
 def report_collection_diff(from_collection, to_collection, from_id, to_id):
     """Report the collected test difference between two nodes.

@@ -29,10 +29,12 @@ def test_shared_config():
     assert conf.library_paths[0] == curr_dir
     assert conf.test_data
 
-
+test_retry = 5
 def test_user_config():
+    global test_retry
+    test_retry -= 1
     conf = Config()
-    assert len(conf.targets) == 1
+    assert len(conf.targets) == test_retry
     target = conf.targets[0]
     assert target.ip == "172.31.1.67" and target.id == "User PS4 DevKit"
     assert len(conf.users) == 1

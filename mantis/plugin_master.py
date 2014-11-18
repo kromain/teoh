@@ -35,6 +35,7 @@ class MantisSession(DSession):
     def __init__(self, config):
         super().__init__(config)
         self._skynet_config = None
+        self._retries = {}
 
     @pytest.mark.trylast
     def pytest_sessionstart(self, session):
@@ -80,13 +81,21 @@ class MantisSession(DSession):
     def pytest_runtest_logreport(self, report):
         if self.config.option.verbose >= 0 and report.when == "teardown":
             format_report_output(report.sections)
-        if report.when == "call" and report.failed:
-            report.retry = True
-            # TODO actually retry
+        if report.when == "call":
+            if report.failed:
+                nretries = self._retries.get(report.item_index, 0)
+                if nretries < int(self.config.getoption("maxretries")):
+                    self._retries[report.item_index] = nretries + 1
+                    report.retry = True
+                    self.sched.retry_item(report.node, report.item_index)
+            else:
+                self._retries.pop(report.item_index, None)
+
 
 # -------------------------------------------------------------------------
 # distributed testing initialization
 # -------------------------------------------------------------------------
+
 
 def pytest_addoption(parser):
     parser.addoption("--ip", action="append", dest="target_ips",
@@ -95,8 +104,10 @@ def pytest_addoption(parser):
                      help="specify one or more user credentials, in the form psnid!email:password")
     parser.addoption("-S", "-G", "--shared", "--global", action="store_true", dest="skynet_shared_config",
                      help="force usage of the shared config file (ignore the user config file)")
-    parser.addoption("-C", "--config", dest="skynet_user_config",
+    parser.addoption("-C", "--config", action="store", dest="skynet_user_config",
                      help="specify a custom user config file extension, e.g.: skynet.<CONFIG>.conf. Default is 'user'")
+    parser.addoption("-R", "--retries", action="store", default="1", dest="maxretries",
+                     help="specify how many times to retry a failing test before marking it as failed. Default is 1")
 
 
 def pytest_configure(config, __multicall__):
