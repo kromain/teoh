@@ -1,8 +1,7 @@
 import pytest
-import re
 import sys
+from mantis import configmanager
 
-from mantis.configmanager import get_skynet_config, create_user_config_file
 from xdist.dsession import DSession, LoadScheduling
 from xdist.slavemanage import NodeManager
 from skynet.config.config import Config
@@ -12,20 +11,9 @@ class InvalidIpError(Exception):
     pass
 
 
-def validate_ip(ipstring):
-    # ipv4 format [0-255].[0-255].[0-255].[0-255]
-    p = re.compile('^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$')
-    ip_matched = p.match(ipstring)
-    valid = ip_matched is not None
-    if valid:
-        for part in ip_matched.groups():
-            if not 0 <= int(part) <= 255:
-                valid = False
-                break
-
-    if not valid:
-        raise InvalidIpError("Target IP address '{}' is invalid!".format(ipstring))
-    return ipstring
+def mantis_node_specs(targetconfig):
+    return ["popen//id={} <{}>//env:SKYNET_TARGET_IP={}".format(tc.id, tc.ip, tc.ip)
+            for tc in targetconfig]
 
 
 def format_report_output(sections):
@@ -47,20 +35,6 @@ class MantisSession(DSession):
         super().__init__(config)
         self._skynet_config = None
 
-    def mantis_cmdline_ip_list(self):
-        cmdline_iplist = []
-        for iparg in self.config.getoption("target_ips", default=[], skip=True):
-            cmdline_iplist.extend(iparg.split(","))
-        return cmdline_iplist
-
-    def mantis_cmdline_node_specs(self):
-        return ["popen//id=Devkit <{}>//env:SKYNET_TARGET_IP={}".format(ip, validate_ip(ip))
-                for ip in self.mantis_cmdline_ip_list()]
-
-    def mantis_config_node_specs(self):
-        return ["popen//id={} <{}>//env:SKYNET_TARGET_IP={}".format(tc.id, tc.ip, validate_ip(tc.ip))
-                for tc in self._skynet_config.targets]
-
     @pytest.mark.trylast
     def pytest_sessionstart(self, session):
         """Creates and starts the nodes.
@@ -69,21 +43,22 @@ class MantisSession(DSession):
         soon as nodes start they will emit the slave_slaveready event.
         """
 
-        self._skynet_config = get_skynet_config(self.config)
-
         # avoid infinite recursion by loading the plugin again in the spawned nodes
         self.config.option.plugins.remove("mantis.plugin_master")
         self.config.option.plugins.append("mantis.plugin_slave")
 
         # Command line args take precedence over config files
-        node_specs = self.mantis_cmdline_node_specs()
-        if not node_specs:
-            node_specs = self.mantis_config_node_specs()
-        elif self._skynet_config is None:
+        cmdline_ips = configmanager.parse_cmdline_ip_list(self.config)
+        cmdline_users = configmanager.parse_cmdline_users(self.config)
+
+        self._skynet_config = configmanager.get_skynet_config(self.config)
+        if self._skynet_config is None:
             print("*** NOTE: No Skynet user config file found in {}!".format(Config.project_dir()))
             print("      --> Creating 'skynet.user.conf' in folder using command arguments.")
-            create_user_config_file(self.mantis_cmdline_ip_list())
+            configmanager.create_user_config_file(cmdline_ips, cmdline_users)
+            self._skynet_config = configmanager.get_skynet_config(self.config)
 
+        node_specs = mantis_node_specs(cmdline_ips if cmdline_ips else self._skynet_config.targets)
         self.nodemanager = NodeManager(self.config, node_specs)
         nodes = self.nodemanager.setup_nodes(putevent=self.queue.put)
         self._active_nodes.update(nodes)
@@ -118,6 +93,8 @@ class MantisSession(DSession):
 def pytest_addoption(parser):
     parser.addoption("--ip", action="append", dest="target_ips",
                      help="specify one or more ip addresses")
+    parser.addoption("--U", "--user", action="append", dest="users",
+                     help="specify one or more user credentials, in the form psnid!email:password")
     parser.addoption("-S", "-G", "--shared", "--global", action="store_true", dest="skynet_shared_config",
                      help="force usage of the shared config file (ignore the user config file)")
     parser.addoption("-C", "--config", dest="skynet_user_config",
