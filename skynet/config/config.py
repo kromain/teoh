@@ -211,6 +211,10 @@ class Config():
         """
         return self._targets
 
+    @targets.setter
+    def targets(self, value):
+        self._targets = value
+
     @property
     def users(self):
         """ The list of users parsed from either the shared or the user config file.
@@ -220,6 +224,10 @@ class Config():
         :return: a list of :class:`UserConfig` objects
         """
         return self._users
+
+    @users.setter
+    def users(self, value):
+        self._users = value
 
     @property
     def library_paths(self):

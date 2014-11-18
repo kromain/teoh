@@ -1,10 +1,10 @@
 import pytest
 import sys
-from mantis import configmanager
 
+from mantis import configmanager
+from skynet.config.config import Config
 from xdist.dsession import DSession, LoadScheduling
 from xdist.slavemanage import NodeManager
-from skynet.config.config import Config
 
 
 class InvalidIpError(Exception):
@@ -47,19 +47,14 @@ class MantisSession(DSession):
         self.config.option.plugins.remove("mantis.plugin_master")
         self.config.option.plugins.append("mantis.plugin_slave")
 
-        # Command line args take precedence over config files
-        cmdline_ips = configmanager.parse_cmdline_ip_list(self.config)
-        cmdline_users = configmanager.parse_cmdline_users(self.config)
-
         self._skynet_config = configmanager.get_skynet_config(self.config)
         if self._skynet_config is None:
             print("*** NOTE: No Skynet user config file found in {}!".format(Config.project_dir()))
             print("      --> Creating 'skynet.user.conf' in folder using command arguments.")
-            configmanager.create_user_config_file(cmdline_ips, cmdline_users)
+            configmanager.create_user_config_file(self.config)
             self._skynet_config = configmanager.get_skynet_config(self.config)
 
-        node_specs = mantis_node_specs(cmdline_ips if cmdline_ips else self._skynet_config.targets)
-        self.nodemanager = NodeManager(self.config, node_specs)
+        self.nodemanager = NodeManager(self.config, mantis_node_specs(self._skynet_config.targets))
         nodes = self.nodemanager.setup_nodes(putevent=self.queue.put)
         self._active_nodes.update(nodes)
 

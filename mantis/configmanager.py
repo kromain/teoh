@@ -14,7 +14,7 @@ def parse_cmdline_users(pytest_config):
     return users
 
 
-def parse_cmdline_ip_list(pytest_config):
+def parse_cmdline_ips(pytest_config):
     cmdline_iplist = []
     for iparg in pytest_config.getoption("target_ips", default=[], skip=True):
         for ip in iparg.split(","):
@@ -34,24 +34,33 @@ def get_skynet_config(pytest_config):
     user_ext = pytest_config.getoption("skynet_user_config", default='', skip=True)
 
     try:
-        return Config(conf_type, user_ext)
+        config = Config(conf_type, user_ext)
     except FileNotFoundError:
         # ignore missing config file if at least one --ip in cmdline args and no --shared or --conf specified
         if not pytest_config.getoption("target_ips", default=[], skip=True):
             raise
         if conf_type == ConfigType.SHARED or user_ext:
             raise
-        pass
+        return None
 
-    return None
+    # override config with data passed through cmdline arguments
+    cmdline_ips = parse_cmdline_ips(pytest_config)
+    if cmdline_ips:
+        config.targets = cmdline_ips
+    cmdline_users = parse_cmdline_users(pytest_config)
+    if cmdline_users:
+        config.users = cmdline_users
 
-def create_user_config_file(targets, users, future_args=None):
-    conf_targets = []
-    for target in targets:
-        conf_targets.append({"ID": target.id, "IP": target.ip})
+    return config
 
-    conf_users = []
-    for user in users:
-        conf_users.append({"psnid": user.psnid, "email": user.email, "password": user.password})
 
-    json.dump({"targets": conf_targets, "users": conf_users}, open("skynet.user.conf",'x'), indent=4)
+def create_user_config_file(pytest_config):
+    targets = []
+    for target in parse_cmdline_ips(pytest_config):
+        targets.append({"ID": target.id, "IP": target.ip})
+
+    users = []
+    for user in parse_cmdline_users(pytest_config):
+        users.append({"psnid": user.psnid, "email": user.email, "password": user.password})
+
+    json.dump({"targets": targets, "users": users, "library_paths": "."}, open("skynet.user.conf",'x'), indent=4)
