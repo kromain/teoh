@@ -45,6 +45,7 @@ def do_setup(cmd_args, bin_dir):
             'skynet.deci',
             'skynet.osk',
             'skynet.psdriver',
+            'skynet.test',
         ],
 
         package_data={
