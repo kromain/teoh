@@ -82,6 +82,8 @@ class PSTarget(object):
         print("bla")
 
     :param String target_ip: the IP address of the target, e.g. "43.138.12.123"
+
+    :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
     """
     def __init__(self, target_ip):
         self._target_ip = target_ip
@@ -89,6 +91,9 @@ class PSTarget(object):
         self._osk = None
         self._webview = None
         self._deci_wrappers = {}
+
+        # Check target connectivity using DECI's Info protocol
+        self._deci_wrapper(Info)
 
     def __del__(self):
         self.release()
@@ -140,7 +145,6 @@ class PSTarget(object):
                             raising :class:`PSTargetInUseException`. Default is False.
 
         :raises PSTargetInUseException: if the target connection failed due to being in use
-        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         if self._dualshock is None:
             ds = DualShock(self._target_ip, force)
@@ -148,8 +152,6 @@ class PSTarget(object):
                 ds.start()
             except Netmp.InUseException as e:
                 raise PSTargetInUseException("Target already in use") from e
-            except Exception as e:
-                raise PSTargetUnreachableException("Target unreachable") from e
             else:
                 self._dualshock = ds
 
@@ -202,8 +204,6 @@ class PSTarget(object):
         This object can be accessed regardless of the connection state.
 
         :type: :class:`skynet.deci.console.Console`
-
-        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         return self._deci_wrapper(Console)
 
@@ -233,7 +233,6 @@ class PSTarget(object):
         :type: :class:`webdriver:selenium.webdriver.remote.webdriver.WebDriver`
 
         :raises PSTargetWebViewUnavailableException: if there's no active WebView on the target
-        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         if self._webview is None:
             try:
@@ -242,14 +241,6 @@ class PSTarget(object):
                 # Report psdriver server startup errors
                 raise
             except psdriver.PSDriverConnectionError as e:
-                # Distinguish between the target IP being unreachable and the target just not having a webview by
-                # checking the deci.Info wrapper. If that fails it's the target, otherwise it's the webview
-                tmp_wrapper = Info(self._target_ip)
-                try:
-                    tmp_wrapper.start()
-                except Exception:
-                    raise PSTargetUnreachableException("Target unreachable") from e
-                tmp_wrapper.stop()
                 raise PSTargetWebViewUnavailableException from e
         return self._webview
 
@@ -261,8 +252,6 @@ class PSTarget(object):
 
         :param String username: the PSN username to check for signed-in status
         :returns: True if the username is signed in to PSN on the target, False otherwise
-
-        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         return self._info.is_user_signed_in(username)
 
@@ -274,8 +263,6 @@ class PSTarget(object):
 
         :returns: The current power status for the target
         :rtype: :class:`skynet.deci.power.PowerState`
-
-        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         return self._power.power_status()
 
@@ -297,8 +284,6 @@ class PSTarget(object):
         This method can be called regardless of the connection state.
 
         :param String filepath: the saved image file path
-
-        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         self._info.get_pict(filepath)
 
@@ -307,8 +292,6 @@ class PSTarget(object):
         Triggers a reboot of the target.
 
         This method can be called regardless of the connection state.
-
-        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         self._power.reboot()
 
@@ -317,8 +300,6 @@ class PSTarget(object):
         Triggers a target shutdown.
 
         This method can be called regardless of the connection state.
-
-        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
         """
         self._power.power_off()
 

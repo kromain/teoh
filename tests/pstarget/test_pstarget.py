@@ -125,28 +125,8 @@ def test_power_functions(disconnected_pstarget_function):
 
 
 def test_invalid_target_ip():
-    target = PSTarget("0.0.0.0")
-
     with pytest.raises(PSTargetUnreachableException):
-        target.connect()
-    assert target.dualshock is None
-    assert target.osk is None
-
-    with pytest.raises(PSTargetUnreachableException):
-        target.tty.read()
-    assert Console not in target._deci_wrappers
-
-    with pytest.raises(PSTargetUnreachableException):
-        assert target.is_user_signed_in("foo")
-    assert Info not in target._deci_wrappers
-
-    with pytest.raises(PSTargetUnreachableException):
-        target.reboot()
-    assert Power not in target._deci_wrappers
-
-    with pytest.raises(PSTargetUnreachableException):
-        target.webview.refresh()
-    assert target._webview is None
+        PSTarget("0.0.0.0")
 
 
 def test_target_in_use(pytestconfig):
