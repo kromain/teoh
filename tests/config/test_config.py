@@ -16,8 +16,15 @@ Config.set_project_dir(curr_dir)
 def test_shared_config():
     conf = Config(ConfigType.SHARED)
     assert len(conf.targets) == 2
-    assert conf.targets[0].ip == "172.31.1.27" and conf.targets[1].ip == "172.31.1.28"
-    assert conf.targets[0].id == "PS4 DevKit Foo" and conf.targets[1].id == "PS4 DevKit Bla"
+    target = conf.targets[0]
+    assert target.ip == "172.31.1.27" and target.id == "PS4 DevKit Foo"
+    target = conf.targets[1]
+    assert target.ip == "172.31.1.28" and target.id == "PS4 DevKit Bla"
+    assert len(conf.users) == 2
+    user = conf.users[0]
+    assert user.psnid == "user1" and user.email == "user1@email.com" and user.password == "abcd1234"
+    user = conf.users[1]
+    assert user.psnid == "user2" and user.email == "user2@email.com" and user.password == "dcba4321"
     assert len(conf.library_paths) == 1
     assert conf.library_paths[0] == curr_dir
     assert conf.test_data
@@ -26,8 +33,11 @@ def test_shared_config():
 def test_user_config():
     conf = Config()
     assert len(conf.targets) == 1
-    assert conf.targets[0].ip == "172.31.1.67"
-    assert conf.targets[0].id == "User PS4 DevKit"
+    target = conf.targets[0]
+    assert target.ip == "172.31.1.67" and target.id == "User PS4 DevKit"
+    assert len(conf.users) == 1
+    user = conf.users[0]
+    assert user.psnid == "customuser" and user.email == "me@email.com" and user.password == "ps4rox"
     assert len(conf.library_paths) == 1
     assert conf.library_paths[0] == curr_dir
     assert conf.test_data

@@ -32,7 +32,7 @@ class PSTargetInUseException(PSTargetException):
 
 class PSTargetWebViewUnavailableException(PSTargetException):
     """
-    Represents a PSDriver connection failure when trying to connect to a webview on the target
+    Represents a connection failure when trying to connect to a webview on the target
     """
     pass
 
@@ -254,6 +254,49 @@ class PSTarget(object):
         :returns: True if the username is signed in to PSN on the target, False otherwise
         """
         return self._info.is_user_signed_in(username)
+
+    def signed_in_users(self, config):
+        """
+        Returns the list users currently signed in with PSN on the target.
+
+        Note that the list won't include users signed in the console but without a linked or signed in PSN account.
+
+        Also, this method currently only considers the list of users from the *config* argument.
+        This is due to not having access to the list of registered users on the target at the moment,
+        so the only thing that can be done is check if a particular user is signed in on the target.
+
+        This method can be called regardless of the connection state.
+
+        :param String username: the PSN username to check for signed-in status
+        :returns: True if the username is signed in to PSN on the target, False otherwise
+
+        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
+        """
+        signedin = []
+        for user in config.users:
+            if self.is_user_signed_in(user.psnid):
+                signedin.append(user.psnid)
+
+    def current_user(self, config):
+        """
+        Returns the PSN id of the current user on the target.
+
+        The current user is the one whose name is displayed at the top of the PS4 main screen. There can be multiple
+        users signed in at the same time, but only one current user at any time.
+
+        Note that this method currently only considers the list of users from the *config* argument.
+        This is due to not having access to the list of registered users on the target at the moment,
+        so the only thing that can be done is check if a particular user is signed in on the target.
+
+        This method can be called regardless of the connection state.
+
+        :param String username: the PSN username to check for signed-in status
+        :returns: True if the username is signed in to PSN on the target, False otherwise
+
+        :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
+        """
+        signedin = self.signed_in_users(config)
+        return signedin.pop() if signedin else None
 
     def power_state(self):
         """

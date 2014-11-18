@@ -15,6 +15,7 @@ class InvalidConfigError(Exception):
     """
     pass
 
+
 class ConfigType(IntEnum):
     """
     Represents the type of skynet config to load.
@@ -31,7 +32,7 @@ def _is_valid_ipv4_address(address):
     except AttributeError:  # no inet_pton here, sorry
         try:
             socket.inet_aton(address)
-        except:
+        except socket.error:
             return False
         return address.count('.') == 3
     except socket.error:  # not a valid address
@@ -71,6 +72,49 @@ class TargetConfig(object):
         return self._id
 
 
+class UserConfig(object):
+    """
+    Represents the details of a user in the *users* section of the config file.
+
+    This class provides access to the following properties for each target in the config:
+
+    * :attr:`psnid`: the user's PSN ID (the account name)
+    * :attr:`email`: the user's email (the sign-in ID)
+    * :attr:`password`: the user's password
+
+    Nb: this class is managed internally by the :class:`Config` class.
+    """
+
+    def __init__(self, psnid, email, password):
+        self._psnid = psnid
+        self._email = email
+        self._password = password
+
+    @property
+    def psnid(self):
+        """ The user's PSN ID (the account name)
+
+        :type: String
+        """
+        return self._psnid
+
+    @property
+    def email(self):
+        """ The user's email (the sign-in ID)
+
+        :type: String
+        """
+        return self._email
+
+    @property
+    def password(self):
+        """ The user's password
+
+        :type: String
+        """
+        return self._password
+
+
 class Config():
     """
     This class provides access to the contents of the Skynet configuration files.
@@ -82,7 +126,7 @@ class Config():
       usually part of the repository for the test suites, and gets checked out by all users when cloning the repo.
       This is also meant to be the config used by the CI system.
     * User config file (default: *skynet.user.conf*): this files contains user-specific settings, only applicable
-      to the user development environment. This typically includes the user's own devkit settings (IP, username...).
+      to the user development environment. This typically includes the user's own devkit settings (IP, email...).
       This file should never be checked in the test suite repository.
 
     The *config_type* constructor argument must be one of the values from the :class:`~skynet.config.config.ConfigType`
@@ -131,6 +175,7 @@ class Config():
 
     def __init__(self, config_type=ConfigType.USER, user_ext='', file_basename="skynet", file_ext="conf"):
         self._targets = []
+        self._users = []
         self._library_paths = []
         self._test_data = {}
 
@@ -166,6 +211,24 @@ class Config():
         """
         return self._targets
 
+    @targets.setter
+    def targets(self, value):
+        self._targets = value
+
+    @property
+    def users(self):
+        """ The list of users parsed from either the shared or the user config file.
+
+        Config *users* entries with missing or invalid psnid/email fields will not be included in this list.
+
+        :return: a list of :class:`UserConfig` objects
+        """
+        return self._users
+
+    @users.setter
+    def users(self, value):
+        self._users = value
+
     @property
     def library_paths(self):
         """ The list of valid library paths parsed from either the shared or the user config file.
@@ -178,6 +241,14 @@ class Config():
 
     @property
     def test_data(self):
+        """ A dictionary of arbitrary test data parsed from either the shared or the user config file.
+
+        The dictionary can contain simple values, lists, or even other dictionaries, depending on the parsed JSON data.
+
+        See https://docs.python.org/3.4/library/json.html?highlight=json#module-json for details on JSON parsing.
+
+        :return: a dict containing the parsed contents of the "test_data" section
+        """
         return self._test_data
 
     def _parse_config_file(self, file_path):
@@ -188,6 +259,7 @@ class Config():
                 raise InvalidConfigError(file_path + " format is incorrect!")
             else:
                 self._parse_targets(data)
+                self._parse_users(data)
                 self._parse_library_paths(data)
                 self._parse_test_data(data)
 
@@ -199,7 +271,7 @@ class Config():
         for i in data["targets"]:
             try:
                 target_ip = i["IP"].strip()
-            except:
+            except KeyError:
                 print("Target config is missing required attribute 'IP'! Skipping.")
                 continue
             if not _is_valid_ipv4_address(target_ip):
@@ -207,10 +279,33 @@ class Config():
                 continue
             try:
                 target_id = i["ID"].strip()
-            except:
+            except KeyError:
                 target_id = target_ip
 
             self._targets.append(TargetConfig(target_ip, target_id))
+
+    def _parse_users(self, data):
+        if "users" not in data:
+            return
+
+        self._users = []
+        for user in data["users"]:
+            try:
+                psnid = user["psnid"].strip()
+            except KeyError:
+                print("User config is missing required attribute 'psnid'! Skipping.")
+                continue
+            try:
+                email = user["email"].strip()
+            except KeyError:
+                print("User config is missing required attribute 'email'! Skipping.")
+                continue
+            try:
+                password = user["password"].strip()
+            except KeyError:
+                password = ""
+
+            self._users.append(UserConfig(psnid, email, password))
 
     def _parse_library_paths(self, data):
         if "library_paths" not in data:
