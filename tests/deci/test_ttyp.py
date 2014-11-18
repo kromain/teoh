@@ -1,67 +1,53 @@
 #!/usr/bin/env python3
-import os
+#
+# Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
+
 import time
-import pytest
 
-from skynet.deci import Netmp
 from skynet.deci.deci4 import Ttyp, TtypProt, Ctrlp
-import conftest
-
-test_target_ip = conftest.target_ip
-
-class TestTtyp:
-
-    def setup(self):
-        self.netmp = Netmp(ip=test_target_ip)
-
-        self.netmp.connect()
-
-    def teardown(self):
-        self.netmp.disconnect()
 
 
-    def test_basics(self):
-        ttyp = self.netmp.register(Ttyp)
-        assert(ttyp)
-        assert(type(ttyp) == Ttyp)
+def test_basics(netmp):
+    ttyp = netmp.register(Ttyp)
+    assert ttyp
+    assert(type(ttyp) == Ttyp)
 
-        res = ttyp.get_conf()
-        assert(res)
-        assert(res['result'] == 0)
-        assert(res['protocol'] == ttyp.prot.PROTOCOL)
-        assert(res['protocol'] == TtypProt.PROTOCOL)
+    res = ttyp.get_conf()
+    assert res
+    assert(res['result'] == 0)
+    assert(res['protocol'] == ttyp.prot.PROTOCOL)
+    assert(res['protocol'] == TtypProt.PROTOCOL)
 
-        res = ttyp.get_port_states()
-        assert(res)
+    res = ttyp.get_port_states()
+    assert res
 
-        ctrlp = self.netmp.register(Ctrlp)
-        assert(ctrlp)
+    ctrlp = netmp.register(Ctrlp)
+    assert ctrlp
 
-        # We know empirically that this generates tty messages
-        ctrlp.play_start(controller=0xffffffff)
-        ctrlp.play_data([0x10000]*8) # PS button
-        time.sleep(0.5)
-        ctrlp.play_data([0x0]*8)
-        ctrlp.play_stop()
-        time.sleep(1)
+    # We know empirically that this generates tty messages
+    ctrlp.play_start(controller=0xffffffff)
+    ctrlp.play_data([0x10000]*8)  # PS button
+    time.sleep(0.5)
+    ctrlp.play_data([0x0]*8)
+    ctrlp.play_stop()
+    time.sleep(1)
 
-        msgcount = 0
-        while True:
-            res = ttyp.read()
-            if not res:
-                break
+    msgcount = 0
+    while True:
+        res = ttyp.read()
+        if not res:
+            break
 
-            assert(res['message'])
-            assert(type(res['message']) == str)
-            assert(len(res['message']) > 0)
-            msgcount += 1
+        assert(res['message'])
+        assert(type(res['message']) == str)
+        assert(len(res['message']) > 0)
+        msgcount += 1
 
-        assert(msgcount)
+    assert msgcount
 
-        res = self.netmp.unregister(Ctrlp)
-        assert(res)
-        assert(res['result'] == 0)
-        res = self.netmp.unregister(Ttyp)
-        assert(res)
-        assert(res['result'] == 0)
-
+    res = netmp.unregister(Ctrlp)
+    assert res
+    assert(res['result'] == 0)
+    res = netmp.unregister(Ttyp)
+    assert res
+    assert(res['result'] == 0)

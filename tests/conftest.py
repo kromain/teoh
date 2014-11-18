@@ -3,17 +3,17 @@
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 
 import ipaddress
-import os
 
-# Don't remove! this makes the fixtures available to the tests without having to include them directly in here
-from tests.util.navigation import pstarget, regicam_webview
+# DO NOT DELETE - this makes the fixtures available to the tests without having to include them directly in here
+from skynet.test.fixtures import *
+from tests.util.navigation import *
 
-# global var
-target_ip = os.getenv("SKYNET_TARGET_IP", "")
 
+# DO NOT DELETE - this allows running the tests with py.test directly as an alternative to mantis-run
 def pytest_addoption(parser):
     if not parser._anonymous.options:
         parser.addoption("--ip", action="store", required=True)
+
 
 def pytest_configure(config):
     # Don't extract the --ip argument if we're running through Mantis, it's extracted in the plugin instead
@@ -25,7 +25,7 @@ def pytest_configure(config):
     try:
         ipaddress.ip_address(iparg)
     except ValueError:
-        raise # just pass the exception over if the ip address is invalid
+        raise  # just pass the exception over if the ip address is invalid
 
-    global target_ip
-    target_ip = iparg
+    # attach the ip to config the same way Mantis does it
+    config.target_ip = iparg

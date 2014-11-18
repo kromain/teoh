@@ -34,7 +34,7 @@ class MantisSession(DSession):
 
     def mantis_cmdline_ip_list(self):
         cmdline_iplist = []
-        for iparg in self.config.getoption("target_ip", default=[], skip=True):
+        for iparg in self.config.getoption("target_ips", default=[], skip=True):
             cmdline_iplist.extend(iparg.split(","))
         return cmdline_iplist
 
@@ -97,7 +97,7 @@ class MantisSession(DSession):
 # -------------------------------------------------------------------------
 
 def pytest_addoption(parser):
-    parser.addoption("--ip", action="append", dest="target_ip",
+    parser.addoption("--ip", action="append", dest="target_ips",
                      help="specify one or more ip addresses")
     parser.addoption("-S", "-G", "--shared", "--global", action="store_true", dest="skynet_shared_config",
                      help="force usage of the shared config file (ignore the user config file)")

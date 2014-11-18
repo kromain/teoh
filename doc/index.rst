@@ -101,6 +101,14 @@ When available, make sure to use those as much as possible instead of WebDriver 
 skynet package overview:
 ------------------------
 
+.. rubric:: Testing
+
+.. autosummary::
+    :toctree:
+    :nosignatures:
+
+    ~skynet.test.classes.SkynetTestCase
+
 .. rubric:: Classes
 
 .. autosummary::

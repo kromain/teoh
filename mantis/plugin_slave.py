@@ -1,4 +1,4 @@
-import skynet
+import os
 import sys
 
 from mantis.configmanager import get_skynet_config
@@ -9,6 +9,9 @@ from mantis.configmanager import get_skynet_config
 
 def pytest_configure(config, __multicall__):
     __multicall__.execute()
+
+    # extract the current target_ip and attach to config
+    config.target_ip = os.getenv("SKYNET_TARGET_IP", "")
 
     conf = get_skynet_config(config)
     # Add any specified library paths to the Python system path

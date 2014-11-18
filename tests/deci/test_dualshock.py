@@ -22,21 +22,21 @@ def dualshock_test_setup(regicam_webview):
 
     bhtml = ""
     buttonset = (
-                 (Buttons.UP, 38, "up"),
-                 (Buttons.RIGHT, 39, "right"),
-                 (Buttons.DOWN, 40, "down"),
-                 (Buttons.CROSS, 13, "cross"),
-                 (Buttons.CIRCLE, 27, "circle"),
-                 (Buttons.TRIANGLE, 112, "triangle"),
-                 (Buttons.LEFT, 37, "left"),
-                 (Buttons.SQUARE, 113, "square"),
-                 (Buttons.OPTION, 114, "option"),
-                 (Buttons.L1, 116, "L1"),
-                 (Buttons.R1, 117, "R1"),
-                 (Buttons.L2, 118, "L2"),
-                 (Buttons.R2, 119, "R2"),
-                 (Buttons.L3, 120, "L3"),
-                 (Buttons.R3, 121, "R3"))
+                (Buttons.UP, 38, "up"),
+                (Buttons.RIGHT, 39, "right"),
+                (Buttons.DOWN, 40, "down"),
+                (Buttons.CROSS, 13, "cross"),
+                (Buttons.CIRCLE, 27, "circle"),
+                (Buttons.TRIANGLE, 112, "triangle"),
+                (Buttons.LEFT, 37, "left"),
+                (Buttons.SQUARE, 113, "square"),
+                (Buttons.OPTION, 114, "option"),
+                (Buttons.L1, 116, "L1"),
+                (Buttons.R1, 117, "R1"),
+                (Buttons.L2, 118, "L2"),
+                (Buttons.R2, 119, "R2"),
+                (Buttons.L3, 120, "L3"),
+                (Buttons.R3, 121, "R3"))
     for button, val, name in buttonset:
         bhtml += '<input id="%s" type="text"/><br>' % name
     regicam_webview.webview.execute_script("document.getElementById('buttons').innerHTML = \'%s\';" % bhtml)
