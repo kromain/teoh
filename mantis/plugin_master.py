@@ -1,9 +1,10 @@
 import pytest
 import sys
 
+from mantis.scheduler import TargetScheduler
 from mantis import configmanager
-from skynet.config.config import Config
-from xdist.dsession import DSession, LoadScheduling
+from skynet import Config
+from xdist.dsession import DSession
 from xdist.slavemanage import NodeManager
 
 
@@ -66,7 +67,7 @@ class MantisSession(DSession):
 
     def pytest_runtestloop(self):
         numnodes = len(self.nodemanager.specs)
-        self.sched = LoadScheduling(numnodes, log=self.log)
+        self.sched = TargetScheduler(numnodes, log=self.log)
 
         self.shouldstop = False
         while not self.session_finished:
@@ -75,11 +76,13 @@ class MantisSession(DSession):
                 raise KeyboardInterrupt(str(self.shouldstop))
         return True
 
-    @pytest.mark.trylast
+    @pytest.mark.tryfirst
     def pytest_runtest_logreport(self, report):
         if self.config.option.verbose >= 0 and report.when == "teardown":
             format_report_output(report.sections)
-
+        if report.when == "call" and report.failed:
+            report.retry = True
+            # TODO actually retry
 
 # -------------------------------------------------------------------------
 # distributed testing initialization
@@ -104,3 +107,10 @@ def pytest_configure(config, __multicall__):
     if config.option.verbose >= 0:
         tr = config.pluginmanager.getplugin("terminalreporter")
         tr.showlongtestinfo = True
+
+
+@pytest.mark.tryfirst
+def pytest_report_teststatus(report):
+    if report.when == "call" and hasattr(report, "retry"):
+        #      category, shortletter, verbose-word
+        return "retried", "R", "RETRY"
