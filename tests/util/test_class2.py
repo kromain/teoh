@@ -2,7 +2,7 @@ from pytest import mark, skip
 from skynet import SkynetTestCase, DS
 
 
-class TestPSTestCase2(SkynetTestCase):
+class SkynetTestCase2(SkynetTestCase):
     @classmethod
     def setUpClass(cls):
         print("setupClass2")

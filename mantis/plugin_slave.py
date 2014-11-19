@@ -47,3 +47,7 @@ def pytest_configure(config, __multicall__):
     config.skynet = conf
 
     config.pluginmanager.register(MantisNode(), "mantisnode")
+
+    # Consider all classes for tests (default is only classes that start with "Test")
+    # (note that config.addinivalue_line() fails because python_classes doesn't return a list as expected)
+    config._inicache["python_classes"] = [""]
