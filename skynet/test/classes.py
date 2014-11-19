@@ -103,6 +103,22 @@ class SkynetTestCase:
         """
         pass
 
+    @classmethod
+    def skip(cls, reason=""):
+        """ Utility method to indicate that a test should be skipped
+
+        If you call this method anywhere in a test method or in :meth:`setUp`, then the test will be immediately aborted
+        and will be reported as skipped rather than failed. This is useful when some preconditions for tests aren't met.
+
+        If you call this method from :meth:`setUpClass`, then all tests for the test class will be skipped.
+
+        Note that calling skip from either :meth:`setUp` or :meth:`setUpClass` will also skip the execution of their
+        matching :meth:`tearDown` or :meth:`tearDownClass`, in conformance with how other test frameworks behave.
+
+        :param String reason: an optional string describing the reason for skipping the test
+        """
+        pytest.skip(reason)
+
     def setUp(self):
         """ Reimplement this method in your test class to add test-specific setup before each test method starts
         """

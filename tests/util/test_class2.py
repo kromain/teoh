@@ -1,4 +1,4 @@
-from pytest import mark, skip
+from pytest import mark
 from skynet import SkynetTestCase, DS
 
 
@@ -12,7 +12,7 @@ class SkynetTestCase2(SkynetTestCase):
         print("tearDownClass2")
 
     def setUp(self):
-        # skip("test")
+        # self.skip("test")
         print("setUp2")
 
     def tearDown(self):
@@ -32,5 +32,5 @@ class SkynetTestCase2(SkynetTestCase):
     def test_skipped_partly(self):
         print("test_skipped_partly")
 
-        skip("skipped partly")
+        self.skip("skipped partly")
         assert False, "this shouldn't be reached"

@@ -1,4 +1,3 @@
-from pytest import skip
 from skynet import SkynetTestCase, DS
 
 
@@ -6,7 +5,7 @@ class SkynetTestCase1(SkynetTestCase):
     @classmethod
     def setUpClass(cls):
         print("setUpClass1")
-        skip("nope")
+        cls.skip("nope")
 
     @classmethod
     def tearDownClass(cls):
