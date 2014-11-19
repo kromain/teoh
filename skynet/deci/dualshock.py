@@ -31,6 +31,9 @@ class Buttons(IntEnum):
     SHARE = 0x1  #:
     PS = 0x10000  #:
 
+    def __init__(self, value):
+        pass
+
 
 class DualShock(NetmpManager):
     """

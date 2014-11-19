@@ -43,3 +43,5 @@ class PowerState(Enum):
     GAMES_SHUTDOWN_REBOOT = 7
     ULP_MANAGER_EXITING_REBOOT = 8
 
+    def __init__(self, value):
+        pass

@@ -25,6 +25,9 @@ class ConfigType(IntEnum):
     USER = 0x0
     SHARED = 0x1
 
+    def __init__(self, value):
+        pass
+
 
 def _is_valid_ipv4_address(address):
     try:
