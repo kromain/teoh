@@ -1,9 +1,10 @@
 import pytest
 import sys
 
+from mantis.scheduler import TargetScheduler
 from mantis import configmanager
-from skynet.config.config import Config
-from xdist.dsession import DSession, LoadScheduling
+from skynet import Config
+from xdist.dsession import DSession
 from xdist.slavemanage import NodeManager
 
 
@@ -66,7 +67,7 @@ class MantisSession(DSession):
 
     def pytest_runtestloop(self):
         numnodes = len(self.nodemanager.specs)
-        self.sched = LoadScheduling(numnodes, log=self.log)
+        self.sched = TargetScheduler(numnodes, int(self.config.getoption("maxretries")), log=self.log)
 
         self.shouldstop = False
         while not self.session_finished:
@@ -75,15 +76,18 @@ class MantisSession(DSession):
                 raise KeyboardInterrupt(str(self.shouldstop))
         return True
 
-    @pytest.mark.trylast
+    @pytest.mark.tryfirst
     def pytest_runtest_logreport(self, report):
         if self.config.option.verbose >= 0 and report.when == "teardown":
             format_report_output(report.sections)
+        if report.when == "call":
+            report.retry = self.sched.update_item(report.node, report.item_index, report.failed)
 
 
 # -------------------------------------------------------------------------
 # distributed testing initialization
 # -------------------------------------------------------------------------
+
 
 def pytest_addoption(parser):
     parser.addoption("--ip", action="append", dest="target_ips",
@@ -92,8 +96,10 @@ def pytest_addoption(parser):
                      help="specify one or more user credentials, in the form psnid!email:password")
     parser.addoption("-S", "-G", "--shared", "--global", action="store_true", dest="skynet_shared_config",
                      help="force usage of the shared config file (ignore the user config file)")
-    parser.addoption("-C", "--config", dest="skynet_user_config",
+    parser.addoption("-C", "--config", action="store", dest="skynet_user_config",
                      help="specify a custom user config file extension, e.g.: skynet.<CONFIG>.conf. Default is 'user'")
+    parser.addoption("-R", "--retries", action="store", default="1", dest="maxretries",
+                     help="specify how many times to retry a failing test before marking it as failed. Default is 1")
 
 
 def pytest_configure(config, __multicall__):
@@ -104,3 +110,10 @@ def pytest_configure(config, __multicall__):
     if config.option.verbose >= 0:
         tr = config.pluginmanager.getplugin("terminalreporter")
         tr.showlongtestinfo = True
+
+
+@pytest.mark.tryfirst
+def pytest_report_teststatus(report):
+    if report.when == "call" and report.retry:
+        #      category, shortletter, verbose-word
+        return "retried", "R", "RETRY"
