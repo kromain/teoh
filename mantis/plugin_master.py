@@ -35,7 +35,6 @@ class MantisSession(DSession):
     def __init__(self, config):
         super().__init__(config)
         self._skynet_config = None
-        self._retries = {}
 
     @pytest.mark.trylast
     def pytest_sessionstart(self, session):
@@ -68,7 +67,7 @@ class MantisSession(DSession):
 
     def pytest_runtestloop(self):
         numnodes = len(self.nodemanager.specs)
-        self.sched = TargetScheduler(numnodes, log=self.log)
+        self.sched = TargetScheduler(numnodes, int(self.config.getoption("maxretries")), log=self.log)
 
         self.shouldstop = False
         while not self.session_finished:
@@ -82,14 +81,7 @@ class MantisSession(DSession):
         if self.config.option.verbose >= 0 and report.when == "teardown":
             format_report_output(report.sections)
         if report.when == "call":
-            if report.failed:
-                nretries = self._retries.get(report.item_index, 0)
-                if nretries < int(self.config.getoption("maxretries")):
-                    self._retries[report.item_index] = nretries + 1
-                    report.retry = True
-                    self.sched.retry_item(report.node, report.item_index)
-            else:
-                self._retries.pop(report.item_index, None)
+            report.retry = self.sched.update_item(report.node, report.item_index, report.failed)
 
 
 # -------------------------------------------------------------------------
@@ -122,6 +114,6 @@ def pytest_configure(config, __multicall__):
 
 @pytest.mark.tryfirst
 def pytest_report_teststatus(report):
-    if report.when == "call" and hasattr(report, "retry"):
+    if report.when == "call" and report.retry:
         #      category, shortletter, verbose-word
         return "retried", "R", "RETRY"

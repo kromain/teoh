@@ -51,10 +51,12 @@ class TargetScheduler:
 
     """
 
-    def __init__(self, numnodes, log=None):
+    def __init__(self, numnodes, maxretries, log=None):
         self.numnodes = numnodes
+        self.maxretries = maxretries
         self.node2collection = {}
         self.node2pending = {}
+        self.node2retries = {}
         self.pending = []
         self.collection = None
         if log is None:
@@ -106,6 +108,7 @@ class TargetScheduler:
         """
         assert node not in self.node2pending
         self.node2pending[node] = []
+        self.node2retries[node] = {}
 
     def tests_finished(self):
         """Return True if all tests have been executed by the nodes."""
@@ -113,6 +116,9 @@ class TargetScheduler:
             return False
         if self.pending:
             return False
+        for retries in self.node2retries.values():
+            if retries:
+                return False
         for pending in self.node2pending.values():
             if len(pending) >= 2:
                 return False
@@ -150,10 +156,23 @@ class TargetScheduler:
         self.node2pending[node].remove(item_index)
         self.check_schedule(node, duration=duration)
 
-    def retry_item(self, node, item_index):
-        # re-add to the end of the list for the node
-        self.node2pending[node].append(item_index)
-        node.send_runtest_some([item_index])
+    def update_item(self, node, item_index, failed):
+        if failed:
+            nretries = self.node2retries[node].get(item_index, 0)
+            if nretries < self.maxretries:
+                self.node2retries[node][item_index] = nretries + 1
+                # re-add to the end of the list for the node
+                self.node2pending[node].append(item_index)
+                # HACK: nodes always require at least two tests to run (the last one being run during shutdown)
+                # so if we fail on the last test and need to retry it, it won't be picked by the normal run loop
+                # and we'll be left hanging. To work around this, always send retries in pairs to guarantee
+                # the test will always be run, even if it was the last one.
+                # In parallel the Mantis slave recognizes such pairs and automatically discard the second one.
+                node.send_runtest_some([item_index,item_index])
+                return True
+        self.node2retries[node].pop(item_index, None)
+        return False
+
 
     def check_schedule(self, node, duration=0):
         """Maybe schedule new items on the node
