@@ -85,12 +85,13 @@ class PSTarget(object):
 
     :raises PSTargetUnreachableException: if the target connection failed due to being unreachable
     """
-    def __init__(self, target_ip):
+    def __init__(self, target_ip, webview_ip=None):
         self._target_ip = target_ip
         self._dualshock = None
         self._osk = None
         self._webview = None
         self._deci_wrappers = {}
+        self._webview_ip = webview_ip if webview_ip is not None else self._target_ip
 
         # Check target connectivity using DECI's Info protocol
         self._deci_wrapper(Info)
@@ -236,7 +237,7 @@ class PSTarget(object):
         """
         if self._webview is None:
             try:
-                self._webview = psdriver.server.connect(self._target_ip)
+                self._webview = psdriver.server.connect(self._webview_ip)
             except psdriver.PSDriverError:
                 # Report psdriver server startup errors
                 raise
