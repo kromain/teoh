@@ -11,6 +11,13 @@ class SkynetTestCase2(SkynetTestCase):
     def tearDownClass(cls):
         print("tearDownClass2")
 
+    def setUp(self):
+        # skip("test")
+        print("setUp2")
+
+    def tearDown(self):
+        print("tearDown2")
+
     def test_something2(self):
         print("test_something2")
         self.target.dualshock.press_buttons([DS.RIGHT, DS.LEFT])
