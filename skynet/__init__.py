@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2014 Sony Network Entertainment Intl., all rights reserved.
 
-__version__ = "0.2"
+__version__ = "0.2.1"
 
 from .config.config import Config, ConfigType, TargetConfig, UserConfig, InvalidConfigError
 from .deci.dualshock import DualShock, Buttons, Buttons as DS

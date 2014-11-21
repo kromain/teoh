@@ -27,23 +27,23 @@ Using the Mantis test runner
 ============================
 
 ```
-mantis-run --ip=<devkit_ip>[,<additional_devkit_ip>] path/to/tests
-mantis-run --ip=<devkit_ip>[,<additional_devkit_ip>] path/to/test_file.py
-mantis-run --ip=<devkit_ip>[,<additional_devkit_ip>] -k test_method
+mantis-run --ip=<devkit_ip>[,...] --user=psnid!user@email.com:pwd[,...] [--retries=N] path/to/tests
+mantis-run --ip=<devkit_ip>[,...] --user=psnid!user@email.com:pwd[,...] [--retries=N] path/to/test_file.py
+mantis-run --ip=<devkit_ip>[,...] --user=psnid!user@email.com:pwd[,...] [--retries=N] -k test_method
 ```
 
 Tests suites
 ============
 
 Tests using the Skynet core:
-* https://github.snei.sony.com/SNEI/skynet-swordfish-tests
+* https://github.snei.sony.com/SNEI/Swordfish (under test/skynet)
 * ...
 
 Creating the pip packages and generating the HTML API documentation
 ===================================================================
 
 ```
-python setup.py
+create_package.[sh,bat]
 ```
 
 The .zip and .tar.gz packages are generated under dist/
