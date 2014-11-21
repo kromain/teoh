@@ -6,7 +6,8 @@ import os
 from _pytest.runner import skip
 import pytest
 
-from skynet import PSTarget, PSTargetInUseException, PSTargetUnreachableException
+
+from skynet import psdriver, PSTarget, PSTargetInUseException, PSTargetUnreachableException
 
 
 @pytest.fixture(scope="session")
@@ -15,62 +16,71 @@ def config(request):
 
 
 @pytest.fixture(scope="session")
-def pstarget_session(request):
+def psdriver_server(request):
+    def _stop_psdriver_server():
+        _debug_log("$$$ _stop_psdriver_server")
+        psdriver.server.stop_local_server()
+    request.addfinalizer(_stop_psdriver_server)
+    return psdriver.server
+
+
+@pytest.fixture(scope="session")
+def pstarget_session(request, psdriver_server):
     return _init_pstarget(request)
 
 
 @pytest.fixture(scope="module")
-def pstarget_module(request):
+def pstarget_module(request, psdriver_server):
     return _init_pstarget(request)
 
 
 @pytest.fixture(scope="class")
-def pstarget_class(request):
+def pstarget_class(request, psdriver_server):
     return _init_pstarget(request)
 
 
 @pytest.fixture(scope="function")
-def pstarget_function(request):
+def pstarget_function(request, psdriver_server):
     return _init_pstarget(request)
 
 
 @pytest.fixture(scope="session")
-def disconnected_pstarget_session(request):
+def disconnected_pstarget_session(request, psdriver_server):
     return _init_pstarget(request, False)
 
 
 @pytest.fixture(scope="module")
-def disconnected_pstarget_module(request):
+def disconnected_pstarget_module(request, psdriver_server):
     return _init_pstarget(request, False)
 
 
 @pytest.fixture(scope="class")
-def disconnected_pstarget_class(request):
+def disconnected_pstarget_class(request, psdriver_server):
     return _init_pstarget(request, False)
 
 
 @pytest.fixture(scope="function")
-def disconnected_pstarget_function(request):
+def disconnected_pstarget_function(request, psdriver_server):
     return _init_pstarget(request, False)
 
 
 @pytest.fixture(scope="session")
-def forced_pstarget_session(request):
+def forced_pstarget_session(request, psdriver_server):
     return _init_pstarget(request, force_connection=True)
 
 
 @pytest.fixture(scope="module")
-def forced_pstarget_module(request):
+def forced_pstarget_module(request, psdriver_server):
     return _init_pstarget(request, force_connection=True)
 
 
 @pytest.fixture(scope="class")
-def forced_pstarget_class(request):
+def forced_pstarget_class(request, psdriver_server):
     return _init_pstarget(request, force_connection=True)
 
 
 @pytest.fixture(scope="function")
-def forced_pstarget_function(request):
+def forced_pstarget_function(request, psdriver_server):
     return _init_pstarget(request, force_connection=True)
 
 

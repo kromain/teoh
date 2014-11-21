@@ -374,8 +374,7 @@ def main():
     :return: zero if Skynet started successfully, non-zero otherwise
     """
     print("[08/29/1997 02:14] Skynet becomes self-aware.")
-    print("PSDriver server: {} (pid={})".format(psdriver.server.executable_path(),
-                                                psdriver.server.pid()))
+    print("PSDriver server: " + psdriver.server.executable_path())
     print("PSDriver version: " + psdriver.__version__)
     if len(sys.argv) < 2:
         print("No Target IP address specified, exiting.")
