@@ -26,6 +26,18 @@ def parse_cmdline_ips(pytest_config):
     return cmdline_iplist
 
 
+def parse_cmdline_psdriver(pytest_config):
+    cmdline_psdriver = pytest_config.getoption("psdriver", default=None, skip=True)
+    if not cmdline_psdriver:
+        return (None, None)
+
+    ip, _, port = cmdline_psdriver.partition(":")
+    if not port:
+        port = ip
+        ip = "127.0.0.1"
+    return (ip, int(port))
+
+
 def get_skynet_config(pytest_config):
     if pytest_config.getoption("skynet_shared_config", default=False, skip=True):
         conf_type = ConfigType.SHARED
