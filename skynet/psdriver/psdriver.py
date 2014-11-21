@@ -33,11 +33,11 @@ class PSDriverServer(object):
     The backend PSDriver server that handles WebDriver connections to the remote targets
     """
     def __init__(self):
-        self.server_ip = None
-        self.server_port = None
-        self.target_ip = None
-        self.target_port = None
-        self.server_handle = None
+        self._server_ip = None
+        self._server_port = None
+        self._target_ip = None
+        self._target_port = None
+        self._server_handle = None
 
     @staticmethod
     def executable_name():
@@ -59,11 +59,11 @@ class PSDriverServer(object):
                             sys.platform,
                             self.executable_name())
 
-    def pid(self):
+    def external_pid(self):
         """
         Check if the psdriver server is running and return its pid.
 
-        :note: We assume no more than one psdriver server instance running for now
+        :note: We assume only one psdriver server instance running on port 9515 for now
 
         :return: The platform-specific executable pid as an integer, or None if not running yet
         :raises PSDriverError: if the pid couldn't be queried from the OS
@@ -95,46 +95,43 @@ class PSDriverServer(object):
         pid, sep, stdout = stdout.lstrip().partition(' ')
         return int(pid)
 
+    def use_external_server(self, server_ip, server_port):
+        self._server_ip = server_ip
+        self._server_port = server_port
+
     def start_local_server(self, server_port):
         """
         Start the psdriver server on *server_port*, or do nothing if there's already a server running on that port.
 
         :param int server_port: the listening TCP port for the server
-        :return: True if we started our internal server, or False if an external server is already running
-        :raises PSDriverError: if the server couldn't be started, for example if *server_port* is invalid or in use
+        :return: True if we started our internal server, or False if *server_port* is invalid
+        :raises PSDriverError: if the server couldn't be started, for example if *server_port* is unavailable or in use
         """
-        if server_port is None:
+        if server_port is None or self._server_port is not None:
             return False
 
-        if self.pid() is None:
-            try:
-                p = subprocess.Popen([self.executable_path(),
-                                      '--port={}'.format(server_port)],
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.STDOUT)
-                # Wait up to 100ms to detect early process exit due to e.g. unavailable port
-                p.wait(0.1)
-                # TODO should we retry with the next port maybe?
-                errormsg = "Fatal error during psdriver server startup: " + p.stdout.read().decode('latin1')
-                raise PSDriverError(errormsg)
-            except TimeoutExpired:
-                # All good, this means the server is up and running
-                self.server_handle = p
-            except OSError as e:
-                errormsg = "Couldn't execute {}!".format(self.executable_path())
-                raise PSDriverError(errormsg) from e
-        else:
-            # TODO currently assumes that the running server listens on server_port,
-            # which may not always be the case. We may also have many servers on multiple ports.
-            # So we should check the ports that are actually used by the running servers
-            # and start a new instance on server_port if it wasn't bound to any server.
-            pass
+        try:
+            p = subprocess.Popen([self.executable_path(),
+                                  '--port={}'.format(server_port)],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT)
+            # Wait up to 100ms to detect early process exit due to e.g. unavailable port
+            p.wait(0.1)
+            # TODO should we retry with the next port maybe?
+            errormsg = "Fatal error during psdriver server startup: " + p.stdout.read().decode('latin1')
+            raise PSDriverError(errormsg)
+        except TimeoutExpired:
+            # All good, this means the server is up and running
+            self._server_handle = p
+        except OSError as e:
+            errormsg = "Couldn't execute {}!".format(self.executable_path())
+            raise PSDriverError(errormsg) from e
 
-        self.server_ip = '127.0.0.1'
-        self.server_port = server_port
-        return self.server_handle is not None
+        self._server_ip = '127.0.0.1'
+        self._server_port = server_port
+        return self._server_handle is not None
 
-    def stop_local_server(self, stop_external_server=False):
+    def stop_local_server(self):
         """
         Stop the psdriver server if running, do nothing otherwise.
         By default, only internal servers are stopped, this can be changed by setting *stop_external_server* to True.
@@ -142,21 +139,12 @@ class PSDriverServer(object):
         :param bool stop_external_server: if True, also stop external running servers. False by default.
         :return: True if the server was stopped, False otherwise (ie. internal server not started)
         """
-        if self.server_handle is not None:
+        if self._server_handle is not None:
             # Only terminate the subprocess if it's still alive
-            if self.server_handle.returncode is None:
-                self.server_handle.terminate()
-            self.server_handle = None
+            if self._server_handle.returncode is None:
+                self._server_handle.terminate()
+            self._server_handle = None
             return True
-
-        if stop_external_server:
-            external_pid = self.pid()
-            if external_pid is not None:
-                if _iswindows():
-                    os.kill(external_pid, signal.CTRL_C_EVENT)
-                else:
-                    os.kill(external_pid, signal.SIGTERM)
-                return True
 
         return False
 
@@ -173,8 +161,8 @@ class PSDriverServer(object):
         :raises PSDriverError: if the server couldn't be started, for example if *server_port* is already in use
         """
         if server_port is None:
-            server_port = self.server_port
-        self.stop_local_server(stop_external_server=True)
+            server_port = self._server_port
+        self.stop_local_server()
         self.start_local_server(server_port)
 
     def connect(self, target_ip, target_port=860):
@@ -187,9 +175,19 @@ class PSDriverServer(object):
             or None if the server isn't running
         :raises PSDriverConnectionError: if the connection to the target failed
         """
-        server.start_local_server(9515)
-        if self.server_ip is None or self.server_port is None:
-            return None
+
+        if self._server_port is None:
+            # Try to start our local server using the first available port >= server_port
+            next_port = 9515  # default chromedriver port (but purely arbitrary, could be anything else)
+            while True:
+                try:
+                    server.start_local_server(next_port)
+                    break
+                except PSDriverError as e:
+                    if "Port not available" in e.__str__():
+                        next_port += 1
+                    else:
+                        raise
 
         chromedriveroptions = {'debuggerAddress': "{}:{}".format(target_ip, target_port)}
         loggingoptions = {'browser': 'OFF'}
@@ -198,7 +196,7 @@ class PSDriverServer(object):
         capabilities['loggingPrefs'] = loggingoptions
 
         try:
-            driver = webdriver.Remote("http://{}:{}".format(self.server_ip, self.server_port),
+            driver = webdriver.Remote("http://{}:{}".format(self._server_ip, self._server_port),
                                       capabilities,
                                       keep_alive=True)
             # WORKAROUND for D3918, due to a bug in PSDriver (ChromeDriver), likely this:
@@ -218,8 +216,8 @@ class PSDriverServer(object):
             raise PSDriverConnectionError("Connection to target failed") from e
 
         # connection was successful, update target_ip and target_port
-        self.target_ip = target_ip
-        self.target_port = target_port
+        self._target_ip = target_ip
+        self._target_port = target_port
 
         return driver
 

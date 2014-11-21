@@ -100,6 +100,8 @@ def pytest_addoption(parser):
                      help="specify a custom user config file extension, e.g.: skynet.<CONFIG>.conf. Default is 'user'")
     parser.addoption("-R", "--retries", action="store", default="1", dest="maxretries",
                      help="specify how many times to retry a failing test before marking it as failed. Default is 1")
+    parser.addoption("--psdriver", action="store", dest="psdriver",
+                     help="specify the [ip:]port of an externally started psdriver server. Default ip is localhost")
 
 
 def pytest_configure(config, __multicall__):

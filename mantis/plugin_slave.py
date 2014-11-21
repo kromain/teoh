@@ -1,8 +1,10 @@
 import os
 import sys
 import pytest
+from mantis import configmanager
 
 from mantis.configmanager import get_skynet_config
+from skynet import psdriver
 
 
 class MantisNode:
@@ -38,6 +40,11 @@ def pytest_configure(config, __multicall__):
 
     # extract the current target_ip and attach to config
     config.target_ip = os.getenv("SKYNET_TARGET_IP", "")
+
+    # check for external psdriver server setting
+    psdriver_ip, psdriver_port = configmanager.parse_cmdline_psdriver(config)
+    if psdriver_ip and psdriver_port:
+        psdriver.server.use_external_server(psdriver_ip, psdriver_port)
 
     conf = get_skynet_config(config)
     # Add any specified library paths to the Python system path
