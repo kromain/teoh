@@ -144,6 +144,8 @@ class PSDriverServer(object):
             if self._server_handle.returncode is None:
                 self._server_handle.terminate()
             self._server_handle = None
+            self._server_ip = None
+            self._server_port = None
             return True
 
         return False
