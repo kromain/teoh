@@ -1,6 +1,7 @@
 from pytest import mark
 from skynet import SkynetTestCase, DS
 
+incvar = 0
 
 class SkynetTestCase2(SkynetTestCase):
     @classmethod
@@ -24,6 +25,9 @@ class SkynetTestCase2(SkynetTestCase):
         print(self.target.webview.title)
 
     def test_somethingelse2(self):
+        global incvar
+        incvar += 1
+        assert incvar == 3
         print("test_somethingelse2")
         print(self.target.webview.title)
 
