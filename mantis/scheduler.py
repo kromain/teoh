@@ -120,7 +120,7 @@ class TargetScheduler:
             if retries:
                 return False
         for pending in self.node2pending.values():
-            if len(pending) >= 2:
+            if pending:
                 return False
         return True
 
@@ -145,60 +145,35 @@ class TargetScheduler:
                 return
         self.node2collection[node] = list(collection)
 
-    def remove_item(self, node, item_index, duration=0):
-        """Mark test item as completed by node
-
-        The duration it took to execute the item is used as a hint to
-        the scheduler.
-
-        This is called by the ``DSession.slave_testreport`` hook.
-        """
-        self.node2pending[node].remove(item_index)
-        self.check_schedule(node, duration=duration)
-
     def update_item(self, node, item_index, failed):
+        self.node2pending[node].remove(item_index)
+
         if failed:
             nretries = self.node2retries[node].get(item_index, 0)
             if nretries < self.maxretries:
                 self.node2retries[node][item_index] = nretries + 1
                 # re-add to the end of the list for the node
                 self.node2pending[node].append(item_index)
-                # HACK: nodes always require at least two tests to run (the last one being run during shutdown)
-                # so if we fail on the last test and need to retry it, it won't be picked by the normal run loop
-                # and we'll be left hanging. To work around this, always send retries in pairs to guarantee
-                # the test will always be run, even if it was the last one.
-                # In parallel the Mantis slave recognizes such pairs and automatically discard the second one.
-                node.send_runtest_some([item_index,item_index])
+                node.send_runtest_some([item_index])
                 return True
         self.node2retries[node].pop(item_index, None)
+
+        if not self.node2pending[node] and not self.node2retries[node]:
+            self.dispatch_next_test_class(node)
         return False
 
-
-    def check_schedule(self, node, duration=0):
-        """Maybe schedule new items on the node
-
-        If there are any globally pending nodes left then this will
-        check if the given node should be given any more tests.  The
-        ``duration`` of the last test is optionally used as a
-        heuristic to influence how many tests the node is assigned.
+    def dispatch_next_test_class(self, node, duration=0):
         """
-        if self.pending:
-            # how many nodes do we have?
-            num_nodes = len(self.node2pending)
-            # if our node goes below a heuristic minimum, fill it out to
-            # heuristic maximum
-            items_per_node_min = max(2, len(self.pending) // num_nodes // 4)
-            items_per_node_max = max(2, len(self.pending) // num_nodes // 2)
-            node_pending = self.node2pending[node]
-            if len(node_pending) < items_per_node_min:
-                if duration >= 0.1 and len(node_pending) >= 2:
-                    # seems the node is doing long-running tests
-                    # and has enough items to continue
-                    # so let's rather wait with sending new items
-                    return
-                num_send = items_per_node_max - len(node_pending)
-                self._send_tests(node, num_send)
-        self.log("num items waiting for node:", len(self.pending))
+            Dispatch the test methods for a single test class to a node
+        """
+        if not self.pending:
+            return
+
+        classprefix, _, _ = self.collection[self.pending[0]].rpartition("::")
+        batchsize = 1
+        while batchsize < len(self.pending) and self.collection[self.pending[batchsize]].startswith(classprefix):
+            batchsize += 1
+        self._send_tests(node, batchsize)
 
     def remove_node(self, node):
         """Remove an node from the scheduler
@@ -220,17 +195,12 @@ class TargetScheduler:
         # The node crashed, reassing pending items
         crashitem = self.collection[pending.pop(0)]
         self.pending.extend(pending)
-        for node in self.node2pending:
-            self.check_schedule(node)
         return crashitem
 
     def init_distribute(self):
         """Initiate distribution of the test collection
 
-        Initiate scheduling of the items across the nodes.  If this
-        gets called again later it behaves the same as calling
-        ``.check_schedule()`` on all nodes so that newly added nodes
-        will start to be used.
+        Initiate scheduling of the items across the nodes.
 
         This is called by the ``DSession.slave_collectionfinish`` hook
         if ``.collection_is_completed`` is True.
@@ -238,12 +208,6 @@ class TargetScheduler:
         XXX Perhaps this method should have been called ".schedule()".
         """
         assert self.collection_is_completed
-
-        # Initial distribution already happend, reschedule on all nodes
-        if self.collection is not None:
-            for node in self.nodes:
-                self.check_schedule(node)
-            return
 
         # XXX allow nodes to have different collections
         if not self._check_nodes_have_same_collection():
@@ -256,13 +220,9 @@ class TargetScheduler:
         if not self.collection:
             return
 
-        # how many items per node do we have about?
-        items_per_node = len(self.collection) // len(self.node2pending)
-        # take a fraction of tests for initial distribution
-        node_chunksize = max(items_per_node // 4, 2)
-        # and initialize each node with a chunk of tests
+        # Start sending tests to each available node
         for node in self.nodes:
-            self._send_tests(node, node_chunksize)
+            self.dispatch_next_test_class(node)
 
     def _send_tests(self, node, num):
         tests_per_node = self.pending[:num]

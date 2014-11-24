@@ -76,13 +76,23 @@ class MantisSession(DSession):
                 raise KeyboardInterrupt(str(self.shouldstop))
         return True
 
+    def slave_testreport(self, node, rep):
+        """Emitted when a node calls the pytest_runtest_logreport hook.
+
+        If the node indicates it is finished with a test item remove
+        the item from the pending list in the scheduler. Also check for failed items and retry them if needed
+        """
+        if rep.when == "call" or (rep.when == "setup" and not rep.passed):
+            rep.retry = self.sched.update_item(node, rep.item_index, rep.failed)
+        rep.node = node
+        self.config.hook.pytest_runtest_logreport(report=rep)
+        self._handlefailures(rep)
+
+
     @pytest.mark.tryfirst
     def pytest_runtest_logreport(self, report):
         if self.config.option.verbose >= 0 and report.when == "teardown":
             format_report_output(report.sections)
-        if report.when == "call":
-            report.retry = self.sched.update_item(report.node, report.item_index, report.failed)
-
 
 # -------------------------------------------------------------------------
 # distributed testing initialization
