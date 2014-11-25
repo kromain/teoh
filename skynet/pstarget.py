@@ -277,6 +277,7 @@ class PSTarget(object):
         for user in config.users:
             if self.is_user_signed_in(user.psnid):
                 signedin.append(user.psnid)
+        return signedin
 
     def current_user(self, config):
         """
